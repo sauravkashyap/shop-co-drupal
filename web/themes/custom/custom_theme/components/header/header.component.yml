@@ -1,0 +1,15 @@
+name: Header
+props:
+  type: object
+  properties:
+    logo_text:
+      type: string
+      title: Logo Text
+    search_placeholder:
+      type: string
+      title: Search Placeholder
+slots:
+  navigation:
+    title: Navigation Menu
+  utilities:
+    title: Utility Icons

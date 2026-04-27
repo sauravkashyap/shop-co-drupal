@@ -1,0 +1,33 @@
+{# Main Layout Template #}
+<div class="layout-container">
+
+  {# Render the Top Header region (contains the dynamic Announcement Bar) #}
+  {% if page.top_header %}
+    <div class="region-top-header">
+      {{ page.top_header }}
+    </div>
+  {% endif %}
+
+  {{ attach_library('custom_theme/header') }}
+  {% embed 'custom_theme:header' with {
+    logo_text: 'SHOP.CO',
+    search_placeholder: 'Search for products...'
+  } only %}
+    {% block navigation %}
+      {{ page.header }}
+    {% endblock %}
+  {% endembed %}
+
+  <main role="main">
+    <div class="container">
+      {{ page.content }}
+    </div>
+  </main>
+
+  {% if page.footer %}
+    <footer role="contentinfo">
+      {{ page.footer }}
+    </footer>
+  {% endif %}
+
+</div>

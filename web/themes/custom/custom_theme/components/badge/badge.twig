@@ -1,0 +1,8 @@
+{% set classes = [
+  'badge',
+  variant ? 'badge--' ~ variant : 'badge--default',
+] %}
+
+<span {{ attributes.addClass(classes) }}>
+  {{ label }}
+</span>

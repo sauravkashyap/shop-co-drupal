@@ -1,0 +1,16 @@
+{% set classes = [
+  'button',
+  variant ? 'button--' ~ variant : 'button--primary',
+] %}
+
+{% if url %}
+  <a href="{{ url }}" {{ attributes.addClass(classes) }}>
+    {{ text|default('') }}
+    {% block default %}{% endblock %}
+  </a>
+{% else %}
+  <button type="{{ type|default('button') }}" {{ attributes.addClass(classes) }}>
+    {{ text|default('') }}
+    {% block default %}{% endblock %}
+  </button>
+{% endif %}

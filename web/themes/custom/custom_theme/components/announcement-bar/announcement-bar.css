@@ -1,0 +1,51 @@
+.announcement-bar {
+  background-color: var(--color-black, #000000);
+  color: var(--color-white, #FFFFFF);
+  padding: 9px 0; /* Total height ~38px with text */
+  font-family: var(--font-family-body, 'Open Sans', sans-serif);
+  font-size: 14px;
+  line-height: 1.2;
+  position: relative;
+  z-index: 100;
+}
+
+.announcement-bar__content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.announcement-bar__text {
+  text-align: center;
+  flex: 1;
+}
+
+.announcement-bar__link {
+  color: var(--color-white, #FFFFFF);
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: 4px;
+  transition: opacity 0.2s ease;
+}
+
+.announcement-bar__link:hover {
+  opacity: 0.8;
+}
+
+.announcement-bar__close {
+  position: absolute;
+  right: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: none; /* Hidden by default unless requested */
+}
+
+@media (min-width: 768px) {
+  .announcement-bar__close {
+    display: block;
+  }
+}

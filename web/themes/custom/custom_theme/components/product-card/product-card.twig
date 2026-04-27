@@ -1,0 +1,29 @@
+<div class="product-card">
+  <div class="product-card__image-wrapper">
+    <a href="{{ url }}">
+      <img src="{{ image_url }}" alt="{{ title }}" class="product-card__image">
+    </a>
+  </div>
+  
+  <div class="product-card__content">
+    <h3 class="product-card__title">
+      <a href="{{ url }}">{{ title }}</a>
+    </h3>
+    
+    <div class="product-card__rating">
+      {# Star icons would go here, simplified for now #}
+      <span class="product-card__rating-stars">★★★★☆</span>
+      <span class="product-card__rating-value">{{ rating_count }}</span>
+    </div>
+    
+    <div class="product-card__price-row">
+      <span class="product-card__price">{{ price }}</span>
+      {% if original_price %}
+        <span class="product-card__price-original">{{ original_price }}</span>
+      {% endif %}
+      {% if discount %}
+        <span class="product-card__discount-badge">{{ discount }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Functions to support theming in the Custom Theme.
+ */
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function custom_theme_preprocess_page(&$variables) {
+  // Logic for data.json linking removed as per user request.
+}

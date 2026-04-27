@@ -1,0 +1,14 @@
+# Ignore Drupal and DDEV specific files
+/vendor/
+/web/core/
+/web/modules/contrib/
+/web/themes/contrib/
+/web/profiles/contrib/
+/web/libraries/
+/web/sites/*/settings.local.php
+/web/sites/*/services.local.yml
+/web/sites/*/files/
+/.ddev/
+.DS_Store
+node_modules
+*.log

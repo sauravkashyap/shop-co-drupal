@@ -1,0 +1,59 @@
+<header class="site-header">
+  <div class="container">
+    <div class="header-main">
+      {# Mobile Menu Toggle (Left on Mobile) #}
+      <button class="mobile-menu-toggle" aria-label="Menu">
+        <img src="/themes/custom/custom_theme/components/header/assets/frame.svg" alt="" width="24" height="24">
+      </button>
+
+      {# Logo #}
+      <div class="header-logo">
+        <a href="/" class="logo-link">{{ logo_text|default('SHOP.CO') }}</a>
+      </div>
+
+      {# Navigation (Frame 2) - Desktop Only #}
+      <nav class="header-nav desktop-only">
+        <ul class="main-menu">
+          <li>
+            <a href="/shop" class="main-menu__link">
+              Shop
+              <svg class="nav-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </li>
+          <li><a href="/on-sale" class="main-menu__link">On Sale</a></li>
+          <li><a href="/new-arrivals" class="main-menu__link">New Arrivals</a></li>
+          <li><a href="/brands" class="main-menu__link">Brands</a></li>
+        </ul>
+      </nav>
+
+      {# Search Bar (Frame 3) - Desktop/Tablet Only #}
+      <div class="header-search desktop-only">
+        <div class="search-inner">
+          <img src="/themes/custom/custom_theme/components/header/assets/frame-1.svg" alt="" class="search-icon">
+          <input type="text" placeholder="{{ search_placeholder|default('Search for products...') }}" class="search-input">
+        </div>
+      </div>
+
+      {# Utility Icons (Frame 5) #}
+      <div class="header-utilities">
+        <div class="utility-icons">
+          {# Mobile Search Trigger #}
+          <button class="mobile-search-trigger mobile-only">
+            <img src="/themes/custom/custom_theme/components/header/assets/frame-1.svg" alt="Search" width="24" height="24">
+          </button>
+          
+          <a href="/cart" class="utility-icon">
+            <img src="/themes/custom/custom_theme/components/header/assets/frame-2.svg" alt="Cart" width="24" height="24">
+          </a>
+          <a href="/profile" class="utility-icon">
+            <img src="/themes/custom/custom_theme/components/header/assets/frame-3.svg" alt="Profile" width="24" height="24">
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+

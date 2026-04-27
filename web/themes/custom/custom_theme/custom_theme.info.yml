@@ -1,0 +1,15 @@
+name: Custom Theme
+type: theme
+description: 'A generic custom theme for components.'
+core_version_requirement: ^11
+package: Custom
+base theme: starterkit_theme
+
+libraries:
+  - custom_theme/global-styling
+
+regions:
+  top_header: 'Top Header'
+  header: Header
+  content: Content
+  footer: Footer

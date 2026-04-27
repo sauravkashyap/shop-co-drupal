@@ -1,0 +1,29 @@
+name: Product Card
+description: A card displaying product information.
+props:
+  type: object
+  properties:
+    image_url:
+      type: string
+      title: Image URL
+    title:
+      type: string
+      title: Product Title
+    rating:
+      type: number
+      title: Rating
+    rating_count:
+      type: string
+      title: Rating Count
+    price:
+      type: string
+      title: Current Price
+    original_price:
+      type: string
+      title: Original Price
+    discount:
+      type: string
+      title: Discount Percentage
+    url:
+      type: string
+      title: Product URL

@@ -1,0 +1,14 @@
+{# Block template for Announcement Bar Block Type #}
+{{ attach_library('custom_theme/announcement-bar') }}
+{% set block_entity = elements['#block_content'] %}
+
+{# ROBUST DYNAMIC CONNECTION #}
+{% set text = content.field_announcement_text|render|striptags|trim %}
+{% set link_text = content.field_announcement_link.0['#title'] ?: block_entity.field_announcement_link.title %}
+{% set link_url = block_entity.field_announcement_link.0.url.toString() ?: '/' %}
+
+{{ include('custom_theme:announcement-bar', {
+  text: text,
+  link_text: link_text,
+  link_url: link_url
+}) }}

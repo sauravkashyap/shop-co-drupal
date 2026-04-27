@@ -1,0 +1,13 @@
+name: Badge
+description: A small badge for labels and status.
+props:
+  type: object
+  properties:
+    label:
+      type: string
+      title: Label
+    variant:
+      type: string
+      title: Variant
+      default: default
+      enum: [default, sale, new, rating]

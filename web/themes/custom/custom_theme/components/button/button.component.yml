@@ -1,0 +1,27 @@
+name: Button
+description: A standard button for the Shop.co theme.
+props:
+  type: object
+  properties:
+    type:
+      type: string
+      title: HTML Type
+      default: button
+      enum: [button, submit, reset]
+    variant:
+      type: string
+      title: Variant
+      default: primary
+      enum: [primary, secondary, outline]
+    text:
+      type: string
+      title: Text
+    url:
+      type: string
+      title: URL
+    icon:
+      type: string
+      title: Icon
+slots:
+  default:
+    title: Content
