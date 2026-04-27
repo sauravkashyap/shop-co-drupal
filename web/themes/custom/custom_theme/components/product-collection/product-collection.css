@@ -1,9 +1,6 @@
 .product-collection {
-  padding: 72px 16px;
+  padding: 65px 0 57px 0;
   width: 100%;
-  max-width: 1272px; /* 1240px content + 32px padding */
-  margin: 0 auto;
-  box-sizing: border-box;
 }
 
 .product-collection__title {
@@ -12,6 +9,7 @@
   font-size: 48px;
   font-weight: 900;
   text-transform: uppercase;
+  margin-top: 0;
   margin-bottom: 48px;
   color: var(--color-black);
 }
@@ -49,7 +47,7 @@
 /* Mobile Adjustments */
 @media (max-width: 991px) {
   .product-collection {
-    padding: 50px 16px;
+    padding: 50px 0;
   }
   
   .product-collection__title {
@@ -64,22 +62,38 @@
 }
 
 @media (max-width: 480px) {
+  .product-collection {
+    padding: 40px 0;
+  }
+
+  .product-collection__title {
+    margin-bottom: 27px;
+  }
+
   .product-collection__grid {
-    /* Optional: horizontal scroll on very small screens or just stack */
     display: flex;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 16px;
-    padding-right: 16px;
     gap: 16px;
-    padding-bottom: 20px; /* space for scrollbar */
+    margin-bottom: 24px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .product-collection__grid::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
   }
 
   .product-collection__item {
     min-width: 198px; /* Based on Figma mobile card width */
     flex-shrink: 0;
     scroll-snap-align: start;
+  }
+
+  .btn--outline {
+    width: 100%;
+    text-align: center;
+    padding: 12px 24px;
   }
 }

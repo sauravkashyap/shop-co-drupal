@@ -1,21 +1,23 @@
 <section{{ attributes.addClass('product-collection') }}>
-  {{ title_prefix }}
-  {% if title %}
-    <h2 class="product-collection__title">{{ title }}</h2>
-  {% endif %}
-  {{ title_suffix }}
-  
-  <div class="product-collection__grid">
-    {% for product in products %}
-      <div class="product-collection__item">
-        {{ product }}
-      </div>
-    {% endfor %}
-  </div>
-
-  {% if view_all_url and view_all_text %}
-    <div class="product-collection__actions">
-      <a href="{{ view_all_url }}" class="btn btn--outline">{{ view_all_text }}</a>
+  <div class="container">
+    {{ title_prefix }}
+    {% if title %}
+      <h2 class="product-collection__title">{{ title }}</h2>
+    {% endif %}
+    {{ title_suffix }}
+    
+    <div class="product-collection__grid">
+      {% for product in products %}
+        <div class="product-collection__item">
+          {{ product }}
+        </div>
+      {% endfor %}
     </div>
-  {% endif %}
+
+    {% if view_all_url and view_all_text %}
+      <div class="product-collection__actions">
+        <a href="{{ view_all_url }}" class="btn btn--outline">{{ view_all_text }}</a>
+      </div>
+    {% endif %}
+  </div>
 </section>
