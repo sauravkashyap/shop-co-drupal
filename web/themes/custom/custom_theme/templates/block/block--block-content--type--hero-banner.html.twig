@@ -6,16 +6,20 @@
  * This template "glues" the Hero Banner SDC component to the Drupal Block fields.
  */
 #}
-{% set stats_data = [] %}
-{% for item in content.field_stats['#items'] %}
-  {% set stat_entity = item.entity %}
-  {% if stat_entity %}
-    {% set stats_data = stats_data|merge([{
-      'value': stat_entity.field_stat_value.value,
-      'label': stat_entity.field_stat_label.value
-    }]) %}
-  {% endif %}
-{% endfor %}
+{% set stats_data = [
+  {
+    'value': content.field_stat_1_value|render|striptags|trim,
+    'label': content.field_stat_1_label|render|striptags|trim
+  },
+  {
+    'value': content.field_stat_2_value|render|striptags|trim,
+    'label': content.field_stat_2_label|render|striptags|trim
+  },
+  {
+    'value': content.field_stat_3_value|render|striptags|trim,
+    'label': content.field_stat_3_label|render|striptags|trim
+  }
+] %}
 
 {% set background_url = null %}
 {% if content.field_background_image[0] %}
