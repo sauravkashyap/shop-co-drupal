@@ -179,13 +179,14 @@
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease-out, padding 0.3s;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
     z-index: 99;
+    border-bottom: 0 solid rgba(0,0,0,0.1); /* Start with no border */
   }
 
   .is-menu-open .header-nav {
     max-height: 500px;
     padding: 20px;
+    border-bottom-width: 1px; /* Only show when open */
   }
 
   .main-menu {
