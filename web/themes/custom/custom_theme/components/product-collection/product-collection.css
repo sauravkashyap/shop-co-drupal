@@ -1,0 +1,85 @@
+.product-collection {
+  padding: 72px 16px;
+  width: 100%;
+  max-width: 1272px; /* 1240px content + 32px padding */
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.product-collection__title {
+  text-align: center;
+  font-family: var(--font-family-headings);
+  font-size: 48px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+  color: var(--color-black);
+}
+
+.product-collection__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 36px;
+}
+
+.product-collection__actions {
+  display: flex;
+  justify-content: center;
+}
+
+/* Base button styles if not covered by global css */
+.btn--outline {
+  display: inline-block;
+  padding: 16px 54px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 62px;
+  color: var(--color-black);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.btn--outline:hover {
+  background-color: var(--color-black);
+  color: var(--color-white);
+}
+
+/* Mobile Adjustments */
+@media (max-width: 991px) {
+  .product-collection {
+    padding: 50px 16px;
+  }
+  
+  .product-collection__title {
+    font-size: 32px;
+    margin-bottom: 32px;
+  }
+  
+  .product-collection__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-collection__grid {
+    /* Optional: horizontal scroll on very small screens or just stack */
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    gap: 16px;
+    padding-bottom: 20px; /* space for scrollbar */
+  }
+
+  .product-collection__item {
+    min-width: 198px; /* Based on Figma mobile card width */
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+}

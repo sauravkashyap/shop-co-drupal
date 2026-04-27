@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Theme override for a block content - Product Collection.
+ */
+#}
+{% set collection_title = content.field_title[0] ?? '' %}
+{% set view_all_url = content.field_view_all_link[0]['#url'] ?? '' %}
+{% set view_all_text = content.field_view_all_link[0]['#title'] ?? '' %}
+
+{% set rendered_products = [] %}
+{% if content.field_products %}
+  {% for key, item in content.field_products %}
+    {% if key|first != '#' %}
+      {% set rendered_products = rendered_products|merge([item]) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<div{{ attributes }}>
+  {% include 'custom_theme:product-collection' with {
+    title: collection_title,
+    products: rendered_products,
+    view_all_url: view_all_url,
+    view_all_text: view_all_text
+  } only %}
+</div>

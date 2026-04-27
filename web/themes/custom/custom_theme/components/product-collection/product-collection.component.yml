@@ -1,0 +1,15 @@
+name: Product Collection
+description: 'Displays a section of product cards with a title and view all link.'
+props:
+  type: object
+  properties:
+    title:
+      type: string
+    products:
+      type: array
+      items:
+        type: object
+    view_all_url:
+      type: string
+    view_all_text:
+      type: string
