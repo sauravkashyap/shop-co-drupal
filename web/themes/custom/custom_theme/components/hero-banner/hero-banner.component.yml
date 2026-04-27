@@ -1,0 +1,38 @@
+name: Hero Banner
+description: A full-width hero banner with background image, title, description, CTA, and statistics.
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
+    description:
+      type: string
+      title: Description
+    cta_text:
+      type: string
+      title: Button Text
+    cta_url:
+      type: string
+      title: Button URL
+    stats:
+      type: array
+      title: Statistics
+      items:
+        type: object
+        properties:
+          value:
+            type: string
+            title: Stat Value (e.g. 200+)
+          label:
+            type: string
+            title: Stat Label (e.g. International Brands)
+    background_image:
+      type: string
+      title: Background Image URL
+    star_large:
+      type: string
+      title: Star Large URL
+    star_small:
+      type: string
+      title: Star Small URL

@@ -1,0 +1,33 @@
+{#
+/**
+ * @file
+ * Theme override for the Hero Banner block.
+ *
+ * This template "glues" the Hero Banner SDC component to the Drupal Block fields.
+ */
+#}
+{% set stats_data = [] %}
+{% for item in content.field_stats['#items'] %}
+  {% set stat_entity = item.entity %}
+  {% if stat_entity %}
+    {% set stats_data = stats_data|merge([{
+      'value': stat_entity.field_stat_value.value,
+      'label': stat_entity.field_stat_label.value
+    }]) %}
+  {% endif %}
+{% endfor %}
+
+{% set background_url = null %}
+{% if content.field_background_image[0] %}
+  {% set background_url = file_url(content.field_background_image['#items'].entity.uri.value) %}
+{% endif %}
+
+{% embed 'custom_theme:hero-banner' with {
+  title: content.field_title|render|striptags|trim,
+  description: content.field_description|render|striptags|trim,
+  cta_text: content.field_cta[0]['#title'],
+  cta_url: content.field_cta[0]['#url'].toString(),
+  stats: stats_data,
+  background_image: background_url
+} %}
+{% endembed %}

@@ -1,0 +1,38 @@
+<section class="hero-banner" style="background-image: url('{{ background_image|default('/themes/custom/custom_theme/components/hero-banner/assets/rectangle-2.png') }}');">
+  <div class="container hero-container">
+    <div class="hero-content">
+      <h1 class="hero-title">{{ title|default('FIND CLOTHES THAT MATCHES YOUR STYLE') }}</h1>
+      <p class="hero-description">{{ description|default('Browse through our diverse range of meticulously crafted garments, designed to bring out your individuality and cater to your sense of style.') }}</p>
+      
+      <div class="hero-cta">
+        <a href="{{ cta_url|default('/shop') }}" class="btn btn-primary hero-btn">
+          {{ cta_text|default('Shop Now') }}
+        </a>
+      </div>
+
+      <div class="hero-stats">
+        {% set default_stats = [
+          {'value': '200+', 'label': 'International Brands'},
+          {'value': '2,000+', 'label': 'High-Quality Products'},
+          {'value': '30,000+', 'label': 'Happy Customers'}
+        ] %}
+        
+        {% for stat in stats|default(default_stats) %}
+          <div class="stat-item">
+            <span class="stat-value">{{ stat.value }}</span>
+            <span class="stat-label">{{ stat.label }}</span>
+          </div>
+          {% if not loop.last %}
+            <div class="stat-divider"></div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Decorative Stars #}
+    <div class="hero-decorations">
+      <img src="{{ star_large|default('/themes/custom/custom_theme/components/hero-banner/assets/vector.svg') }}" alt="" class="star star-large">
+      <img src="{{ star_small|default('/themes/custom/custom_theme/components/hero-banner/assets/vector-1.svg') }}" alt="" class="star star-small">
+    </div>
+  </div>
+</section>
