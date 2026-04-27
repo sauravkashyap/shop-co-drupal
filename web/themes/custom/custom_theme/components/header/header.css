@@ -143,18 +143,20 @@
 /* Mobile Overrides (768px) */
 @media (max-width: 768px) {
   .site-header {
-    padding: 20px 0; /* From mobile _sectionHint */
+    padding: 20px 0;
+    background: #fff;
   }
 
   .mobile-only { display: flex; }
-  .desktop-only { display: none; }
   
   .mobile-menu-toggle {
     display: flex;
+    order: -1; /* Keep on left */
   }
 
   .header-main {
     gap: 12px;
+    position: relative;
   }
 
   .header-logo {
@@ -163,10 +165,45 @@
   }
 
   .logo-link {
-    font-size: 25.2px; /* From Figma Mobile */
+    font-size: 25.2px;
+  }
+
+  /* Mobile Nav Dropdown */
+  .header-nav {
+    position: absolute;
+    top: 100%;
+    left: -20px; /* Adjust for container padding */
+    right: -20px;
+    background: #fff;
+    padding: 0 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    z-index: 99;
+  }
+
+  .is-menu-open .header-nav {
+    max-height: 500px;
+    padding: 20px;
+  }
+
+  .main-menu {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .main-menu__link {
+    font-size: 18px;
+    font-weight: 500;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .utility-icons {
     gap: 12px;
   }
+
+  /* Standard desktop-only/mobile-only classes still apply for other elements */
+  .desktop-only { display: none; }
 }
