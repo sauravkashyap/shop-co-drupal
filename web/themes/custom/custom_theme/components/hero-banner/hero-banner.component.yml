@@ -29,7 +29,10 @@ props:
             title: Stat Label (e.g. International Brands)
     background_image:
       type: string
-      title: Background Image URL
+      title: Background Image (Desktop)
+    background_image_mobile:
+      type: string
+      title: Background Image (Mobile)
     star_large:
       type: string
       title: Star Large URL

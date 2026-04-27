@@ -11,5 +11,9 @@ libraries:
 regions:
   top_header: 'Top Header'
   header: Header
+  breadcrumb: Breadcrumb
+  help: Help
+  messages: Messages
+  tabs: Tabs
   content: Content
   footer: Footer

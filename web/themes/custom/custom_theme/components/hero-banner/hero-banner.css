@@ -6,29 +6,40 @@
   background-position: right center;
   background-repeat: no-repeat;
   display: flex;
-  align-items: center;
   position: relative;
   overflow: hidden;
-  padding: 40px 0;
 }
 
-.hero-container {
+.hero-inner {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 16px;
   position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.hero-content-wrapper {
+  max-width: 596px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding: 80px 0;
   z-index: 2;
 }
 
-.hero-content {
-  max-width: 595px; /* From Frame 128 width */
+.hero-text-content {
   display: flex;
   flex-direction: column;
-  gap: 32px; /* From Frame 127 itemSpacing */
+  gap: 32px;
 }
 
 .hero-title {
   font-family: 'Integral CF', 'Inter', sans-serif;
   font-size: 64px;
   font-weight: 900;
-  line-height: 1; /* From lineHeight 64 / fontSize 64 */
+  line-height: 1;
   color: #000000;
   margin: 0;
   text-transform: uppercase;
@@ -36,7 +47,7 @@
 
 .hero-description {
   font-size: 16px;
-  line-height: 1.375; /* 22/16 */
+  line-height: 1.375;
   color: rgba(0, 0, 0, 0.6);
   margin: 0;
   max-width: 545px;
@@ -53,20 +64,20 @@
   font-size: 16px;
   font-weight: 500;
   text-decoration: none;
-  transition: opacity 0.2s;
+  transition: background-color 0.2s;
   min-width: 210px;
 }
 
 .hero-btn:hover {
-  opacity: 0.8;
+  background-color: #333;
 }
 
 .hero-stats {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 32px;
-  margin-top: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .stat-item {
@@ -94,8 +105,8 @@
   background: rgba(0, 0, 0, 0.1);
 }
 
-/* Decorations */
-.hero-decorations {
+/* Desktop Decorations */
+.hero-decorations-desktop {
   position: absolute;
   top: 0;
   left: 0;
@@ -111,62 +122,139 @@
 .star-large {
   width: 104px;
   height: 104px;
-  right: 100px;
+  right: 16px;
   top: 86px;
 }
 
 .star-small {
   width: 56px;
   height: 56px;
-  right: 580px;
-  top: 297px; /* Adjusted based on Frame 129 context */
+  right: 480px;
+  top: 297px;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .hero-title {
-    font-size: 48px;
-  }
-  
-  .hero-banner {
-    background-position: 80% center;
-  }
+/* Mobile Image Hidden on Desktop */
+.hero-mobile-image-wrapper {
+  display: none;
 }
 
+/* Mobile Specifics (390px - 768px) */
 @media (max-width: 768px) {
   .hero-banner {
     min-height: auto;
-    background-position: center bottom;
-    padding-top: 40px;
-    padding-bottom: 0;
-    text-align: left;
+    background-image: none !important;
+    background-color: #F2F0F1;
     display: block;
-    background-image: none !important; /* Hide background image on mobile if we want the stacking model image */
+    padding: 0;
   }
 
-  .hero-content {
+  .hero-inner {
+    display: block;
+    padding: 40px 0 0 0; /* Remove container padding for full width image */
+  }
+
+  .hero-content-wrapper {
     max-width: 100%;
-    gap: 24px;
+    gap: 24px; /* Description to Button */
+    padding: 0 16px;
+  }
+
+  .hero-text-content {
+    gap: 20px; /* Title to Description */
   }
 
   .hero-title {
     font-size: 36px;
+    line-height: 1.1;
+  }
+
+  .hero-description {
+    font-size: 14px;
+    line-height: 20px;
   }
 
   .hero-btn {
     width: 100%;
+    min-width: unset;
   }
 
+  /* 2+1 Statistics Grid Layout */
   .hero-stats {
-    justify-content: center;
-    gap: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 32px; /* 12px vertical gap between stat rows */
+    padding: 0 16px;
+    margin-top: 20px; /* Button to Stats gap */
+    position: relative;
+    z-index: 10;
   }
 
   .stat-divider {
     display: none;
   }
-  
-  .hero-decorations {
+
+  .stat-item {
+    align-items: center;
+    text-align: center;
+  }
+
+  .stat-item-3 {
+    grid-column: span 2;
+    margin-top: 8px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  /* Mobile Image Correction (390x448) */
+  .hero-mobile-image-wrapper {
+    display: block;
+    width: 100%;
+    height: 448px;
+    margin-top: -7px; /* EXACT OVERLAP FROM FIGMA */
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .hero-mobile-image {
+    width: 100%;
+    height: 100%;
+    background-size: 100% auto;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+
+  .hero-decorations-desktop {
     display: none;
+  }
+
+  .hero-decorations-mobile {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .star-large-mobile {
+    width: 76px;
+    height: 76px;
+    right: 20px;
+    top: 40px;
+  }
+
+  .star-small-mobile {
+    width: 44px;
+    height: 44px;
+    left: 27px;
+    top: 137px;
   }
 }

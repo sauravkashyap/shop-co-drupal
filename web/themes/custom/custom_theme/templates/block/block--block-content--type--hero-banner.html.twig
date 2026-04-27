@@ -2,36 +2,41 @@
 /**
  * @file
  * Theme override for the Hero Banner block.
- *
- * This template "glues" the Hero Banner SDC component to the Drupal Block fields.
  */
 #}
-{% set stats_data = [
-  {
-    'value': content.field_stat_1_value|render|striptags|trim,
-    'label': content.field_stat_1_label|render|striptags|trim
-  },
-  {
-    'value': content.field_stat_2_value|render|striptags|trim,
-    'label': content.field_stat_2_label|render|striptags|trim
-  },
-  {
-    'value': content.field_stat_3_value|render|striptags|trim,
-    'label': content.field_stat_3_label|render|striptags|trim
-  }
-] %}
+{% set block_content = elements.content['#block_content'] %}
 
+{# Extract Stats #}
+{% set stats_data = [] %}
+{% for i in 1..3 %}
+  {% set val = attribute(block_content, 'field_stat_' ~ i ~ '_value').value %}
+  {% set lab = attribute(block_content, 'field_stat_' ~ i ~ '_label').value %}
+  {% if val or lab %}
+    {% set stats_data = stats_data|merge([{ 'value': val, 'label': lab }]) %}
+  {% endif %}
+{% endfor %}
+
+{# Extract Desktop Media Image URL #}
 {% set background_url = null %}
-{% if content.field_background_image[0] %}
-  {% set background_url = file_url(content.field_background_image['#items'].entity.uri.value) %}
+{% set media_desktop = block_content.field_media_background_desktop.entity %}
+{% if media_desktop and media_desktop.field_media_image.entity %}
+  {% set background_url = file_url(media_desktop.field_media_image.entity.uri.value) %}
+{% endif %}
+
+{# Extract Mobile Media Image URL #}
+{% set background_mobile_url = null %}
+{% set media_mobile = block_content.field_media_background_mobile.entity %}
+{% if media_mobile and media_mobile.field_media_image.entity %}
+  {% set background_mobile_url = file_url(media_mobile.field_media_image.entity.uri.value) %}
 {% endif %}
 
 {% embed 'custom_theme:hero-banner' with {
-  title: content.field_title|render|striptags|trim,
-  description: content.field_description|render|striptags|trim,
-  cta_text: content.field_cta[0]['#title'],
-  cta_url: content.field_cta[0]['#url'].toString(),
+  title: block_content.field_title.value,
+  description: block_content.field_description.value,
+  cta_text: block_content.field_cta.title,
+  cta_url: block_content.field_cta.0.url,
   stats: stats_data,
-  background_image: background_url
+  background_image: background_url,
+  background_image_mobile: background_mobile_url
 } %}
 {% endembed %}

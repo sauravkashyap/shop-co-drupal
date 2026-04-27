@@ -19,9 +19,15 @@
   {% endembed %}
 
   <main role="main">
-    <div class="container">
-      {{ page.content }}
+    <div class="container admin-controls">
+      {{ page.breadcrumb }}
+      {{ page.highlighted }}
+      {{ page.help }}
+      {{ page.messages }}
+      {{ page.tabs }}
     </div>
+
+    {{ page.content }}
   </main>
 
   {% if page.footer %}
