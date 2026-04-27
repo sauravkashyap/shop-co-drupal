@@ -1,0 +1,117 @@
+.browse-by-style {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+.browse-by-style__wrapper {
+  background-color: #F0F0F0;
+  border-radius: 40px;
+  padding: 70px 64px 76px 64px;
+}
+
+.browse-by-style__title {
+  text-align: center;
+  font-family: var(--font-family-headings);
+  font-size: 48px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-top: 0;
+  margin-bottom: 64px;
+  color: var(--color-black);
+}
+
+.browse-by-style__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.style-card {
+  display: block;
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  text-decoration: none;
+  height: 289px; /* From Figma design height */
+  transition: transform 0.3s ease;
+}
+
+.style-card:hover {
+  transform: translateY(-5px);
+}
+
+.style-card__title {
+  position: absolute;
+  top: 25px;
+  left: 36px;
+  margin: 0;
+  font-family: var(--font-family-base); /* Or headings if specified */
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--color-black);
+  z-index: 2;
+}
+
+.style-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* Dynamic Bento Grid Layout */
+/* Item 1: Casual ~407px */
+.style-card:nth-child(4n + 1) {
+  width: calc(37.3% - 10px);
+}
+
+/* Item 2: Formal ~684px */
+.style-card:nth-child(4n + 2) {
+  width: calc(62.7% - 10px);
+}
+
+/* Item 3: Party ~684px */
+.style-card:nth-child(4n + 3) {
+  width: calc(62.7% - 10px);
+}
+
+/* Item 4: Gym ~407px */
+.style-card:nth-child(4n + 4) {
+  width: calc(37.3% - 10px);
+}
+
+/* Responsive Styles */
+@media (max-width: 991px) {
+  .browse-by-style__wrapper {
+    padding: 40px 24px;
+    border-radius: 20px;
+  }
+  
+  .browse-by-style__title {
+    font-size: 32px;
+    line-height: 36px;
+    margin-bottom: 28px;
+  }
+}
+
+@media (max-width: 768px) {
+  .browse-by-style__grid {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .style-card:nth-child(n) {
+    width: 100%; /* Override all bento widths on mobile */
+    height: 190px; /* Adjust height for mobile */
+  }
+
+  .style-card__title {
+    font-size: 24px;
+    top: 16px; /* From y: 16 in json */
+    left: 24px; /* From x: 24 in json */
+  }
+}

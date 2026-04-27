@@ -1,0 +1,17 @@
+<section{{ attributes.addClass('browse-by-style') }}>
+  <div class="container">
+    <div class="browse-by-style__wrapper">
+      <h2 class="browse-by-style__title">{{ title|default('BROWSE BY dress STYLE') }}</h2>
+      <div class="browse-by-style__grid">
+        {% for style in styles %}
+          <a href="{{ style.url|default('#') }}" class="style-card">
+            <h3 class="style-card__title">{{ style.name }}</h3>
+            {% if style.image_url %}
+              <img src="{{ style.image_url }}" alt="{{ style.name }}" class="style-card__image" loading="lazy">
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>

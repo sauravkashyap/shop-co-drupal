@@ -1,0 +1,11 @@
+{#
+/**
+ * @file
+ * Theme override for a block content - Browse By Style.
+ */
+#}
+<div{{ attributes }}>
+  {% include 'custom_theme:browse-by-style' with {
+    styles: browse_styles
+  } only %}
+</div>

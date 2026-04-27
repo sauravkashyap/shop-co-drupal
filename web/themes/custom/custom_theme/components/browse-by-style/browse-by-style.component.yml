@@ -1,0 +1,26 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/10.1.x/core/assets/schemas/v1/metadata.schema.json
+name: Browse By Style
+status: experimental
+group: General
+description: 'A section displaying dress styles in a bento box layout.'
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
+      description: 'The title of the section'
+      default: 'BROWSE BY dress STYLE'
+    styles:
+      type: array
+      title: Styles
+      description: 'Array of style objects (name, image_url, url)'
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+          image_url:
+            type: string
+          url:
+            type: string
