@@ -1,0 +1,37 @@
+{#
+/**
+ * @file
+ * Theme override for the Brand Bar block.
+ */
+#}
+<div{{ attributes }} style="position:relative;">
+  {{ title_prefix }}
+  {% if label %}
+    <h2{{ title_attributes }}>{{ label }}</h2>
+  {% endif %}
+  {{ title_suffix }}
+
+  {% set block_content = elements.content['#block_content'] ?? null %}
+  {% set logos_data = [] %}
+
+  {% if block_content and block_content.field_brand_logos is defined %}
+    {% for item in block_content.field_brand_logos %}
+      {% set media = item.entity %}
+      {% if media and media.field_media_image.entity %}
+        {% set logos_data = logos_data|merge([{
+          'url': file_url(media.field_media_image.entity.uri.value),
+          'alt': media.name.value
+        }]) %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% include 'custom_theme:brand-bar' with {
+    'logos': logos_data
+  } %}
+</div>
+
+
+
+
+

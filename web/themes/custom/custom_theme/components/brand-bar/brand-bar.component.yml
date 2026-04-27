@@ -1,0 +1,14 @@
+name: Brand Bar
+description: A horizontal bar displaying brand logos.
+props:
+  type: object
+  properties:
+    logos:
+      type: array
+      items:
+        type: object
+        properties:
+          url:
+            type: string
+          alt:
+            type: string

@@ -1,0 +1,86 @@
+/* =============================================================================
+   Brand Bar — Desktop
+   Frame 132: 1440 × 122px | 5 logos in a single row, space-between
+   ============================================================================= */
+.brand-bar {
+  background-color: #000000;
+  width: 100%;
+  padding: 42px 0; /* (122 - 38) / 2 = 42px to hit 122px total height */
+  position: relative; /* Required for Drupal contextual edit button */
+}
+
+.brand-bar__inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.brand-bar__logo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-bar__logo img {
+  max-width: 100%;
+  height: auto;
+  filter: brightness(0) invert(1); /* Convert black SVGs to white */
+}
+
+/* =============================================================================
+   Brand Bar — Mobile & Tablet Responsive Adjustments
+   ============================================================================= */
+
+/* Tablet (max-width: 991px) */
+@media (max-width: 991px) {
+  .brand-bar {
+    padding: 32px 0;
+  }
+  
+  .brand-bar__inner {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 32px 48px;
+  }
+  
+  .brand-bar__logo {
+    width: calc(33.333% - 48px);
+    min-width: 120px;
+  }
+}
+
+/* Mobile (max-width: 767px) - 3 logos top, 2 logos bottom */
+@media (max-width: 767px) {
+  .brand-bar {
+    padding: 32px 16px;
+    height: auto;
+  }
+  
+  .brand-bar__inner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 24px 16px;
+  }
+  
+  /* Force 3 items per row by setting width to roughly 33% minus gap */
+  .brand-bar__logo {
+    width: calc(33.333% - 16px);
+    min-width: 0;
+    max-width: 130px; /* Don't let them get too huge */
+    display: flex;
+    justify-content: center;
+    padding: 0;
+  }
+  
+  /* For the last two items, if we want them centered on the second row, 
+     flex-wrap and justify-content: center handles this automatically! */
+  .brand-bar__logo:nth-child(n+4) {
+    /* Slightly wider on the bottom row to match Figma proportions */
+    width: calc(50% - 24px);
+    max-width: 140px;
+  }
+}

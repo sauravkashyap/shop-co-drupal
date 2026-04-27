@@ -4,39 +4,48 @@
  * Theme override for the Hero Banner block.
  */
 #}
-{% set block_content = elements.content['#block_content'] %}
-
-{# Extract Stats #}
-{% set stats_data = [] %}
-{% for i in 1..3 %}
-  {% set val = attribute(block_content, 'field_stat_' ~ i ~ '_value').value %}
-  {% set lab = attribute(block_content, 'field_stat_' ~ i ~ '_label').value %}
-  {% if val or lab %}
-    {% set stats_data = stats_data|merge([{ 'value': val, 'label': lab }]) %}
+<div{{ attributes }}>
+  {{ title_prefix }}
+  {% if label %}
+    <h2{{ title_attributes }}>{{ label }}</h2>
   {% endif %}
-{% endfor %}
+  {{ title_suffix }}
 
-{# Extract Desktop Media Image URL #}
-{% set background_url = null %}
-{% set media_desktop = block_content.field_media_background_desktop.entity %}
-{% if media_desktop and media_desktop.field_media_image.entity %}
-  {% set background_url = file_url(media_desktop.field_media_image.entity.uri.value) %}
-{% endif %}
+  {% set block_content = elements.content['#block_content'] %}
 
-{# Extract Mobile Media Image URL #}
-{% set background_mobile_url = null %}
-{% set media_mobile = block_content.field_media_background_mobile.entity %}
-{% if media_mobile and media_mobile.field_media_image.entity %}
-  {% set background_mobile_url = file_url(media_mobile.field_media_image.entity.uri.value) %}
-{% endif %}
+  {# Extract Stats #}
+  {% set stats_data = [] %}
+  {% for i in 1..3 %}
+    {% set val = attribute(block_content, 'field_stat_' ~ i ~ '_value').value %}
+    {% set lab = attribute(block_content, 'field_stat_' ~ i ~ '_label').value %}
+    {% if val or lab %}
+      {% set stats_data = stats_data|merge([{ 'value': val, 'label': lab }]) %}
+    {% endif %}
+  {% endfor %}
 
-{% embed 'custom_theme:hero-banner' with {
-  title: block_content.field_title.value,
-  description: block_content.field_description.value,
-  cta_text: block_content.field_cta.title,
-  cta_url: block_content.field_cta.0.url,
-  stats: stats_data,
-  background_image: background_url,
-  background_image_mobile: background_mobile_url
-} %}
-{% endembed %}
+  {# Extract Desktop Media Image URL #}
+  {% set background_url = null %}
+  {% set media_desktop = block_content.field_media_background_desktop.entity %}
+  {% if media_desktop and media_desktop.field_media_image.entity %}
+    {% set background_url = file_url(media_desktop.field_media_image.entity.uri.value) %}
+  {% endif %}
+
+  {# Extract Mobile Media Image URL #}
+  {% set background_mobile_url = null %}
+  {% set media_mobile = block_content.field_media_background_mobile.entity %}
+  {% if media_mobile and media_mobile.field_media_image.entity %}
+    {% set background_mobile_url = file_url(media_mobile.field_media_image.entity.uri.value) %}
+  {% endif %}
+
+  {% embed 'custom_theme:hero-banner' with {
+    title: block_content.field_title.value,
+    description: block_content.field_description.value,
+    cta_text: block_content.field_cta.title,
+    cta_url: block_content.field_cta.0.url,
+    stats: stats_data,
+    background_image: background_url,
+    background_image_mobile: background_mobile_url
+  } %}
+  {% endembed %}
+</div>
+

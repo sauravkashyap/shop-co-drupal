@@ -1,0 +1,9 @@
+<section class="brand-bar">
+  <div class="brand-bar__inner container">
+    {% for logo in logos %}
+      <div class="brand-bar__logo">
+        <img src="{{ logo.url }}" alt="{{ logo.alt }}">
+      </div>
+    {% endfor %}
+  </div>
+</section>

@@ -11,3 +11,13 @@
 function custom_theme_preprocess_page(&$variables) {
   // Logic for data.json linking removed as per user request.
 }
+/**
+ * Implements hook_page_attachments().
+ */
+function custom_theme_page_attachments(array &$attachments) {
+  // Always attach our layout builder fix if we are on a layout route.
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (str_contains($route_name, 'layout_builder')) {
+    $attachments['#attached']['library'][] = 'custom_theme/layout-builder-fix';
+  }
+}

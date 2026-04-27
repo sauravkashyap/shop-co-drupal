@@ -4,5 +4,8 @@ global-styling:
       css/tokens.css: {}
       css/style.css: {}
 
-# SDC components automatically include their CSS/JS files.
-# No need to define them here unless they need special dependencies.
+layout-builder-fix:
+  css:
+    theme:
+      css/style.css: {}
+
