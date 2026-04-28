@@ -1,0 +1,54 @@
+<footer class="site-footer">
+  <div class="site-footer__container">
+    <div class="site-footer__top">
+      <div class="site-footer__brand">
+        <h2 class="site-footer__logo">SHOP.CO</h2>
+        <p class="site-footer__description">{{ company_description }}</p>
+        <div class="site-footer__socials">
+          <a href="#" class="site-footer__social-link"><img src="/themes/custom/custom_theme/components/footer/assets/vector.svg" alt="Twitter"></a>
+          <a href="#" class="site-footer__social-link site-footer__social-link--dark"><img src="/themes/custom/custom_theme/components/footer/assets/vector-1.svg" alt="Facebook"></a>
+          <a href="#" class="site-footer__social-link"><img src="/themes/custom/custom_theme/components/footer/assets/vector-2.svg" alt="Instagram"></a>
+          <a href="#" class="site-footer__social-link"><img src="/themes/custom/custom_theme/components/footer/assets/vector-4.svg" alt="GitHub"></a>
+        </div>
+      </div>
+      
+      <div class="site-footer__nav">
+        <div class="site-footer__nav-column">
+          <h3 class="site-footer__nav-title">Company</h3>
+          {% block footer_company %}
+            {{ footer_company }}
+          {% endblock %}
+        </div>
+        <div class="site-footer__nav-column">
+          <h3 class="site-footer__nav-title">Help</h3>
+          {% block footer_help %}
+            {{ footer_help }}
+          {% endblock %}
+        </div>
+        <div class="site-footer__nav-column">
+          <h3 class="site-footer__nav-title">FAQ</h3>
+          {% block footer_faq %}
+            {{ footer_faq }}
+          {% endblock %}
+        </div>
+        <div class="site-footer__nav-column">
+          <h3 class="site-footer__nav-title">Resources</h3>
+          {% block footer_resources %}
+            {{ footer_resources }}
+          {% endblock %}
+        </div>
+      </div>
+    </div>
+    
+    <div class="site-footer__bottom">
+      <p class="site-footer__copyright">Shop.co © 2000-2023, All Rights Reserved</p>
+      <div class="site-footer__payments">
+        <img src="/themes/custom/custom_theme/components/footer/assets/badge.svg" alt="Visa">
+        <img src="/themes/custom/custom_theme/components/footer/assets/badge-1.svg" alt="Mastercard">
+        <img src="/themes/custom/custom_theme/components/footer/assets/badge-2.svg" alt="Paypal">
+        <img src="/themes/custom/custom_theme/components/footer/assets/badge-3.svg" alt="Apple Pay">
+        <img src="/themes/custom/custom_theme/components/footer/assets/badge-4.svg" alt="GPay">
+      </div>
+    </div>
+  </div>
+</footer>

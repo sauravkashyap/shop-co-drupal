@@ -1,0 +1,28 @@
+name: Happy Customers
+props:
+  type: object
+  properties:
+    title:
+      type: string
+    testimonials:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+          text:
+            type: string
+          rating:
+            type: integer
+          verified:
+            type: boolean
+library:
+  css:
+    component:
+      happy-customers.css: {}
+  js:
+    happy-customers.js: {}
+  dependencies:
+    - core/drupal
+    - custom_theme/swiper

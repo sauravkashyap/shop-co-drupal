@@ -9,3 +9,16 @@ layout-builder-fix:
     theme:
       css/style.css: {}
 
+
+swiper:
+  remote: https://swiperjs.com/
+  version: 11.0.0
+  license:
+    name: MIT
+    url: https://github.com/nolimits4web/swiper/blob/master/LICENSE
+    gpl-compatible: true
+  css:
+    theme:
+      https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css: { type: external, minified: true }
+  js:
+    https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js: { type: external, minified: true }

@@ -41,6 +41,31 @@ function custom_theme_preprocess_block(&$variables) {
       }
       $variables['browse_styles'] = $styles;
     }
+    elseif ($block_content && $block_content->bundle() === 'happy_customers') {
+      \Drupal::logger('custom_theme')->notice('Processing happy_customers block');
+      $testimonials = [];
+      $query = \Drupal::entityQuery('node')
+        ->condition('type', 'testimonial')
+        ->condition('status', 1)
+        ->sort('created', 'DESC')
+        ->range(0, 15)
+        ->accessCheck(TRUE);
+      $nids = $query->execute();
+      
+      if (!empty($nids)) {
+        $nodes = \Drupal\node\Entity\Node::loadMultiple($nids);
+        foreach ($nodes as $node) {
+          $testimonials[] = [
+            'name' => $node->getTitle(),
+            'text' => $node->get('body')->value,
+            'rating' => $node->hasField('field_rating') ? (int) $node->get('field_rating')->value : 5,
+            'verified' => $node->hasField('field_verified') ? (bool) $node->get('field_verified')->value : TRUE,
+          ];
+        }
+      }
+      $variables['testimonials'] = $testimonials;
+      \Drupal::logger('custom_theme')->notice('Found @count testimonials', ['@count' => count($testimonials)]);
+    }
   }
 }
 

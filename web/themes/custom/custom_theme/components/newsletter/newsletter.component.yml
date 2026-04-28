@@ -1,0 +1,14 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/10.1.x/core/assets/schemas/v1/metadata.schema.json
+name: Newsletter
+description: Newsletter subscription block matching the Figma design.
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
+      description: The bold title of the newsletter section.
+slots:
+  form:
+    title: Form
+    description: The Drupal webform slot.

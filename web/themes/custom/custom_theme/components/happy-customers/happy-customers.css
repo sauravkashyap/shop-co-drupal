@@ -1,0 +1,149 @@
+.happy-customers {
+  position: relative;
+  padding: 40px 0;
+  overflow: hidden;
+}
+
+/* White gradient fade on the left and right edges */
+.happy-customers::before,
+.happy-customers::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 15%;
+  max-width: 200px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.happy-customers::before {
+  left: 0;
+  background: linear-gradient(to right, #FFFFFF 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.happy-customers::after {
+  right: 0;
+  background: linear-gradient(to left, #FFFFFF 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.happy-customers__header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+}
+
+.happy-customers__title {
+  font-family: 'Integral CF', sans-serif;
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 1;
+  color: #000;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.happy-customers__navigation {
+  display: flex;
+  gap: 16px;
+}
+
+.happy-customers__nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.happy-customers__nav-btn:hover {
+  opacity: 0.7;
+}
+
+.happy-customers__slider {
+  padding-bottom: 20px;
+  overflow: visible !important;
+}
+
+.testimonial-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  padding: 28px 32px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.testimonial-card__rating {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.testimonial-card__author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.testimonial-card__name {
+  font-weight: 700;
+  font-size: 20px;
+  color: #000;
+}
+
+.testimonial-card__verified {
+  display: flex;
+  align-items: center;
+}
+
+.testimonial-card__text {
+  font-size: 16px;
+  line-height: 1.4;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .happy-customers__title {
+    font-size: 32px;
+    line-height: 36px;
+  }
+
+  .happy-customers__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .happy-customers__navigation {
+    align-self: flex-end;
+  }
+
+  .testimonial-card {
+    padding: 24px;
+  }
+
+  .testimonial-card__name {
+    font-size: 16px;
+  }
+
+  .testimonial-card__text {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .testimonial-card__rating svg {
+    width: 19px;
+    height: 19px;
+  }
+}
