@@ -1,0 +1,209 @@
+.newsletter-wrapper {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 100px;
+}
+
+.newsletter {
+  background-color: #000000;
+  border-radius: 20px;
+  padding: 36px 64px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1240px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
+}
+
+.newsletter__title {
+  font-family: 'Integral CF', sans-serif;
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 45px;
+  color: #FFFFFF;
+  margin: 0;
+  flex: 1;
+  max-width: 551px;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.newsletter__form-wrapper {
+  width: 349px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.newsletter__input-group {
+  background-color: #FFFFFF;
+  border-radius: 62px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.newsletter__input-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.4;
+}
+
+.newsletter__input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  color: #000000;
+  width: 100%;
+  margin-left: 12px;
+  font-family: inherit;
+}
+
+.newsletter__input::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.newsletter__submit {
+  background-color: #FFFFFF;
+  border-radius: 62px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+  width: 100%;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.newsletter__submit:hover {
+  background-color: #F0F0F0;
+}
+
+/* Specific overrides for Drupal Webform inside newsletter */
+.newsletter .newsletter__form-wrapper .newsletter-email-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  color: #000000;
+  width: 100%;
+  margin-left: 12px;
+  font-family: inherit;
+  padding: 0;
+  box-shadow: none;
+}
+
+.newsletter .newsletter__form-wrapper .newsletter-submit-btn {
+  background-color: #FFFFFF;
+  border-radius: 62px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+  width: 100%;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.newsletter .newsletter__form-wrapper .newsletter-submit-btn:hover {
+  background-color: #F0F0F0;
+}
+
+/* Drupal Webform wrapper resets */
+.newsletter__form-wrapper form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.newsletter__form-wrapper .js-form-item {
+  margin: 0;
+  background-color: #FFFFFF;
+  border-radius: 62px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  position: relative;
+}
+
+.newsletter__form-wrapper .js-form-item::before {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-image: url('/themes/custom/custom_theme/components/newsletter/assets/envelope.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+  opacity: 0.4;
+}
+
+.newsletter__form-wrapper .form-actions {
+  margin: 0;
+}
+
+@media (max-width: 992px) {
+  .newsletter {
+    padding: 36px 32px;
+  }
+  .newsletter__title {
+    font-size: 32px;
+    line-height: 38px;
+  }
+}
+
+@media (max-width: 768px) {
+  .newsletter-wrapper {
+    padding: 0 16px;
+  }
+  
+  .newsletter {
+    flex-direction: column;
+    padding: 32px 24px;
+    gap: 32px;
+    align-items: center;
+    text-align: center;
+    border-radius: 20px;
+  }
+
+  .newsletter__title {
+    font-size: 32px;
+    line-height: 35px;
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .newsletter__form-wrapper {
+    width: 100%;
+  }
+
+  .newsletter .newsletter__form-wrapper .newsletter-email-input {
+    height: 42px;
+  }
+
+  .newsletter .newsletter__form-wrapper .js-form-item {
+    height: 42px;
+  }
+
+  .newsletter .newsletter__form-wrapper .newsletter-submit-btn {
+    height: 42px;
+  }
+}

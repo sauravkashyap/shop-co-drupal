@@ -1,0 +1,8 @@
+<form{{ attributes }}>
+  {{ title_prefix }}
+  {% include 'custom_theme:newsletter' with {
+    title: element['#title'],
+    form: children
+  } only %}
+  {{ title_suffix }}
+</form>
