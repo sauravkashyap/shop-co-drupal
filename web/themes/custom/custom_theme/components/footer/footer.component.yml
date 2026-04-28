@@ -1,0 +1,23 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/10.1.x/core/assets/schemas/v1/metadata.schema.json
+name: Footer
+description: Footer block matching the Figma design.
+props:
+  type: object
+  properties:
+    company_description:
+      type: string
+      title: Company Description
+      default: "We have clothes that suits your style and which you're proud to wear. From women to men."
+slots:
+  footer_company:
+    title: Company Menu
+    description: Company links
+  footer_help:
+    title: Help Menu
+    description: Help links
+  footer_faq:
+    title: FAQ Menu
+    description: FAQ links
+  footer_resources:
+    title: Resources Menu
+    description: Resources links

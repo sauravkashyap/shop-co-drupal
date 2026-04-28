@@ -1,0 +1,21 @@
+<div class="newsletter-wrapper">
+  <section class="newsletter">
+    <h2 class="newsletter__title">{{ title|default('STAY UPTO DATE ABOUT OUR LATEST OFFERS') }}</h2>
+    <div class="newsletter__form-wrapper">
+      {% if form %}
+        {% block form %}
+          {{ form }}
+        {% endblock %}
+      {% else %}
+        <!-- Dummy markup for preview -->
+        <div class="newsletter__form">
+          <div class="newsletter__input-group">
+            <img src="/themes/custom/custom_theme/components/newsletter/assets/envelope.svg" alt="Email Icon" class="newsletter__input-icon">
+            <input type="email" placeholder="Enter your email address" class="newsletter__input" />
+          </div>
+          <button type="submit" class="newsletter__submit">Subscribe to Newsletter</button>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
