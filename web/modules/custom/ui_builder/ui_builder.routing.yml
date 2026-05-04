@@ -1,0 +1,31 @@
+entity.ui_builder_component.collection:
+  path: '/admin/structure/ui-builder-components'
+  defaults:
+    _entity_list: 'ui_builder_component'
+    _title: 'UI Builder Components'
+  requirements:
+    _permission: 'administer ui builder components'
+
+entity.ui_builder_component.add_form:
+  path: '/admin/structure/ui-builder-components/add'
+  defaults:
+    _entity_form: 'ui_builder_component.add'
+    _title: 'Add UI Builder Component'
+  requirements:
+    _permission: 'administer ui builder components'
+
+entity.ui_builder_component.edit_form:
+  path: '/admin/structure/ui-builder-components/{ui_builder_component}'
+  defaults:
+    _entity_form: 'ui_builder_component.edit'
+    _title: 'Edit UI Builder Component'
+  requirements:
+    _permission: 'administer ui builder components'
+
+entity.ui_builder_component.delete_form:
+  path: '/admin/structure/ui-builder-components/{ui_builder_component}/delete'
+  defaults:
+    _entity_form: 'ui_builder_component.delete'
+    _title: 'Delete UI Builder Component'
+  requirements:
+    _permission: 'administer ui builder components'

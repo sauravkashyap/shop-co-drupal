@@ -1,0 +1,6 @@
+entity.ui_builder_component.collection:
+  title: 'UI Builder Components'
+  parent: system.admin_structure
+  description: 'Manage components for the UI Builder module.'
+  route_name: entity.ui_builder_component.collection
+  weight: 99

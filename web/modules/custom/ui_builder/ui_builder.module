@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for UI Builder module.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function ui_builder_theme($existing, $type, $theme, $path) {
+  return [
+    'field__ui_builder_clean' => [
+      'render element' => 'element',
+      'template' => 'field--ui-builder-clean',
+      'base hook' => 'field',
+    ],
+    'block__ui_builder_clean' => [
+      'render element' => 'elements',
+      'template' => 'block--ui-builder-clean',
+      'base hook' => 'block',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_theme_suggestions_field_alter().
+ */
+function ui_builder_theme_suggestions_field_alter(array &$suggestions, array $variables) {
+  if (isset($variables['element']['#field_type']) && $variables['element']['#field_type'] === 'ui_builder_json') {
+    // Add our highly specific suggestion to the end so it takes priority.
+    $suggestions[] = 'field__ui_builder_clean';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_block_alter().
+ */
+function ui_builder_theme_suggestions_block_alter(array &$suggestions, array $variables) {
+  // Check if the block contains our ui_builder_json field.
+  // Layout Builder puts the field render array inside 'content'.
+  if (isset($variables['elements']['content']['#field_type']) && $variables['elements']['content']['#field_type'] === 'ui_builder_json') {
+    // Add our highly specific block suggestion to strip the block wrappers.
+    $suggestions[] = 'block__ui_builder_clean';
+  }
+}
+

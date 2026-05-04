@@ -1,0 +1,24 @@
+ui_builder.ui_builder_component.*:
+  type: config_entity
+  label: 'UI Builder Component'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    template:
+      type: string
+      label: 'HTML Template'
+    css:
+      type: string
+      label: 'Custom CSS'
+    javascript:
+      type: string
+      label: 'Custom Javascript'
+    fields:
+      type: string
+      label: 'Field Definitions (JSON)'
+    uuid:
+      type: string
