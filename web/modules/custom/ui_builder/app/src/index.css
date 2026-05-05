@@ -1,0 +1,9 @@
+/* Reset and global styles for the builder app */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#ui-builder-react-app {
+  width: 100%;
+}

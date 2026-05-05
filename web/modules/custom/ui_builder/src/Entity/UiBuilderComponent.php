@@ -33,6 +33,14 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "add-form" = "/admin/structure/ui-builder-components/add",
  *     "edit-form" = "/admin/structure/ui-builder-components/{ui_builder_component}",
  *     "delete-form" = "/admin/structure/ui-builder-components/{ui_builder_component}/delete"
+ *   },
+ *   config_export = {
+ *     "id",
+ *     "label",
+ *     "layout_tree",
+ *     "css",
+ *     "javascript",
+ *     "form_schema"
  *   }
  * )
  */
@@ -53,11 +61,11 @@ class UiBuilderComponent extends ConfigEntityBase {
   protected $label;
 
   /**
-   * The HTML template.
+   * The Layout Tree (JSON).
    *
    * @var string
    */
-  protected $template;
+  protected $layout_tree;
 
   /**
    * The custom CSS.
@@ -78,13 +86,13 @@ class UiBuilderComponent extends ConfigEntityBase {
    *
    * @var string
    */
-  protected $fields;
+  protected $form_schema;
 
   /**
-   * Gets the HTML template.
+   * Gets the Layout Tree.
    */
-  public function getTemplate() {
-    return $this->template;
+  public function getLayoutTree() {
+    return $this->layout_tree;
   }
 
   /**
@@ -102,10 +110,10 @@ class UiBuilderComponent extends ConfigEntityBase {
   }
 
   /**
-   * Gets the field definitions.
+   * Gets the form schema.
    */
-  public function getFields() {
-    return $this->fields;
+  public function getFormSchema() {
+    return $this->form_schema;
   }
 
 }

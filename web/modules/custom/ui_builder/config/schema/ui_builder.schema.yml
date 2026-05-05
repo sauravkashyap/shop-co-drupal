@@ -8,16 +8,16 @@ ui_builder.ui_builder_component.*:
     label:
       type: label
       label: 'Label'
-    template:
+    layout_tree:
       type: string
-      label: 'HTML Template'
+      label: 'Layout Tree (JSON)'
     css:
       type: string
       label: 'Custom CSS'
     javascript:
       type: string
       label: 'Custom Javascript'
-    fields:
+    form_schema:
       type: string
       label: 'Field Definitions (JSON)'
     uuid:

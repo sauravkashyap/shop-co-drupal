@@ -38,40 +38,62 @@ class UiBuilderComponentForm extends EntityForm {
       '#disabled' => !$component->isNew(),
     ];
 
-    // Component Template
-    $form['template'] = [
+    // React App Mount Point at the top
+    $form['react_mount'] = [
+      '#type' => 'container',
+      '#attributes' => ['id' => 'ui-builder-react-app'],
+      '#attached' => [
+        'library' => [
+          'ui_builder/builder_app',
+        ],
+      ],
+      '#weight' => -10,
+    ];
+
+    // Technical details container (hidden by default)
+    $form['technical_details'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Technical Details'),
+      '#open' => FALSE,
+      '#weight' => 10,
+    ];
+
+    // Component Layout Tree
+    $form['technical_details']['layout_tree'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('HTML Template'),
-      '#default_value' => $component->getTemplate(),
-      '#description' => $this->t('The HTML skeleton for this component. Use tokens like {{ title }} for dynamic content.'),
-      '#rows' => 10,
+      '#title' => $this->t('Layout Tree (JSON)'),
+      '#default_value' => $component->getLayoutTree(),
+      '#description' => $this->t('The JSON representation of the component structure.'),
+      '#rows' => 5,
+      '#attributes' => ['id' => 'ui-builder-layout-tree-input'],
     ];
 
     // CSS
-    $form['css'] = [
+    $form['technical_details']['css'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Custom CSS'),
       '#default_value' => $component->getCss(),
-      '#description' => $this->t('Custom CSS for this component. This will be automatically namespaced and saved to a file.'),
-      '#rows' => 10,
+      '#description' => $this->t('Custom CSS for this component.'),
+      '#rows' => 5,
     ];
 
     // JavaScript
-    $form['javascript'] = [
+    $form['technical_details']['javascript'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Custom JavaScript'),
       '#default_value' => $component->getJavascript(),
-      '#description' => $this->t('Custom Javascript for this component. Code will be wrapped in Drupal.behaviors automatically.'),
-      '#rows' => 10,
+      '#description' => $this->t('Custom Javascript for this component.'),
+      '#rows' => 5,
     ];
 
-    // Field Schema
-    $form['fields'] = [
+    // Form Schema
+    $form['technical_details']['form_schema'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Field Definitions (JSON)'),
-      '#default_value' => $component->getFields() ?: "{\n  \"title\": {\"type\": \"text\", \"label\": \"Title\"}\n}",
-      '#description' => $this->t('JSON structure defining the variables available in the template and what fields to show in the visual builder.'),
-      '#rows' => 5,
+      '#title' => $this->t('Form Schema (JSON)'),
+      '#default_value' => $component->getFormSchema() ?: "{\n  \"title\": {\"type\": \"text\", \"label\": \"Title\"}\n}",
+      '#description' => $this->t('JSON structure defining the fields for the visual builder.'),
+      '#rows' => 3,
+      '#attributes' => ['id' => 'ui-builder-form-schema-input'],
     ];
 
     return $form;
