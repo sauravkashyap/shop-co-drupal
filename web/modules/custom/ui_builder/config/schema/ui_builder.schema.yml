@@ -22,3 +22,22 @@ ui_builder.ui_builder_component.*:
       label: 'Field Definitions (JSON)'
     uuid:
       type: string
+
+ui_builder.ui_builder_style.*:
+  type: config_entity
+  label: 'UI Builder Style'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    css_content:
+      type: string
+      label: 'CSS Rules'
+    selector_type:
+      type: string
+      label: 'Selector Type'
+    uuid:
+      type: string

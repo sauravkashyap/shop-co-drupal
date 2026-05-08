@@ -130,11 +130,28 @@ class UiBuilderJsonFormatter extends FormatterBase {
         $element['#attributes'] = $attributes;
       }
 
+      // Special handling for <img> tags: content should be the 'src' attribute.
+      if (strtolower($tag) === 'img') {
+        $img_content = $component['content'] ?? '';
+        if (is_array($img_content)) {
+          // Handle multiple images by rendering them all.
+          $element = ['#type' => 'container', '#attributes' => $attributes];
+          foreach ($img_content as $url) {
+            $element[] = [
+              '#type' => 'html_tag',
+              '#tag' => 'img',
+              '#attributes' => ['src' => $url],
+            ];
+          }
+        } else {
+          $element['#attributes']['src'] = $img_content;
+        }
+      }
       // Handle children
-      if (!empty($component['children']) && is_array($component['children'])) {
+      elseif (!empty($component['children']) && is_array($component['children'])) {
         $element['children'] = $this->buildRenderArray($component['children'], $entity);
       }
-      // Handle text content (only if no children, or as prefix/suffix - let's use #value for now)
+      // Handle text content
       elseif (isset($component['content'])) {
         $element['#value'] = $component['content'];
       }

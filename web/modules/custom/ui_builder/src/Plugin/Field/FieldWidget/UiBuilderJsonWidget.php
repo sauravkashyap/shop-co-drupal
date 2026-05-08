@@ -42,6 +42,12 @@ class UiBuilderJsonWidget extends WidgetBase {
     $element['#attached']['drupalSettings']['ui_builder']['composer'] = [
       'available_components' => $component_data,
     ];
+    $element['#attached']['drupalSettings']['ui_builder']['csrf_token'] = \Drupal::csrfToken()->get('rest');
+
+    // Wrap the entire widget for CSS targeting and position it right after title.
+    $element['#prefix'] = '<div class="ui-builder-widget-wrapper">';
+    $element['#suffix'] = '</div>';
+    $element['#weight'] = -5;
 
     $element['container'] = [
       '#type' => 'container',
@@ -62,6 +68,7 @@ class UiBuilderJsonWidget extends WidgetBase {
     ];
 
     return $element;
+
   }
 
 }

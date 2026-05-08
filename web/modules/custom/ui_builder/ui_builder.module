@@ -45,3 +45,73 @@ function ui_builder_theme_suggestions_block_alter(array &$suggestions, array $va
   }
 }
 
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node forms.
+ *
+ * When a content type has a ui_builder_json field, we take over the form:
+ * - Hide body, tags, image, and other standard fields
+ * - Hide revision, authoring, URL alias, and comment settings
+ * - Hide Drupal's native form-actions (Save/Preview/Delete)
+ * - Add a CSS class for targeted styling
+ *
+ * This mirrors Acquia Site Studio's behavior: only the title field
+ * and the Layout Canvas builder are visible on the node edit form.
+ */
+function ui_builder_form_node_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  /** @var \Drupal\node\NodeInterface $node */
+  $node = $form_state->getFormObject()->getEntity();
+  $bundle = $node->bundle();
+
+  // Check if this content type has a ui_builder_json field.
+  $field_definitions = \Drupal::service('entity_field.manager')
+    ->getFieldDefinitions('node', $bundle);
+
+  $has_ui_builder = FALSE;
+  foreach ($field_definitions as $field_name => $definition) {
+    if ($definition->getType() === 'ui_builder_json') {
+      $has_ui_builder = TRUE;
+      break;
+    }
+  }
+
+  if (!$has_ui_builder) {
+    return;
+  }
+
+  // Add CSS class so our stylesheet can target this form.
+  $form['#attributes']['class'][] = 'ui-builder-node-form';
+
+  // Hide standard content fields — Site Studio style takeover.
+  $fields_to_hide = [
+    'body',
+    'field_tags',
+    'field_image',
+    'field_metatag',
+  ];
+  foreach ($fields_to_hide as $field_name) {
+    if (isset($form[$field_name])) {
+      $form[$field_name]['#access'] = FALSE;
+    }
+  }
+
+  // Hide sidebar/advanced sections.
+  $sections_to_hide = [
+    'revision_information',
+    'path',
+    'author',
+    'options',
+    'comment',
+    'menu',
+  ];
+  foreach ($sections_to_hide as $section) {
+    if (isset($form[$section])) {
+      $form[$section]['#access'] = FALSE;
+    }
+  }
+
+  // Hide Drupal's form actions — the React builder handles saving.
+  if (isset($form['actions'])) {
+    $form['actions']['#access'] = FALSE;
+  }
+}
+
