@@ -1,0 +1,5 @@
+entity.ui_builder_component.add_form:
+  route_name: entity.ui_builder_component.add_form
+  title: 'Add Component'
+  appears_on:
+    - entity.ui_builder_component.collection

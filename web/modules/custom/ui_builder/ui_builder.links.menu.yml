@@ -1,0 +1,13 @@
+entity.ui_builder_component.collection:
+  title: 'UI Builder Components'
+  parent: system.admin_structure
+  description: 'Manage components for the UI Builder module.'
+  route_name: entity.ui_builder_component.collection
+  weight: 99
+
+entity.ui_builder_style.collection:
+  title: 'UI Builder Styles'
+  parent: system.admin_structure
+  description: 'Manage custom CSS styles for the UI Builder.'
+  route_name: entity.ui_builder_style.collection
+  weight: 100

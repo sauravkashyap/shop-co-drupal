@@ -1,0 +1,5 @@
+name: 'UI Builder'
+type: module
+description: 'A visual, low-code page builder storing data as JSON and rendering pure HTML without divitis.'
+core_version_requirement: ^10 || ^11
+package: Custom

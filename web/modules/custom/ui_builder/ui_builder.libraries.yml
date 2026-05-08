@@ -1,0 +1,10 @@
+builder_app:
+  version: VERSION
+  js:
+    js/dist/builder.js: { minified: true }
+  css:
+    component:
+      js/dist/builder.css: { minified: true }
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
