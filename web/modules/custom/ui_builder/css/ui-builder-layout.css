@@ -206,20 +206,67 @@
 .row > .uib-main {
   flex: 1 1 0%;
   margin-bottom: 0;
+  padding: 16px;
 }
 
-/* Collapsible Aside */
+/* Sidebar Base Style */
+.uib-aside {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  min-height: 200px;
+  transition: transform 0.3s ease, left 0.3s ease, right 0.3s ease;
+}
+
+.uib-aside-left {
+  border-right: 2px solid #e5e7eb;
+}
+
+.uib-aside-right {
+  border-left: 2px solid #e5e7eb;
+}
+
+/* Collapsible Aside Transition */
 .uib-aside.uib-collapsible {
-  position: relative;
-  transition: all 0.3s ease;
+  transition: width 0.4s cubic-bezier(0.65, 0, 0.35, 1),
+              transform 0.4s cubic-bezier(0.65, 0, 0.35, 1),
+              opacity 0.4s ease,
+              padding 0.4s ease,
+              margin 0.4s ease;
+  overflow: hidden;
 }
 
+/* Desktop Collapse logic */
+@media (min-width: 769px) {
+  .uib-aside.uib-collapsible.is-open:not(.uib-aside-right) {
+    margin-right: 16px;
+  }
+  
+  .uib-aside.uib-collapsible.is-open.uib-aside-right {
+    margin-left: 16px;
+  }
+
+  .uib-aside.uib-collapsible:not(.is-open) {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    flex: 0 0 0% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Collapsible Aside Mobile */
 @media (max-width: 768px) {
   .uib-aside.uib-collapsible {
     position: fixed;
     top: 0;
     bottom: 0;
-    z-index: 50;
+    width: 280px;
+    z-index: 9999;
     background: white;
     box-shadow: 0 0 15px rgba(0,0,0,0.1);
   }
@@ -236,7 +283,117 @@
   
   .uib-aside.uib-collapsible.is-open {
     transform: translateX(0);
+    opacity: 1;
   }
+}
+
+.uib-aside-wrapper {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Toggle Button Style */
+.uib-aside-toggle {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  align-items: center;
+  justify-content: center;
+  background: #0073ba !important;
+  color: white !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              background 0.3s ease, 
+              border-radius 0.3s ease,
+              opacity 0.3s ease,
+              box-shadow 0.3s ease !important;
+  z-index: 100000 !important;
+  position: absolute !important;
+}
+
+/* Open State: Full width at bottom */
+.uib-aside.is-open + .uib-aside-toggle {
+  bottom: 0 !important;
+  top: auto !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 48px !important;
+  border-radius: 0 !important;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+}
+
+/* Add some bottom margin to aside content to avoid overlap with button */
+.uib-aside.is-open {
+  padding-bottom: 60px !important;
+}
+
+.uib-toggle-icon {
+  display: flex;
+  transition: transform 0.3s ease;
+}
+
+.uib-toggle-label {
+  margin-left: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.uib-aside:not(.is-open) + .uib-aside-toggle .uib-toggle-label {
+  display: none;
+}
+
+.uib-toggle-icon svg {
+  display: block;
+}
+
+/* Rotate arrow based on state */
+.uib-aside.is-open + .uib-aside-toggle .uib-toggle-icon {
+  transform: rotate(0deg);
+}
+
+.uib-aside:not(.is-open) + .uib-aside-toggle .uib-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Closed State: Fixed center-left */
+.uib-aside:not(.is-open) + .uib-aside-toggle {
+  position: fixed !important;
+  top: 50% !important;
+  bottom: auto !important;
+  left: 0 !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  border-radius: 0 6px 6px 0 !important;
+  width: 32px !important;
+  height: 48px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+}
+
+.uib-aside-toggle:hover {
+  background: #005a91 !important;
+}
+
+.uib-aside:not(.is-open) + .uib-aside-toggle:hover {
+  transform: translateY(-50%) scale(1.05) !important;
+}
+
+.uib-aside-wrapper-right .uib-aside-toggle {
+  left: auto !important;
+  right: 0 !important;
+}
+
+.uib-aside-right:not(.is-open) + .uib-aside-toggle {
+  left: auto !important;
+  right: 0 !important;
+  border-radius: 6px 0 0 6px !important;
+}
+
+.uib-aside-wrapper-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .uib-hr {

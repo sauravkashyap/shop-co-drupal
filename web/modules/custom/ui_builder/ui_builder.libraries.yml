@@ -11,6 +11,11 @@ builder_app:
 
 frontend_defaults:
   version: 1.0.2
+  js:
+    js/aside-toggle.js: {}
   css:
     theme:
       css/ui-builder-layout.css: { weight: 1000 }
+  dependencies:
+    - core/drupal
+    - core/once

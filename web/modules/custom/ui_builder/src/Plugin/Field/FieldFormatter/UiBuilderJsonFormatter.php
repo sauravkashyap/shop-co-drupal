@@ -198,6 +198,49 @@ class UiBuilderJsonFormatter extends FormatterBase {
         $attributes['class'][] = 'uib-aside-' . $side;
         if (!empty($component['props']['collapsible'])) {
           $attributes['class'][] = 'uib-collapsible';
+          $attributes['class'][] = 'is-open'; // Default to open
+          
+          // Generate a unique ID for targeting.
+          $aside_id = $attributes['id'] ?? ('uib-aside-' . uniqid());
+          $attributes['id'] = $aside_id;
+          
+          // Create the toggle button.
+          $toggle_button = [
+            '#type' => 'html_tag',
+            '#tag' => 'button',
+            '#attributes' => [
+              'class' => ['uib-aside-toggle'],
+              'data-aside-id' => $aside_id,
+              'aria-expanded' => 'true',
+              'aria-controls' => $aside_id,
+              'title' => t('Toggle Sidebar'),
+            ],
+            '#value' => \Drupal\Core\Render\Markup::create('<span class="uib-toggle-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="uib-toggle-label">' . t('Close sidebar') . '</span>'),
+          ];
+
+          // Build children or content.
+          $aside_content = [];
+          if (!empty($component['children']) && is_array($component['children'])) {
+            $aside_content = $this->buildRenderArray($component['children'], $entity);
+          }
+          elseif (isset($component['content'])) {
+            $aside_content = ['#markup' => $component['content']];
+          }
+
+          // Wrap them in a container.
+          $wrapper = [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['uib-aside-wrapper', 'uib-aside-wrapper-' . $side]],
+            'aside' => [
+               '#type' => 'html_tag',
+               '#tag' => 'aside',
+               '#attributes' => $attributes,
+            ] + $aside_content,
+            'toggle' => $toggle_button,
+          ];
+          
+          $build[] = $wrapper;
+          continue; // Skip the default element construction
         }
       }
       
