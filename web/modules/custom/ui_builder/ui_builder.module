@@ -20,6 +20,10 @@ function ui_builder_theme($existing, $type, $theme, $path) {
       'template' => 'block--ui-builder-clean',
       'base hook' => 'block',
     ],
+    'ui_builder_json_formatter' => [
+      'render element' => 'element',
+      'template' => 'ui-builder-json-formatter',
+    ],
   ];
 }
 
@@ -95,23 +99,48 @@ function ui_builder_form_node_form_alter(array &$form, \Drupal\Core\Form\FormSta
   }
 
   // Hide sidebar/advanced sections.
-  $sections_to_hide = [
-    'revision_information',
-    'path',
-    'author',
-    'options',
-    'comment',
-    'menu',
-  ];
-  foreach ($sections_to_hide as $section) {
-    if (isset($form[$section])) {
-      $form[$section]['#access'] = FALSE;
-    }
-  }
+  /* Removed based on user request to keep native sidebar cards */
+  // $sections_to_hide = [
+  //   'revision_information',
+  //   'path',
+  //   'author',
+  //   'options',
+  //   'comment',
+  //   'menu',
+  // ];
+  // foreach ($sections_to_hide as $section) {
+  //   if (isset($form[$section])) {
+  //     $form[$section]['#access'] = FALSE;
+  //   }
+  // }
 
   // Hide Drupal's form actions — the React builder handles saving.
-  if (isset($form['actions'])) {
-    $form['actions']['#access'] = FALSE;
+  //   $form['actions']['#access'] = FALSE;
+  // }
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function ui_builder_page_attachments(array &$attachments) {
+  // Only attach styles on frontend routes (non-admin).
+  if (!\Drupal::service('router.admin_context')->isAdminRoute()) {
+    $attachments['#attached']['library'][] = 'ui_builder/frontend_defaults';
+  }
+}
+
+/**
+ * Implements hook_library_info_alter().
+ */
+function ui_builder_library_info_alter(&$libraries, $extension) {
+  if ($extension === 'ui_builder' && isset($libraries['frontend_defaults'])) {
+    // Set a very high weight to ensure it loads after theme CSS.
+    // CSS_AGGREGATE_THEME is usually 100, so 1000 is very safe.
+    if (isset($libraries['frontend_defaults']['css']['theme'])) {
+      foreach ($libraries['frontend_defaults']['css']['theme'] as $path => $options) {
+        $libraries['frontend_defaults']['css']['theme'][$path]['weight'] = 1000;
+      }
+    }
   }
 }
 

@@ -142,29 +142,89 @@ export function PropertiesPanel({
                   placeholder="Internal label..."
                 />
               </div>
-              {isPrimitive && (
-                <div className="form-group">
-                  <label>HTML Tag</label>
-                  <select 
-                    className="form-control" 
-                    value={selectedNode.tag} 
-                    onChange={e => updateNodeProperty(selectedNode.id, 'tag', e.target.value)}
-                  >
-                    <option value="div">div</option>
-                    <option value="section">section</option>
-                    <option value="header">header</option>
-                    <option value="footer">footer</option>
-                    <option value="h1">h1</option>
-                    <option value="h2">h2</option>
-                    <option value="h3">h3</option>
-                    <option value="p">p</option>
-                    <option value="span">span</option>
-                    <option value="a">a</option>
-                    <option value="img">img</option>
-                    <option value="button">button</option>
-                  </select>
+
+              {selectedNode.tag === 'aside' && (
+                <div className="animate-fade" style={{ marginTop: '24px' }}>
+                  <div className="form-section-title">Aside Settings</div>
+                  <div className="form-group">
+                    <label>Position</label>
+                    <select 
+                      className="form-control"
+                      value={selectedNode.props?.side || 'left'}
+                      onChange={e => updateNodeProperty(selectedNode.id, 'side', e.target.value)}
+                    >
+                      <option value="left">Left (Sidebar First)</option>
+                      <option value="right">Right (Sidebar Second)</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedNode.props?.collapsible || false}
+                        onChange={e => updateNodeProperty(selectedNode.id, 'collapsible', e.target.checked)}
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: '500' }}>Enable Collapse Feature</span>
+                    </label>
+                    <p className="help-text">Allows the sidebar to be toggled on mobile devices.</p>
+                  </div>
                 </div>
               )}
+
+              <div className="form-section-title" style={{ marginTop: '24px' }}>Custom Classes</div>
+              <div className="form-group">
+                <label>Applied Classes</label>
+                <div className="active-styles-list">
+                  {(() => {
+                    const current = selectedNode.props?.class || '';
+                    const classes = current.split(/\s+/).filter(Boolean);
+                    if (classes.length === 0) return <p className="help-text">No custom classes applied.</p>;
+                    return classes.map(cls => (
+                      <div key={cls} className="style-tag">
+                        <span className="style-tag-label">{cls}</span>
+                        <button 
+                          type="button"
+                          className="style-tag-remove"
+                          onClick={() => {
+                            const filtered = classes.filter(c => c !== cls).join(' ');
+                            updateNodeProperty(selectedNode.id, 'class', filtered);
+                          }}
+                        >✕</button>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Add Extra Class</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter class name and press Enter..."
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && e.target.value.trim()) {
+                        const newClass = e.target.value.trim();
+                        const current = selectedNode.props?.class || '';
+                        const classes = current.split(/\s+/).filter(Boolean);
+                        // Add multiple classes if separated by space
+                        const newClassesToAdd = newClass.split(/\s+/).filter(Boolean);
+                        
+                        let updatedClasses = [...classes];
+                        newClassesToAdd.forEach(c => {
+                          if (!updatedClasses.includes(c)) updatedClasses.push(c);
+                        });
+                        
+                        updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                </div>
+                <p className="help-text" style={{ marginTop: '4px' }}>Type a class name and press Enter. You can paste multiple classes separated by spaces.</p>
+              </div>
+
               <div className="form-group" style={{ marginTop: '32px' }}>
                 <button 
                   className="delete-element-btn"
@@ -185,12 +245,11 @@ export function PropertiesPanel({
                   className="form-control"
                   onChange={(e) => {
                     if (!e.target.value) return;
-                    const current = getCustomClassesOnly(selectedNode.props?.class || '', selectedNode.tag, selectedNode.label);
-                    const classes = current.split(' ').filter(Boolean);
+                    const current = selectedNode.props?.class || '';
+                    const classes = current.split(/\s+/).filter(Boolean);
                     if (!classes.includes(e.target.value)) {
                       classes.push(e.target.value);
-                      const merged = mergeClasses(classes.join(' '), selectedNode.tag, selectedNode.label);
-                      updateNodeProperty(selectedNode.id, 'class', merged);
+                      updateNodeProperty(selectedNode.id, 'class', classes.join(' '));
                     }
                     e.target.value = '';
                   }}
@@ -200,67 +259,6 @@ export function PropertiesPanel({
                     <option key={s.id} value={s.id}>{s.label || s.id}</option>
                   ))}
                 </select>
-              </div>
-
-              <div className="form-group">
-                <label>Applied Styles</label>
-                <div className="active-styles-list">
-                  {(() => {
-                    const current = getCustomClassesOnly(selectedNode.props?.class || '', selectedNode.tag, selectedNode.label);
-                    const classes = current.split(' ').filter(Boolean);
-                    if (classes.length === 0) return <p className="help-text">No custom styles applied.</p>;
-                    return classes.map(cls => (
-                      <div key={cls} className="style-tag">
-                        <span className="style-tag-label">{cls}</span>
-                        <button 
-                          type="button"
-                          className="style-tag-remove"
-                          onClick={() => {
-                            const filtered = classes.filter(c => c !== cls).join(' ');
-                            const merged = mergeClasses(filtered, selectedNode.tag, selectedNode.label);
-                            updateNodeProperty(selectedNode.id, 'class', merged);
-                          }}
-                        >✕</button>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              <div className="form-section-title" style={{ marginTop: '32px' }}>Custom Classes</div>
-              <div className="form-group">
-                <label>Add Extra Class</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter class name..."
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && e.target.value.trim()) {
-                        const newClass = e.target.value.trim();
-                        const current = getCustomClassesOnly(selectedNode.props?.class || '', selectedNode.tag, selectedNode.label);
-                        const classes = current.split(' ').filter(Boolean);
-                        if (!classes.includes(newClass)) {
-                          classes.push(newClass);
-                          const merged = mergeClasses(classes.join(' '), selectedNode.tag, selectedNode.label);
-                          updateNodeProperty(selectedNode.id, 'class', merged);
-                        }
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label>All Classes (Raw)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={selectedNode.props?.class || ''}
-                  readOnly
-                  style={{ opacity: 0.6, fontSize: '11px' }}
-                />
               </div>
               
               <button 

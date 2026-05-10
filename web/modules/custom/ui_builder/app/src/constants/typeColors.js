@@ -6,11 +6,11 @@ export const TYPE_COLORS = {
   // Layout — Amber/Yellow
   div: '#f59e0b',
   section: '#f59e0b',
-  article: '#f59e0b',
   header: '#f59e0b',
   footer: '#f59e0b',
   main: '#f59e0b',
-  aside: '#f59e0b',
+  aside: '#fbbf24',
+  article: '#d97706',
   nav: '#f59e0b',
   // Typography — Blue
   h1: '#3b82f6',

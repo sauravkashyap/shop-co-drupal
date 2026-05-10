@@ -19,7 +19,7 @@ import {
 import './App.css';
 
 // Constants & Utils
-import { ELEMENT_CATEGORIES } from './constants/elements';
+import { ELEMENT_CATEGORIES, CONTAINER_TAGS } from './constants/elements';
 import { 
   deepClone, 
   findNodeById, 
@@ -43,7 +43,8 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     
     // Function to expand components with their master layouts
     const hydrateComponents = (nodes) => {
-      return nodes.map(node => {
+      return (nodes || []).map(node => {
+        if (!node) return null;
         let hydratedNode = { ...node };
         if (node.component_id && (!node.children || node.children.length === 0)) {
           const comp = (initialComponents || []).find(c => c.id === node.component_id);
@@ -52,12 +53,13 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
               const masterLayout = typeof comp.layout_tree === 'string' ? JSON.parse(comp.layout_tree) : comp.layout_tree;
               
               const cloneWithNewIds = (n) => {
+                if (!n) return null;
                 const nn = { ...n, id: Math.random().toString(36).substr(2, 9) };
                 if (nn.children) nn.children = nn.children.map(cloneWithNewIds);
                 return nn;
               };
               
-              hydratedNode.children = (masterLayout || []).map(cloneWithNewIds);
+              hydratedNode.children = (masterLayout || []).map(cloneWithNewIds).filter(Boolean);
               hydratedNode.isComponentRoot = true;
             } catch (e) {
               console.error('Failed to hydrate component on load', e);
@@ -68,7 +70,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           hydratedNode.children = hydrateComponents(hydratedNode.children);
         }
         return hydratedNode;
-      });
+      }).filter(Boolean);
     };
 
     const tree = hydrateComponents(rawTree);
@@ -81,6 +83,16 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   const [propertiesOpenId, setPropertiesOpenId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNode, setActiveNode] = useState(null);
+  const [isAllCollapsed, setIsAllCollapsed] = useState(false);
+  const [pendingParentId, setPendingParentId] = useState(null);
+
+  const startTargetedAdd = (parentId) => {
+    setPendingParentId(parentId);
+    setSidebarOpen(true);
+    // Also select the node for visual feedback
+    setSelectedNodeId(parentId);
+    selectedNodeIdRef.current = parentId;
+  };
 
   // Fetch custom styles from Drupal
   useEffect(() => {
@@ -141,7 +153,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       const transformedTree = deepClone(layoutTree);
       const processNodes = nodes => {
         nodes.forEach(node => {
-          const isContainer = ['div', 'section', 'article', 'header', 'footer', 'main', 'aside', 'nav'].includes(node.tag);
+          const isContainer = CONTAINER_TAGS.includes(node.tag);
           const shouldBeField = node.isField !== undefined ? node.isField : !isContainer;
 
           if (shouldBeField) {
@@ -192,8 +204,22 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   };
 
   const handleDragStart = (event) => {
-    const node = findNodeById(layoutTree, event.active.id);
-    setActiveNode(node);
+    const { active } = event;
+    const isSidebarItem = active.data.current?.type === 'sidebar-element';
+
+    if (isSidebarItem) {
+      const el = active.data.current.element;
+      setActiveNode({
+        id: active.id,
+        tag: el.type,
+        label: el.label,
+        props: { ...(el.defaultProps || {}) },
+        children: []
+      });
+    } else {
+      const node = findNodeById(layoutTree, active.id);
+      setActiveNode(node);
+    }
   };
 
   const handleDragOver = (event) => {
@@ -201,19 +227,51 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     if (!over || active.id === over.id) return;
   };
 
+  const createNewNode = (el) => {
+    const cloneWithNewIds = (nodes) => {
+      return (nodes || []).map(n => {
+        if (!n) return null;
+        return {
+          ...n,
+          tag: n.tag || n.type,
+          id: Math.random().toString(36).substr(2, 9),
+          children: cloneWithNewIds(n.children)
+        };
+      }).filter(Boolean);
+    };
+
+    return {
+      id: Math.random().toString(36).substr(2, 9),
+      tag: el.type,
+      label: el.label,
+      props: { ...(el.defaultProps || { class: '' }) },
+      children: el.defaultChildren ? cloneWithNewIds(el.defaultChildren) : [],
+      content: el.defaultContent || '',
+      fieldMode: 'static',
+      isField: el.isField || false,
+    };
+  };
+
   const handleRootDragEnd = (event) => {
     const { active, over } = event;
     setActiveNode(null);
     if (!over) return;
 
-    if (active.id === over.id) return;
-
+    const isSidebarItem = active.data.current?.type === 'sidebar-element';
+    
     setLayoutTree(prev => {
       const tree = deepClone(prev);
-      const locDragged = findNodeLocation(tree, active.id);
-      if (!locDragged) return prev;
-      
-      const [dragged] = locDragged.parent.splice(locDragged.index, 1);
+      let dragged;
+
+      if (isSidebarItem) {
+        const el = active.data.current.element;
+        dragged = createNewNode(el);
+      } else {
+        if (active.id === over.id) return prev;
+        const locDragged = findNodeLocation(tree, active.id);
+        if (!locDragged) return prev;
+        [dragged] = locDragged.parent.splice(locDragged.index, 1);
+      }
 
       if (over.id === 'canvas-root') {
         tree.push(dragged);
@@ -223,8 +281,19 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       const locOver = findNodeLocation(tree, over.id);
       if (locOver) {
         const overNode = locOver.parent[locOver.index];
-        const isContainer = ['div', 'section', 'article', 'header', 'footer', 'main', 'aside', 'nav'].includes(overNode.tag);
+        const isContainer = CONTAINER_TAGS.includes(overNode.tag);
         
+        // If dropping from sidebar, check hierarchical rules
+        if (isSidebarItem) {
+          const target = isContainer ? overNode : locOver.parent;
+          // Note: canAcceptChild currently expects a node object, but locOver.parent might be an array (root)
+          // We need to be careful here. 
+          if (isContainer && !canAcceptChild(overNode, active.data.current.element)) {
+             alert(`Cannot add ${active.data.current.element.label} inside ${overNode.label || overNode.tag}`);
+             return prev;
+          }
+        }
+
         if (isContainer) {
           overNode.children = overNode.children || [];
           overNode.children.push(dragged);
@@ -240,30 +309,24 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   };
 
   const addElement = (el) => {
-    const newNode = {
-      id: Math.random().toString(36).substr(2, 9),
-      tag: el.type,
-      label: el.label,
-      props: { ...(el.defaultProps || { class: '' }) },
-      children: [],
-      content: el.defaultContent || '',
-      fieldMode: 'static',
-      isField: el.isField || false,
-    };
+    const newNode = createNewNode(el);
     setLayoutTree(prev => {
       const tree = deepClone(prev);
-      const currentSelectedId = selectedNodeIdRef.current;
-      if (currentSelectedId) {
-        const target = findNodeById(tree, currentSelectedId);
-        if (canAcceptChild(target, el)) {
+      const targetId = pendingParentId || selectedNodeIdRef.current;
+      
+      if (targetId) {
+        const target = findNodeById(tree, targetId);
+        if (target && canAcceptChild(target, el)) {
           target.children = target.children || [];
           target.children.push(newNode);
+          setPendingParentId(null);
           return tree;
-        } else {
+        } else if (target) {
           alert(`Cannot add ${el.label} inside ${target.label || target.tag}`);
           return prev;
         }
       }
+      setPendingParentId(null);
       return [...tree, newNode];
     });
   };
@@ -272,7 +335,6 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     const comp = availableComponents.find(c => c.id === compId);
     if (!comp) return;
 
-    // Parse the component's master layout
     let masterLayout = [];
     try {
       masterLayout = typeof comp.layout_tree === 'string' ? JSON.parse(comp.layout_tree) : comp.layout_tree;
@@ -280,38 +342,40 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       console.error('Failed to parse component layout', e);
     }
 
-    // Deep clone with new IDs for local editing
     const cloneWithNewIds = (nodes) => {
-      return (nodes || []).map(n => ({
-        ...n,
-        id: Math.random().toString(36).substr(2, 9),
-        children: cloneWithNewIds(n.children)
-      }));
+      return (nodes || []).map(n => {
+        if (!n) return null;
+        return {
+          ...n,
+          tag: n.tag || n.type,
+          id: Math.random().toString(36).substr(2, 9),
+          children: cloneWithNewIds(n.children)
+        };
+      }).filter(Boolean);
     };
 
-    const hydratedChildren = cloneWithNewIds(masterLayout);
-
-    const newNode = { 
-      id: Math.random().toString(36).substr(2, 9), 
-      component_id: compId, 
-      label: comp.label || compId, 
-      children: hydratedChildren,
-      isComponentRoot: true // Mark this as the boundary of a component
-    };
+    const nodesToAdd = cloneWithNewIds(masterLayout).map(n => ({
+      ...n,
+      component_id: compId
+    }));
+    if (nodesToAdd.length === 0) return;
 
     setLayoutTree(prev => {
       const tree = deepClone(prev);
-      const currentSelectedId = selectedNodeIdRef.current;
-      if (currentSelectedId) {
-        const target = findNodeById(tree, currentSelectedId);
-        const targetIsContainer = ['div', 'section', 'article', 'header', 'footer', 'main', 'aside', 'nav'].includes(target?.tag);
+      const targetId = pendingParentId || selectedNodeIdRef.current;
+      
+      if (targetId) {
+        const target = findNodeById(tree, targetId);
+        const targetIsContainer = CONTAINER_TAGS.includes(target?.tag) || (target?.children && target?.children.length > 0);
         if (targetIsContainer) {
           target.children = target.children || [];
-          target.children.push(newNode);
+          target.children.push(...nodesToAdd);
+          setPendingParentId(null);
           return tree;
         }
       }
-      return [...tree, newNode];
+      setPendingParentId(null);
+      return [...tree, ...nodesToAdd];
     });
   };
 
@@ -392,6 +456,36 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     });
   };
 
+  const quickAddChild = (parentId, type) => {
+    // Find the template for 'type'
+    let template = null;
+    for (const cat of ELEMENT_CATEGORIES) {
+      template = cat.elements.find(el => el.type === type);
+      if (template) break;
+    }
+    if (!template) return;
+
+    const newNode = {
+      id: Math.random().toString(36).substr(2, 9),
+      tag: template.type,
+      label: template.label,
+      props: { ...(template.defaultProps || {}) },
+      content: template.defaultContent || '',
+      children: template.defaultChildren ? JSON.parse(JSON.stringify(template.defaultChildren)).map(c => ({...c, id: Math.random().toString(36).substr(2, 9)})) : [],
+      isField: template.isField
+    };
+
+    setLayoutTree(prev => {
+      const tree = deepClone(prev);
+      const parent = findNodeById(tree, parentId);
+      if (parent) {
+        parent.children = parent.children || [];
+        parent.children.push(newNode);
+      }
+      return tree;
+    });
+  };
+
   // Helper to collect all fields from a subtree to generate a form schema
   const extractFormSchema = (node) => {
     const schema = {};
@@ -410,9 +504,11 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     return schema;
   };
 
-  const handleSaveAsComponent = async () => {
+  const handleSaveAsComponent = async (targetId = null) => {
     let nodeToSave = null;
-    if (selectedNodeId) {
+    if (targetId) {
+      nodeToSave = findNodeById(layoutTree, targetId);
+    } else if (selectedNodeId) {
       nodeToSave = findNodeById(layoutTree, selectedNodeId);
     } else if (layoutTree.length === 1) {
       nodeToSave = layoutTree[0];
@@ -587,8 +683,16 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                 +
               </button>
               <span style={{ flex: 1 }} />
-              <button type="button" className="ss-canvas-options-btn">
-                Options ▾
+              <button 
+                type="button" 
+                className="ss-canvas-options-btn"
+                onClick={() => {
+                  const newState = !isAllCollapsed;
+                  setIsAllCollapsed(newState);
+                  window.dispatchEvent(new CustomEvent(newState ? 'ss-collapse-all' : 'ss-expand-all'));
+                }}
+              >
+                {isAllCollapsed ? 'Expand All' : 'Collapse All'}
               </button>
             </div>
 
@@ -609,21 +713,19 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                   items={layoutTree.map(n => n.id)} 
                   strategy={verticalListSortingStrategy}
                 >
-                  <CanvasRoot isDragging={!!activeNode}>
-                    {layoutTree.map(node => (
-                      <SortableNode
-                        key={node.id}
-                        node={node}
-                        mode={mode}
-                        selectedId={selectedNodeId}
-                        onSelect={selectNode}
-                        onOpenProperties={openProperties}
-                        onDuplicate={duplicateNode}
-                        onDelete={removeNode}
-                        availableComponents={availableComponents}
-                      />
-                    ))}
-                  </CanvasRoot>
+                  <CanvasRoot 
+                    nodes={layoutTree} 
+                    selectedId={selectedNodeId} 
+                    onSelect={selectNode}
+                    onOpenProperties={openProperties}
+                    onDuplicate={duplicateNode}
+                    onDelete={removeNode}
+                    onQuickAdd={quickAddChild}
+                    onStartTargetedAdd={startTargetedAdd}
+                    onSaveAsComponent={handleSaveAsComponent}
+                    pendingParentId={pendingParentId}
+                    availableComponents={availableComponents}
+                  />
                 </SortableContext>
 
                 <DragOverlay dropAnimation={dropAnimation}>
@@ -633,6 +735,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                       mode={mode}
                       selectedId={null}
                       onSelect={() => {}}
+                      onQuickAdd={() => {}}
                       availableComponents={availableComponents}
                       isOverlay
                     />
