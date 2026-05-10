@@ -1,20 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NodeChildren } from './NodeChildren';
+import { CONTAINER_TAGS } from '../constants/elements';
 
 // Returns the icon and background color for the element box
 function getElementBranding(tag, label, isInstance) {
   if (isInstance) return { icon: '🧩', color: '#a855f7' };
   
   const l = label || tag || '';
-  if (l.startsWith('Container') || l.startsWith('Section') || l.startsWith('Row') || l === 'Column' || tag === 'div') {
+  if (l.startsWith('Container') || l.startsWith('Section') || l.startsWith('Row') || l === 'Column' || tag === 'div' || tag === 'main' || tag === 'aside' || tag === 'article' || tag === 'nav') {
+    if (tag === 'aside') return { icon: '◧', color: '#fbbf24' };
+    if (tag === 'article') return { icon: '📄', color: '#d97706' };
+    if (tag === 'section') return { icon: '📑', color: '#f5a623' };
+    if (tag === 'main') return { icon: '🔲', color: '#f5a623' };
+    if (tag === 'nav') return { icon: '⟁', color: '#f5a623' };
     return { icon: '□', color: '#f5a623' };
   }
   if (l === 'Image') return { icon: '🖼', color: '#0073ba' };
+  if (tag === 'svg') return { icon: 'S', color: '#0073ba' };
   if (l === 'Video') return { icon: '▶', color: '#0073ba' };
   if (l.startsWith('Heading') || l.startsWith('Header')) return { icon: 'H', color: '#0073ba' };
   if (l === 'WYSIWYG' || l === 'Paragraph' || tag === 'p') return { icon: '¶', color: '#0073ba' };
   if (l === 'Link' || tag === 'a') return { icon: '🔗', color: '#0073ba' };
   if (l === 'Button' || tag === 'button') return { icon: '▢', color: '#0073ba' };
+  if (tag === 'ul' || tag === 'ol') return { icon: '≡', color: '#0073ba' };
+  if (tag === 'li') return { icon: '•', color: '#0073ba' };
+  if (tag === 'table') return { icon: '▦', color: '#10b981' };
+  if (['thead', 'tbody'].includes(tag)) return { icon: '☰', color: '#10b981' };
+  if (tag === 'tr') return { icon: '＝', color: '#10b981' };
+  if (['th', 'td'].includes(tag)) return { icon: '▫', color: '#10b981' };
+  if (tag === 'form') return { icon: '✉', color: '#f43f5e' };
+  if (tag === 'label') return { icon: 'L', color: '#f43f5e' };
+  if (['input', 'textarea', 'select'].includes(tag)) return { icon: '✎', color: '#f43f5e' };
+  if (tag === 'option') return { icon: '○', color: '#f43f5e' };
   
   return { icon: '📄', color: '#0073ba' };
 }
@@ -27,6 +44,10 @@ export function NodeCard({
   onOpenProperties,
   onDuplicate,
   onDelete,
+  onQuickAdd,
+  onStartTargetedAdd,
+  onSaveAsComponent,
+  pendingParentId,
   availableComponents, 
   isOverlay, 
   isDragging, 
@@ -39,17 +60,48 @@ export function NodeCard({
   isInherited = false
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
+
+  useEffect(() => {
+    const onCollapseAll = () => setIsCollapsed(true);
+    const onExpandAll = () => setIsCollapsed(false);
+    window.addEventListener('ss-collapse-all', onCollapseAll);
+    window.addEventListener('ss-expand-all', onExpandAll);
+    return () => {
+      window.removeEventListener('ss-collapse-all', onCollapseAll);
+      window.removeEventListener('ss-expand-all', onExpandAll);
+    };
+  }, []);
+
 
   const isSelected = selectedId === node.id;
-  const isContainer = ['div', 'section', 'article', 'header', 'footer', 'main', 'aside', 'nav'].includes(node.tag);
+  const isContainer = CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0) || !!node.component_id;
   const isRow = node.label === 'Row for columns' || (node.label && node.label.startsWith('Row'));
   const isColumn = node.label === 'Column';
   const showDropOver = isOver && isContainer && !isDragging;
   const isInstance = !!node.component_id;
 
-  const displayName = isInstance
+  let displayName = isInstance
     ? (node.label || 'Component')
     : node.label || (node.tag ? node.tag.charAt(0).toUpperCase() + node.tag.slice(1) : 'Element');
+
+  // Friendly mapping for common tags if they have generic labels
+  if (!isInstance) {
+    if (node.tag === 'tr' && displayName === 'Row') displayName = 'Table Row';
+    if (node.tag === 'td' && displayName === 'Cell') displayName = 'Table Cell';
+    if (node.tag === 'th' && displayName === 'Header Cell') displayName = 'Table Header';
+  }
 
   const branding = getElementBranding(node.tag, displayName, isInstance);
 
@@ -64,6 +116,9 @@ export function NodeCard({
         ${isDragging ? 'ss-box-dragging' : ''}
         ${isOverlay ? 'ss-box-overlay' : ''}
         ${isColumn ? 'ss-box-column' : ''}
+        ${node.tag === 'aside' ? `uib-aside-${node.props?.side || 'left'}` : ''}
+        ${node.tag === 'aside' && node.props?.collapsible ? 'uib-collapsible' : ''}
+        ${pendingParentId === node.id ? 'ss-box-is-targeted' : ''}
       `}
       onClick={e => { e.stopPropagation(); onSelect(node.id); }}
       onDoubleClick={e => { e.stopPropagation(); if (onOpenProperties) onOpenProperties(node.id); }}
@@ -83,24 +138,80 @@ export function NodeCard({
         <span className="ss-box-spacer" />
 
         {isContainer && (
-          <button
-            type="button"
-            className="ss-box-action ss-box-collapse-btn"
-            onClick={e => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
-            title={isCollapsed ? "Expand" : "Collapse"}
-          >
-            {isCollapsed ? '⤢' : '⤡'}
-          </button>
+          <>
+            <button
+              type="button"
+              className="ss-box-action ss-box-targeted-add"
+              onClick={e => { e.stopPropagation(); onStartTargetedAdd(node.id); }}
+              title="Add element inside..."
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="ss-box-action ss-box-collapse-btn"
+              onClick={e => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
+              title={isCollapsed ? "Expand" : "Collapse"}
+            >
+              {isCollapsed ? '⤢' : '⤡'}
+            </button>
+          </>
         )}
 
-        <button
-          type="button"
-          className="ss-box-action ss-box-options-btn"
-          onClick={e => e.stopPropagation()}
-          title="Options"
-        >
-          •••
-        </button>
+        <div className="ss-box-menu-container" ref={menuRef} onClick={e => e.stopPropagation()}>
+          <button
+            type="button"
+            className="ss-box-action ss-box-options-btn"
+            onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
+            title="Options"
+          >
+            •••
+          </button>
+          
+          {showMenu && (
+            <div className="ss-box-dropdown">
+              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onOpenProperties) onOpenProperties(node.id); }}>Edit Settings</button>
+              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDuplicate) onDuplicate(node.id); }}>Duplicate</button>
+              
+              {/* Quick Add Shortcuts */}
+               {node.tag === 'table' && (
+                <>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'thead'); }}>+ Add Table Head (thead)</button>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tbody'); }}>+ Add Table Body (tbody)</button>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
+                </>
+              )}
+              {['thead', 'tbody'].includes(node.tag) && (
+                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
+              )}
+              {node.tag === 'tr' && (
+                <>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'td'); }}>+ Add Cell (td)</button>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'th'); }}>+ Add Cell (th)</button>
+                </>
+              )}
+              {node.tag === 'form' && (
+                <>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'input'); }}>+ Add Input</button>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'label'); }}>+ Add Label</button>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'select'); }}>+ Add Select</button>
+                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'textarea'); }}>+ Add Textarea</button>
+                </>
+              )}
+              {['ul', 'ol'].includes(node.tag) && (
+                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'li'); }}>+ Add Item</button>
+              )}
+              {node.tag === 'select' && (
+                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'option'); }}>+ Add Option</button>
+              )}
+
+              <div className="ss-box-dropdown-divider"></div>
+              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onSaveAsComponent) onSaveAsComponent(node.id); }}>Save to Library</button>
+              <div className="ss-box-dropdown-divider"></div>
+              <button className="ss-box-dropdown-danger" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDelete) onDelete(node.id); }}>Delete</button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Body / Children */}
@@ -114,6 +225,10 @@ export function NodeCard({
             onOpenProperties={onOpenProperties}
             onDuplicate={onDuplicate}
             onDelete={onDelete}
+            onQuickAdd={onQuickAdd}
+            onStartTargetedAdd={onStartTargetedAdd}
+            onSaveAsComponent={onSaveAsComponent}
+            pendingParentId={pendingParentId}
             availableComponents={availableComponents}
             depth={depth + 1}
             isInherited={isInherited || isInstance}

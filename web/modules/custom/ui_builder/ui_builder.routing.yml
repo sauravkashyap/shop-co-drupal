@@ -1,32 +1,40 @@
 entity.ui_builder_component.collection:
-  path: '/admin/structure/ui-builder-components'
+  path: '/admin/ui-builder/components'
   defaults:
     _entity_list: 'ui_builder_component'
-    _title: 'UI Builder Components'
+    _title: 'Components'
   requirements:
     _permission: 'administer ui builder components'
 
 entity.ui_builder_component.add_form:
-  path: '/admin/structure/ui-builder-components/add'
+  path: '/admin/ui-builder/components/add'
   defaults:
     _entity_form: 'ui_builder_component.add'
-    _title: 'Add UI Builder Component'
+    _title: 'Add Component'
   requirements:
     _permission: 'administer ui builder components'
 
 entity.ui_builder_component.edit_form:
-  path: '/admin/structure/ui-builder-components/{ui_builder_component}'
+  path: '/admin/ui-builder/components/{ui_builder_component}'
   defaults:
     _entity_form: 'ui_builder_component.edit'
-    _title: 'Edit UI Builder Component'
+    _title: 'Edit Component'
   requirements:
     _permission: 'administer ui builder components'
 
 entity.ui_builder_component.delete_form:
-  path: '/admin/structure/ui-builder-components/{ui_builder_component}/delete'
+  path: '/admin/ui-builder/components/{ui_builder_component}/delete'
   defaults:
     _entity_form: 'ui_builder_component.delete'
-    _title: 'Delete UI Builder Component'
+    _title: 'Delete Component'
+  requirements:
+    _permission: 'administer ui builder components'
+
+ui_builder.base_styles:
+  path: '/admin/ui-builder/base-styles'
+  defaults:
+    _form: '\Drupal\ui_builder\Form\BaseStylesForm'
+    _title: 'Base Styles (Style Guide)'
   requirements:
     _permission: 'administer ui builder components'
 
@@ -39,12 +47,13 @@ ui_builder.upload:
     _permission: 'access content'
 
 ui_builder.save_component:
-  path: '/ui-builder/component/save'
+  path: '/api/ui-builder/component/save'
   defaults:
     _controller: '\Drupal\ui_builder\Controller\UiBuilderController::saveComponent'
   methods: [POST]
   requirements:
     _permission: 'access content'
+
 ui_builder.save_style:
   path: '/api/ui-builder/style/save'
   defaults:
@@ -69,33 +78,33 @@ ui_builder.list_styles:
     _permission: 'access content'
 
 entity.ui_builder_style.collection:
-  path: '/admin/structure/ui-builder-styles'
+  path: '/admin/ui-builder/styles'
   defaults:
     _entity_list: 'ui_builder_style'
-    _title: 'UI Builder Styles'
+    _title: 'Custom Styles'
   requirements:
-    _permission: 'administer ui builder components'
+    _permission: 'administer ui builder styles'
 
 entity.ui_builder_style.add_form:
-  path: '/admin/structure/ui-builder-styles/add'
+  path: '/admin/ui-builder/styles/add'
   defaults:
     _entity_form: 'ui_builder_style.add'
-    _title: 'Add UI Builder Style'
+    _title: 'Add Style'
   requirements:
-    _permission: 'administer ui builder components'
+    _permission: 'administer ui builder styles'
 
 entity.ui_builder_style.edit_form:
-  path: '/admin/structure/ui-builder-styles/{ui_builder_style}'
+  path: '/admin/ui-builder/styles/{ui_builder_style}'
   defaults:
     _entity_form: 'ui_builder_style.edit'
-    _title: 'Edit UI Builder Style'
+    _title: 'Edit Style'
   requirements:
-    _permission: 'administer ui builder components'
+    _permission: 'administer ui builder styles'
 
 entity.ui_builder_style.delete_form:
-  path: '/admin/structure/ui-builder-styles/{ui_builder_style}/delete'
+  path: '/admin/ui-builder/styles/{ui_builder_style}/delete'
   defaults:
     _entity_form: 'ui_builder_style.delete'
-    _title: 'Delete UI Builder Style'
+    _title: 'Delete Style'
   requirements:
-    _permission: 'administer ui builder components'
+    _permission: 'administer ui builder styles'

@@ -48,9 +48,6 @@ export function ActionBar({ mode, onSavePage, onSaveAsComponent, onToggleStyles,
             </button>
           </>
         )}
-        <button className="btn-primary" onClick={onSavePage}>
-          <span className="icon">💾</span> {mode === 'architect' ? 'Save Component' : 'Save'}
-        </button>
       </div>
     </header>
   );

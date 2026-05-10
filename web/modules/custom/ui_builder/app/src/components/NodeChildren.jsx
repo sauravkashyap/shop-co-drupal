@@ -1,7 +1,7 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableNode } from './SortableNode';
 
-export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenProperties, onDuplicate, onDelete, availableComponents, depth = 0, isInherited = false, isRow = false }) {
+export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenProperties, onDuplicate, onDelete, onQuickAdd, onStartTargetedAdd, onSaveAsComponent, pendingParentId, availableComponents, depth = 0, isInherited = false, isRow = false }) {
   const children = parentNode.children || [];
   const childIds = children.map(c => c.id);
 
@@ -20,6 +20,10 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
                 onOpenProperties={onOpenProperties}
                 onDuplicate={onDuplicate}
                 onDelete={onDelete}
+                onQuickAdd={onQuickAdd}
+                onStartTargetedAdd={onStartTargetedAdd}
+                onSaveAsComponent={onSaveAsComponent}
+                pendingParentId={pendingParentId}
                 availableComponents={availableComponents}
                 depth={depth}
                 isInherited={isInherited}
@@ -45,6 +49,10 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
             onOpenProperties={onOpenProperties}
             onDuplicate={onDuplicate}
             onDelete={onDelete}
+            onQuickAdd={onQuickAdd}
+            onStartTargetedAdd={onStartTargetedAdd}
+            onSaveAsComponent={onSaveAsComponent}
+            pendingParentId={pendingParentId}
             availableComponents={availableComponents}
             depth={depth}
             isInherited={isInherited}

@@ -29,10 +29,20 @@ class UiBuilderJsonFormatter extends FormatterBase {
       if (!empty($item->value)) {
         $json_data = json_decode($item->value, TRUE);
         if (json_last_error() === JSON_ERROR_NONE && is_array($json_data)) {
-          $elements[$delta] = $this->buildRenderArray($json_data, $item->getEntity());
+          $elements[$delta] = [
+            '#type' => 'container',
+            '#attributes' => [
+              'class' => ['ui-builder-content'],
+            ],
+            'content' => $this->buildRenderArray($json_data, $item->getEntity()),
+            '#attached' => [
+              'library' => [
+                'ui_builder/frontend_defaults',
+              ],
+            ],
+          ];
         }
         else {
-          // Fallback or error logging could go here.
           $elements[$delta] = ['#markup' => '<!-- Invalid UI Builder JSON -->'];
         }
       }
@@ -98,10 +108,31 @@ class UiBuilderJsonFormatter extends FormatterBase {
         continue;
       }
 
-      // Basic protection for raw elements
+      // Repair logic: Convert legacy 'div' tags back to semantic tags based on label.
       $tag = $component['tag'] ?? 'div';
+      $label = $component['label'] ?? '';
+      
+      if ($tag === 'div' || empty($tag)) {
+        if (strpos($label, 'Heading 1') !== FALSE) $tag = 'h1';
+        elseif (strpos($label, 'Heading 2') !== FALSE) $tag = 'h2';
+        elseif (strpos($label, 'Heading 3') !== FALSE) $tag = 'h3';
+        elseif (strpos($label, 'Heading 4') !== FALSE) $tag = 'h4';
+        elseif (strpos($label, 'Heading 5') !== FALSE) $tag = 'h5';
+        elseif (strpos($label, 'Heading 6') !== FALSE) $tag = 'h6';
+        elseif (strpos($label, 'Paragraph') !== FALSE) $tag = 'p';
+        elseif (strpos($label, 'Button') !== FALSE) $tag = 'button';
+        elseif (strpos($label, 'Link') !== FALSE) $tag = 'a';
+      }
+
       // Only allow safe tags for PoC.
-      $safe_tags = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'img', 'section', 'header', 'footer', 'button'];
+      $safe_tags = [
+        'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'img', 
+        'section', 'header', 'footer', 'button', 'ul', 'ol', 'li', 'blockquote',
+        'article', 'main', 'aside', 'nav', 'hr', 'strong', 'em', 'code', 'small',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        'form', 'label', 'input', 'select', 'textarea', 'option',
+        'svg', 'path', 'g', 'circle', 'rect'
+      ];
       if (!in_array(strtolower($tag), $safe_tags)) {
         $tag = 'div';
       }
@@ -115,6 +146,59 @@ class UiBuilderJsonFormatter extends FormatterBase {
       $attributes = [];
       if (!empty($component['props']['class'])) {
         $attributes['class'] = explode(' ', $component['props']['class']);
+      }
+      else {
+        $attributes['class'] = [];
+      }
+
+      // Add the corresponding UIB style class based on the tag (Site Studio Style)
+      $tag_map = [
+        'h1' => 'uib-h1',
+        'h2' => 'uib-h2',
+        'h3' => 'uib-h3',
+        'h4' => 'uib-h4',
+        'h5' => 'uib-h5',
+        'h6' => 'uib-h6',
+        'p' => 'uib-p',
+        'a' => 'uib-link',
+        'button' => 'uib-button',
+        'ul' => 'uib-ul',
+        'ol' => 'uib-ol',
+        'li' => 'uib-li',
+        'img' => 'uib-img',
+        'blockquote' => 'uib-blockquote',
+        'section' => 'uib-section',
+        'article' => 'uib-article',
+        'main' => 'uib-main',
+        'aside' => 'uib-aside',
+        'nav' => 'uib-nav',
+        'span' => 'uib-span',
+        'hr' => 'uib-hr',
+        'strong' => 'uib-strong',
+        'em' => 'uib-em',
+        'code' => 'uib-code',
+        'small' => 'uib-small',
+        'table' => 'uib-table',
+        'th' => 'uib-th',
+        'td' => 'uib-td',
+        'form' => 'uib-form',
+        'label' => 'uib-label',
+        'input' => 'uib-input',
+        'select' => 'uib-select',
+        'textarea' => 'uib-textarea',
+        'svg' => 'uib-svg',
+      ];
+      if (isset($tag_map[strtolower($tag)])) {
+        $attributes['class'][] = $tag_map[strtolower($tag)];
+      }
+      
+      // Handle special Aside props
+      if ($tag === 'aside') {
+        $side = $component['props']['side'] ?? 'left';
+        $attributes['class'][] = 'uib-aside-' . $side;
+        if (!empty($component['props']['collapsible'])) {
+          $attributes['class'][] = 'uib-collapsible';
+        }
       }
       
       // Add other attributes if any
@@ -227,6 +311,32 @@ class UiBuilderJsonFormatter extends FormatterBase {
     }
 
     return $data;
+  }
+
+  /**
+   * Generates the CSS string for global base style overrides.
+   */
+  protected function getBaseStylesCss() {
+    $config = \Drupal::config('ui_builder.base_styles');
+    $tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'button'];
+    $css = "/* UI Builder Global Base Styles - VERSION 1.0.2 */\n";
+    
+    foreach ($tags as $tag) {
+      $tag_css = $config->get($tag . '_css');
+      if (!empty($tag_css)) {
+        $css .= "$tag { $tag_css }\n";
+      }
+      
+      // Handle focus styles.
+      $focus_css = $config->get($tag . '_focus_css');
+      if (!empty($focus_css)) {
+        $css .= "{$tag}:focus-visible {\n";
+        $css .= "  {$focus_css}\n";
+        $css .= "}\n";
+      }
+    }
+    
+    return $css;
   }
 
 }

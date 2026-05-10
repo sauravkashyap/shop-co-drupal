@@ -1,3 +1,5 @@
+import { CONTAINER_TAGS } from '../constants/elements';
+
 export function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
@@ -40,13 +42,38 @@ export function deleteNodeById(nodes, id) {
 
 export function canAcceptChild(parent, child) {
   if (!parent) return true;
-  const isContainer = ['div', 'section', 'article', 'header', 'footer', 'main', 'aside', 'nav'].includes(parent.tag);
+  const isContainer = CONTAINER_TAGS.includes(parent.tag);
   if (!isContainer) return false;
   
   // Specific restrictions
   const childTag = child.type || child.tag;
-  if (['section', 'header', 'footer', 'main'].includes(childTag) && parent.tag !== 'div' && parent.tag !== 'main') {
-    // Avoid nesting major sections deeply
+  
+  // Lists
+  if ((parent.tag === 'ul' || parent.tag === 'ol') && childTag !== 'li') {
+    return false; // Lists only accept list items
+  }
+  
+  // Tables
+  if (parent.tag === 'table' && !['thead', 'tbody', 'tr'].includes(childTag)) {
+    return false; // Tables only accept thead, tbody, or tr
+  }
+  if (['thead', 'tbody'].includes(parent.tag) && childTag !== 'tr') {
+    return false; // thead/tbody only accept tr
+  }
+  if (parent.tag === 'tr' && !['th', 'td'].includes(childTag)) {
+    return false; // Rows only accept cells
+  }
+  if (['th', 'td'].includes(childTag) && parent.tag !== 'tr') {
+    return false; // Cells must be inside rows
+  }
+
+  // Forms
+  if (parent.tag === 'select' && childTag !== 'option') {
+    return false; // Select only accepts options
+  }
+
+  // Prevent nesting major sections deeply
+  if (['section', 'header', 'footer', 'main'].includes(childTag) && !['div', 'main'].includes(parent.tag)) {
     return false;
   }
   

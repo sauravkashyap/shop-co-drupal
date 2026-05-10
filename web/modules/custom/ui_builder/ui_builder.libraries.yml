@@ -8,3 +8,9 @@ builder_app:
   dependencies:
     - core/drupal
     - core/drupalSettings
+
+frontend_defaults:
+  version: 1.0.2
+  css:
+    theme:
+      css/ui-builder-layout.css: { weight: 1000 }

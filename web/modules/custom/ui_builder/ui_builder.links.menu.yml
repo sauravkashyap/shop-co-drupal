@@ -1,13 +1,27 @@
+ui_builder.admin_menu:
+  title: 'UI Builder'
+  description: 'Configure UI Builder components and styles.'
+  parent: system.admin_config
+  route_name: entity.ui_builder_component.collection
+  weight: 0
+
 entity.ui_builder_component.collection:
-  title: 'UI Builder Components'
-  parent: system.admin_structure
+  title: 'Components'
+  parent: ui_builder.admin_menu
   description: 'Manage components for the UI Builder module.'
   route_name: entity.ui_builder_component.collection
-  weight: 99
+  weight: 10
+
+ui_builder.base_styles:
+  title: 'Base Styles'
+  parent: ui_builder.admin_menu
+  description: 'Manage global base styles (Style Guide) for UI Builder elements.'
+  route_name: ui_builder.base_styles
+  weight: 20
 
 entity.ui_builder_style.collection:
-  title: 'UI Builder Styles'
-  parent: system.admin_structure
+  title: 'Custom Styles'
+  parent: ui_builder.admin_menu
   description: 'Manage custom CSS styles for the UI Builder.'
   route_name: entity.ui_builder_style.collection
-  weight: 100
+  weight: 30
