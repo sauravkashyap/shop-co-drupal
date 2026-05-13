@@ -4,7 +4,7 @@
 }
 
 /* Layout: Container */
-.container {
+.uib-container {
   width: 100%;
   margin-left: auto;
   margin-right: auto;
@@ -12,14 +12,14 @@
   padding-right: 16px;
 }
 
-@media (min-width: 640px) { .container { max-width: 640px; } }
-@media (min-width: 768px) { .container { max-width: 768px; } }
-@media (min-width: 1024px) { .container { max-width: 1024px; } }
-@media (min-width: 1280px) { .container { max-width: 1280px; } }
-@media (min-width: 1536px) { .container { max-width: 1536px; } }
+@media (min-width: 640px) { .uib-container { max-width: 640px; } }
+@media (min-width: 768px) { .uib-container { max-width: 768px; } }
+@media (min-width: 1024px) { .uib-container { max-width: 1024px; } }
+@media (min-width: 1280px) { .uib-container { max-width: 1280px; } }
+@media (min-width: 1536px) { .uib-container { max-width: 1536px; } }
 
 /* Layout: Row */
-.row {
+.uib-row {
   display: flex;
   flex-wrap: wrap;
   margin-right: -1rem;
@@ -27,7 +27,7 @@
 }
 
 /* Layout: Column */
-.column {
+.uib-column {
   position: relative;
   width: 100%;
   padding-right: 1rem;
@@ -189,21 +189,21 @@
 }
 
 /* Row-specific overrides for Aside and Main */
-.row > .uib-aside {
+.uib-row > .uib-aside {
   flex: 0 0 auto;
   width: 25%;
   margin-bottom: 0;
 }
 
-.row > .uib-aside.uib-aside-left {
+.uib-row > .uib-aside.uib-aside-left {
   order: -1;
 }
 
-.row > .uib-aside.uib-aside-right {
+.uib-row > .uib-aside.uib-aside-right {
   order: 1;
 }
 
-.row > .uib-main {
+.uib-row > .uib-main {
   flex: 1 1 0%;
   margin-bottom: 0;
   padding: 16px;

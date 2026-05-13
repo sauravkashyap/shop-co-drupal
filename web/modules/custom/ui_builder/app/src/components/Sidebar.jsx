@@ -134,7 +134,7 @@ export function Sidebar({
   availableComponents = [], 
   customStyles = [],
   selectedNodeId, 
-  selectedStyleId,
+  currentStyle,
   selectedNode, 
   addElement, 
   addComponentInstance,
@@ -273,7 +273,7 @@ export function Sidebar({
                 {customStyles.map(style => (
                   <div
                     key={style.id}
-                    className={`ss-element-row ${selectedStyleId === style.id ? 'ss-element-row-active' : ''}`}
+                    className={`ss-element-row ${currentStyle?.id === style.id ? 'ss-element-row-active' : ''}`}
                     onClick={() => onSelectStyle(style.id)}
                   >
                     <span className="ss-element-icon" style={{ background: '#10b981' }}>🎨</span>
@@ -283,15 +283,12 @@ export function Sidebar({
                 <div
                   className="ss-element-row ss-element-row-add-new"
                   onClick={() => {
-                    const label = prompt('Enter a label for the new style:');
-                    if (label) {
-                      const id = label.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-                      onSelectStyle(id);
-                    }
+                    const id = 'style-' + Math.random().toString(36).substr(2, 5);
+                    onSelectStyle(id);
                   }}
                 >
                   <span className="ss-element-icon" style={{ background: '#475569' }}>+</span>
-                  <span className="ss-element-label">New Style</span>
+                  <span className="ss-element-label">Create New Style</span>
                 </div>
               </div>
             </div>
@@ -300,12 +297,12 @@ export function Sidebar({
       </div>
 
       {/* Selected context hint */}
-      {(selectedNodeId || selectedStyleId) && (
+      {(selectedNodeId || currentStyle) && (
         <div className="sidebar-context-hint">
           {selectedNodeId ? (
             <span>✅ <strong>{selectedNode?.label || selectedNode?.tag}</strong></span>
           ) : (
-            <span>🎨 <strong>Style: .{selectedStyleId}</strong></span>
+            <span>🎨 <strong>Style: .{currentStyle?.id}</strong></span>
           )}
           <button type="button" className="deselect-link" onClick={onDeselect}>Deselect</button>
         </div>

@@ -33,11 +33,8 @@ ui_builder.ui_builder_style.*:
     label:
       type: label
       label: 'Label'
-    css_content:
-      type: string
-      label: 'CSS Rules'
-    selector_type:
-      type: string
-      label: 'Selector Type'
+    data:
+      type: ignore
+      label: 'Style Tree Data'
     uuid:
       type: string

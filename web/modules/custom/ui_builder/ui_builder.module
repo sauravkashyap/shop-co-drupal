@@ -119,11 +119,11 @@ function ui_builder_form_node_form_alter(array &$form, \Drupal\Core\Form\FormSta
   // }
 }
 
-/**
- * Implements hook_page_attachments().
- */
 function ui_builder_page_attachments(array &$attachments) {
-  // Only attach styles on frontend routes (non-admin).
+  // Always attach custom styles if they exist.
+  $attachments['#attached']['library'][] = 'ui_builder/custom_styles';
+
+  // Only attach layout defaults on frontend routes (non-admin).
   if (!\Drupal::service('router.admin_context')->isAdminRoute()) {
     $attachments['#attached']['library'][] = 'ui_builder/frontend_defaults';
   }
@@ -144,3 +144,34 @@ function ui_builder_library_info_alter(&$libraries, $extension) {
   }
 }
 
+/**
+ * Implements hook_library_info_build().
+ *
+ * Dynamically registers the custom_styles library pointing to the compiled
+ * CSS file in public://. Static .libraries.yml cannot use stream wrappers
+ * like public://, so we must resolve the real path here.
+ */
+function ui_builder_library_info_build() {
+  $libraries = [];
+
+  $uri = 'public://ui_builder/uib-styles.css';
+  if (file_exists($uri)) {
+    // generateString() returns a root-relative URL like
+    // /sites/default/files/ui_builder/uib-styles.css
+    $url = \Drupal::service('file_url_generator')->generateString($uri);
+
+    $libraries['custom_styles'] = [
+      'css' => [
+        'theme' => [
+          $url => [
+            'type' => 'external',
+            'preprocess' => FALSE,
+            'weight' => 1001,
+          ],
+        ],
+      ],
+    ];
+  }
+
+  return $libraries;
+}

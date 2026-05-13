@@ -1,0 +1,551 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Style Builder — Site Studio High Fidelity Edition
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --sb-bg: #ffffff;
+  --sb-sidebar-bg: #fdfdfd;
+  --sb-toolbar-bg: #f8f9fa;
+  --sb-border: #e5e7eb;
+  --sb-primary: #2563eb;
+  --sb-primary-soft: #eff6ff;
+  --sb-text-main: #1f2937;
+  --sb-text-muted: #6b7280;
+  --sb-highlight: #fff9db; /* Site Studio Gold */
+  --sb-highlight-border: #fcc419;
+  --sb-highlight-text: #856404;
+}
+
+.style-builder-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.3s ease;
+}
+
+.style-builder-sidebar {
+  width: 900px;
+  max-width: 95vw;
+  height: 100vh;
+  background: var(--sb-bg);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.style-builder-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--sb-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.back-btn {
+  background: #f3f4f6;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sb-text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #e5e7eb;
+}
+
+.style-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.style-label-input {
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--sb-text-main);
+  background: transparent;
+  outline: none;
+  width: 300px;
+}
+
+.style-id-hint {
+  font-size: 11px;
+  color: var(--sb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.save-btn {
+  background: var(--sb-primary);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.save-btn:hover {
+  background: #1d4ed8;
+}
+
+/* ── Body Layout ─────────────────────────────────────────────────────── */
+.style-builder-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Selector Tree Sidebar ───────────────────────────────────────────── */
+.style-builder-tree {
+  width: 320px;
+  border-right: 1px solid var(--sb-border);
+  background: var(--sb-sidebar-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-header {
+  padding: 16px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--sb-border);
+}
+
+.tree-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Site Studio-style Selector Tree Cards
+   ═══════════════════════════════════════════════════════════════════ */
+
+.ss-sel-wrapper {
+  position: relative;
+}
+
+.tree-content .ss-sel-wrapper.ss-sel-root > .ss-sel-children > .ss-sel-child-item.ss-sel-child-last > .ss-sel-wrapper {
+  overflow-x: auto;
+}
+
+/* ── Row container (holds toggle + card) ── */
+.ss-sel-row {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2; /* Keep row above connector lines from children */
+}
+
+/* ── Card ── */
+.ss-sel-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 42px;
+  font-size: 13px;
+  color: #1e293b;
+  flex: 1;
+}
+
+.ss-sel-card:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* ── Root card (Default) ── */
+.ss-sel-card-root {
+  background: linear-gradient(to bottom, #e8f4fd, #dbeefe);
+  border-color: #93c5fd;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 4px 4px 0 0;
+}
+
+.ss-sel-card-root:hover {
+  border-color: #60a5fa;
+}
+
+/* ── Selected state ── */
+.ss-sel-selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+/* ── Drag handle ── */
+.ss-sel-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: grab;
+  flex-shrink: 0;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.ss-sel-drag-handle:active {
+  cursor: grabbing;
+  background: #1d4ed8;
+}
+
+/* ── Selector name ── */
+.ss-sel-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ss-sel-annotation {
+  font-weight: 400;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* ── Inline edit input ── */
+.ss-sel-edit-input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #2563eb;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  background: white;
+  font-weight: 500;
+}
+
+/* ── Add child button (⊕) ── */
+.ss-sel-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: all 0.15s ease;
+  opacity: 0.7;
+}
+
+.ss-sel-add:hover {
+  background: #dbeafe;
+  opacity: 1;
+}
+
+/* ── Collapse/Expand toggle (−/+) ── */
+.ss-sel-collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border: 1px solid #94a3b8;
+  border-radius: 3px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 6px;
+  z-index: 2;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.ss-sel-collapse-spacer {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.ss-sel-collapse-toggle:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Tree Connector Lines (Site Studio style)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Root children container ── */
+.ss-sel-root > .ss-sel-children {
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  padding: 4px 8px 4px 0;
+  background: #fafbfc;
+  position: relative;
+  margin-top: -1px; /* overlap with parent card bottom border */
+}
+
+/* ── Nested children container ── */
+.ss-sel-children {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+/* ── Drop zones: zero height by default, only visible during drag ── */
+.ss-sel-drop-zone {
+  height: 0;
+  margin: 0;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+.ss-sel-drop-zone.active {
+  height: 3px;
+  background: #2563eb;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.4);
+  margin: 2px 4px;
+}
+
+/* ── Each child item: connector lines ── */
+.ss-sel-child-item {
+  position: relative;
+  padding-left: 36px;   /* room for vertical + horizontal connector */
+  padding-top: 6px;     /* spacing between elements */
+  padding-bottom: 6px;  /* spacing between elements */
+}
+
+/* Vertical line: runs full height to connect to next sibling */
+.ss-sel-child-item::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: -12px;           /* reaches up to touch the bottom of the parent's toggle button */
+  bottom: 0;
+  width: 1px;
+  background: #cbd5e1;
+}
+
+/* Horizontal line: connects vertical line to the card */
+.ss-sel-child-item::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 27px;            /* 21px (half of 42px row) + 6px (padding-top) = 27px */
+  width: 24px;          /* 22px + 2px extra to ensure it touches/underlaps the element */
+  height: 1px;
+  background: #cbd5e1;
+}
+
+/* For leaf nodes, extend the horizontal line to reach the card (since there is no toggle button) */
+.ss-sel-child-item.ss-sel-child-leaf::after {
+  width: 48px;          /* 60px (card start) - 14px (line start) + 2px overlap = 48px */
+}
+
+/* Last child: vertical line stops at the horizontal connector (L-shape) */
+.ss-sel-child-item.ss-sel-child-last::before {
+  bottom: auto;
+  height: 40px;         /* 12px (up) + 27px (down) + 1px = 40px */
+}
+
+/* ── Nested children need extra left spacing ── */
+.ss-sel-child-item .ss-sel-children {
+  margin-left: -5px; padding-left: 0;   /* aligns child vertical line with center of parent toggle */
+  margin-top: 0;
+}
+
+/* ── Drag states ── */
+.ss-sel-dragging {
+  opacity: 0.35;
+}
+
+.ss-sel-drop-inside {
+  outline: 2px dashed #22c55e;
+  outline-offset: -2px;
+  background: rgba(34, 197, 94, 0.06) !important;
+}
+
+
+/* ── Properties Panel ────────────────────────────────────────────────── */
+.style-builder-properties {
+  flex: 1;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.props-header {
+  padding: 30px 40px;
+  border-bottom: 1px solid var(--sb-border);
+  background: #fff;
+}
+
+.props-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--sb-text-main);
+  letter-spacing: -0.02em;
+}
+
+.props-header-path {
+  font-size: 13px;
+  color: var(--sb-text-muted);
+  margin-top: 4px;
+}
+
+.props-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px;
+}
+
+.property-groups {
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Property Groups (Accordions) ────────────────────────────────────── */
+.prop-group {
+  border: 1px solid var(--sb-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.prop-group.open {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.group-title {
+  padding: 16px 20px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--sb-text-main);
+  user-select: none;
+}
+
+.group-title:hover {
+  background: #fafafa;
+}
+
+.group-fields {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  background: #fdfdfd;
+  border-top: 1px solid var(--sb-border);
+}
+
+/* ── Property Fields ─────────────────────────────────────────────────── */
+.prop-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prop-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.prop-field input,
+.prop-field select {
+  padding: 10px 12px;
+  border: 1px solid var(--sb-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: var(--sb-text-main);
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.prop-field input:focus,
+.prop-field select:focus {
+  outline: none;
+  border-color: var(--sb-primary);
+  box-shadow: 0 0 0 3px var(--sb-primary-soft);
+}
+
+.prop-field input::placeholder {
+  color: #ccc;
+  font-style: italic;
+}
+
+/* Color input specific */
+.prop-field input[type=\"color\"] {
+  padding: 4px;
+  height: 40px;
+  cursor: pointer;
+}

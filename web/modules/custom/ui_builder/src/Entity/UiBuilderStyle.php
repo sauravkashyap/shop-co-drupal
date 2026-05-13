@@ -3,6 +3,7 @@
 namespace Drupal\ui_builder\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\ui_builder\UiBuilderStyleInterface;
 
 /**
  * Defines the UI Builder Style entity.
@@ -11,6 +12,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   id = "ui_builder_style",
  *   label = @Translation("UI Builder Style"),
  *   handlers = {
+ *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
  *     "list_builder" = "Drupal\ui_builder\UiBuilderStyleListBuilder",
  *     "form" = {
  *       "add" = "Drupal\ui_builder\Form\UiBuilderStyleForm",
@@ -22,27 +24,27 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     },
  *   },
  *   config_prefix = "ui_builder_style",
- *   admin_permission = "administer ui builder styles",
+ *   admin_permission = "administer site configuration",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
  *     "uuid" = "uuid"
  *   },
  *   links = {
- *     "collection" = "/admin/structure/ui-builder-styles",
- *     "add-form" = "/admin/structure/ui-builder-styles/add",
- *     "edit-form" = "/admin/structure/ui-builder-styles/{ui_builder_style}",
- *     "delete-form" = "/admin/structure/ui-builder-styles/{ui_builder_style}/delete"
+ *     "canonical" = "/admin/config/ui-builder/styles/{ui_builder_style}",
+ *     "add-form" = "/admin/config/ui-builder/styles/add",
+ *     "edit-form" = "/admin/config/ui-builder/styles/{ui_builder_style}/edit",
+ *     "delete-form" = "/admin/config/ui-builder/styles/{ui_builder_style}/delete",
+ *     "collection" = "/admin/config/ui-builder/styles"
  *   },
  *   config_export = {
  *     "id",
  *     "label",
- *     "css_content",
- *     "selector_type"
+ *     "data"
  *   }
  * )
  */
-class UiBuilderStyle extends ConfigEntityBase {
+class UiBuilderStyle extends ConfigEntityBase implements UiBuilderStyleInterface {
 
   /**
    * The UI Builder Style ID.
@@ -59,24 +61,25 @@ class UiBuilderStyle extends ConfigEntityBase {
   protected $label;
 
   /**
-   * The actual CSS content.
+   * The style tree (JSON).
    *
-   * @var string
+   * @var array
    */
-  protected $css_content;
+  protected $data = [];
 
   /**
-   * Whether it's a 'class' or 'global' style.
-   *
-   * @var string
+   * {@inheritdoc}
    */
-  protected $selector_type = 'class';
+  public function getData() {
+    return $this->data;
+  }
 
   /**
-   * Gets the CSS content.
+   * {@inheritdoc}
    */
-  public function getCssContent() {
-    return $this->css_content;
+  public function setData(array $data) {
+    $this->data = $data;
+    return $this;
   }
 
 }

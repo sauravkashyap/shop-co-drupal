@@ -170,9 +170,31 @@ export function PropertiesPanel({
                   </div>
                 </div>
               )}
-
               <div className="form-section-title" style={{ marginTop: '24px' }}>Custom Classes</div>
               <div className="form-group">
+                <label>Select Custom Style</label>
+                <select 
+                  className="form-control"
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    const current = selectedNode.props?.class || '';
+                    const classes = current.split(/\s+/).filter(Boolean);
+                    if (!classes.includes(e.target.value)) {
+                      const updated = [...classes, e.target.value].join(' ');
+                      updateNodeProperty(selectedNode.id, 'class', updated);
+                    }
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="">-- Apply a custom style --</option>
+                  {customStyles.map(s => {
+                    const classId = s.id.startsWith('uib-') ? s.id : 'uib-' + s.id;
+                    return <option key={s.id} value={classId}>{s.label || s.id}</option>;
+                  })}
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginTop: '12px' }}>
                 <label>Applied Classes</label>
                 <div className="active-styles-list">
                   {(() => {
@@ -197,18 +219,17 @@ export function PropertiesPanel({
               </div>
 
               <div className="form-group">
-                <label>Add Extra Class</label>
+                <label>Add Extra Class Manually</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Enter class name and press Enter..."
+                    placeholder="Type class and press Enter..."
                     onKeyDown={e => {
                       if (e.key === 'Enter' && e.target.value.trim()) {
                         const newClass = e.target.value.trim();
                         const current = selectedNode.props?.class || '';
                         const classes = current.split(/\s+/).filter(Boolean);
-                        // Add multiple classes if separated by space
                         const newClassesToAdd = newClass.split(/\s+/).filter(Boolean);
                         
                         let updatedClasses = [...classes];
@@ -222,7 +243,6 @@ export function PropertiesPanel({
                     }}
                   />
                 </div>
-                <p className="help-text" style={{ marginTop: '4px' }}>Type a class name and press Enter. You can paste multiple classes separated by spaces.</p>
               </div>
 
               <div className="form-group" style={{ marginTop: '32px' }}>
@@ -255,9 +275,10 @@ export function PropertiesPanel({
                   }}
                 >
                   <option value="">Select style to apply...</option>
-                  {customStyles.map(s => (
-                    <option key={s.id} value={s.id}>{s.label || s.id}</option>
-                  ))}
+                  {customStyles.map(s => {
+                    const classId = s.id.startsWith('uib-') ? s.id : 'uib-' + s.id;
+                    return <option key={s.id} value={classId}>{s.label || s.id}</option>;
+                  })}
                 </select>
               </div>
               

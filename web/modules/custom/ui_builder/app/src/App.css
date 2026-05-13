@@ -1334,3 +1334,68 @@ body:has(#ui-builder-react-app) .form-item-id {
 .ss-box-dropdown .ss-box-dropdown-danger:hover {
   background: #fdf0f0;
 }
+
+/* ═══════════════════════════════════════════════
+   DRAG & DROP — Gap indicators & drop zones
+   ═══════════════════════════════════════════════ */
+
+.ss-drop-slot {
+  position: relative;
+}
+
+/* Thin gap between nodes — only visible during drag */
+.ss-drop-gap {
+  height: 0;
+  transition: height 0.15s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.ss-drop-gap.ss-drop-gap-visible {
+  height: 6px;
+}
+
+/* Active drop target — blue line indicator */
+.ss-drop-gap.ss-drop-gap-active {
+  height: 4px;
+  background: #0073ba;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0, 115, 186, 0.5);
+  margin: 2px 0;
+}
+
+/* Container body highlight when hovering for "drop inside" */
+.ss-box-drop-inside-active {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 2px dashed #10b981 !important;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+/* Root drop zone hint */
+.canvas-extract-hint {
+  text-align: center;
+  padding: 16px;
+  color: #94a3b8;
+  font-size: 13px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 6px;
+  margin: 8px 0;
+  background: rgba(241, 245, 249, 0.5);
+  transition: all 0.15s ease;
+}
+
+.root-over .canvas-extract-hint {
+  border-color: #0073ba;
+  color: #0073ba;
+  background: rgba(0, 115, 186, 0.05);
+}
+
+/* During drag mode, add subtle pointer cursor everywhere */
+.is-dragging-mode .ss-box-el {
+  cursor: default;
+}
+
+.is-dragging-mode .ss-box-topbar {
+  cursor: default;
+}

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import { NodeChildren } from './NodeChildren';
 import { CONTAINER_TAGS } from '../constants/elements';
+import { useDragState } from '../contexts/DragStateContext';
 
 // Returns the icon and background color for the element box
 function getElementBranding(tag, label, isInstance) {
@@ -51,7 +53,6 @@ export function NodeCard({
   availableComponents, 
   isOverlay, 
   isDragging, 
-  isOver, 
   attributes, 
   listeners, 
   setNodeRef, 
@@ -59,6 +60,13 @@ export function NodeCard({
   depth = 0,
   isInherited = false
 }) {
+  const { isDraggingGlobal } = useDragState();
+  // Make the container body a droppable zone for "drop inside as last child"
+  const isContainer = CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0) || !!node.component_id;
+  const { setNodeRef: setDropInsideRef, isOver: isOverInside } = useDroppable({ 
+    id: `inside::${node.id}`,
+    disabled: !isContainer || isDragging,
+  });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
@@ -86,10 +94,9 @@ export function NodeCard({
 
 
   const isSelected = selectedId === node.id;
-  const isContainer = CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0) || !!node.component_id;
   const isRow = node.label === 'Row for columns' || (node.label && node.label.startsWith('Row'));
   const isColumn = node.label === 'Column';
-  const showDropOver = isOver && isContainer && !isDragging;
+  const showDropOver = isOverInside && isContainer && !isDragging && isDraggingGlobal;
   const isInstance = !!node.component_id;
 
   let displayName = isInstance
@@ -108,7 +115,7 @@ export function NodeCard({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, touchAction: 'none' }}
       className={`
         ss-box-el
         ${isSelected ? 'ss-box-selected' : ''}
@@ -123,7 +130,7 @@ export function NodeCard({
       onClick={e => { e.stopPropagation(); onSelect(node.id); }}
       onDoubleClick={e => { e.stopPropagation(); if (onOpenProperties) onOpenProperties(node.id); }}
     >
-      {/* Top Bar */}
+      {/* Top Bar — drag handle */}
       <div 
         className="ss-box-topbar"
         {...attributes}
@@ -216,7 +223,7 @@ export function NodeCard({
 
       {/* Body / Children */}
       {!isCollapsed && isContainer && (
-        <div className={`ss-box-body ${isRow ? 'ss-box-row-body' : ''}`}>
+        <div ref={setDropInsideRef} className={`ss-box-body ${isRow ? 'ss-box-row-body' : ''} ${showDropOver ? 'ss-box-drop-inside-active' : ''}`}>
           <NodeChildren
             parentNode={node}
             mode={mode}

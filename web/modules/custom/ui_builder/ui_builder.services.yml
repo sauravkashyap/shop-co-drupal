@@ -2,3 +2,6 @@ services:
   ui_builder.usage_tracker:
     class: Drupal\ui_builder\Service\UsageTracker
     arguments: ['@entity_type.manager', '@database']
+  ui_builder.css_compiler:
+    class: Drupal\ui_builder\Service\CssCompiler
+    arguments: ['@entity_type.manager', '@file_system', '@asset.resolver']

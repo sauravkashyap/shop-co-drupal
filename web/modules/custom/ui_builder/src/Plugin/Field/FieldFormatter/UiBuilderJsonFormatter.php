@@ -38,6 +38,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
             '#attached' => [
               'library' => [
                 'ui_builder/frontend_defaults',
+                'ui_builder/custom_styles',
               ],
             ],
           ];
@@ -145,7 +146,18 @@ class UiBuilderJsonFormatter extends FormatterBase {
       // Add attributes from 'props'
       $attributes = [];
       if (!empty($component['props']['class'])) {
-        $attributes['class'] = explode(' ', $component['props']['class']);
+        $raw_classes = explode(' ', $component['props']['class']);
+        $prefixed_classes = [];
+        foreach ($raw_classes as $cls) {
+          $cls = trim($cls);
+          if (empty($cls)) continue;
+          // Prefix custom classes with uib- (skip if already prefixed)
+          if (!str_starts_with($cls, 'uib-')) {
+            $cls = 'uib-' . $cls;
+          }
+          $prefixed_classes[] = $cls;
+        }
+        $attributes['class'] = $prefixed_classes;
       }
       else {
         $attributes['class'] = [];

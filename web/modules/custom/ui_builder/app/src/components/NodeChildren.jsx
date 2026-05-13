@@ -1,36 +1,68 @@
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 import { SortableNode } from './SortableNode';
+import { useDragState } from '../contexts/DragStateContext';
+
+/**
+ * A thin horizontal drop zone rendered between nodes (or at the end).
+ * Drop ID encodes parentId + insertion index so handleDragEnd can decode it.
+ */
+function DropGap({ parentId, index, isActive }) {
+  const dropId = `gap::${parentId}::${index}`;
+  const { setNodeRef, isOver } = useDroppable({ id: dropId });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`ss-drop-gap ${isOver ? 'ss-drop-gap-active' : ''} ${isActive ? 'ss-drop-gap-visible' : ''}`}
+    />
+  );
+}
+
+/**
+ * A droppable zone on the node itself for "drop inside as last child".
+ */
+function DropOnNode({ nodeId }) {
+  const dropId = `inside::${nodeId}`;
+  const { setNodeRef, isOver } = useDroppable({ id: dropId });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`ss-drop-inside ${isOver ? 'ss-drop-inside-active' : ''}`}
+    />
+  );
+}
 
 export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenProperties, onDuplicate, onDelete, onQuickAdd, onStartTargetedAdd, onSaveAsComponent, pendingParentId, availableComponents, depth = 0, isInherited = false, isRow = false }) {
+  const { isDraggingGlobal } = useDragState();
   const children = parentNode.children || [];
-  const childIds = children.map(c => c.id);
 
   // Row with columns — side by side flex layout
   if (isRow) {
     return (
       <div className="ss-box-columns-wrap">
-        <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
-          {children.map((child) => (
-            <div key={child.id} className="ss-box-col-slot">
-              <SortableNode
-                node={child}
-                mode={mode}
-                selectedId={selectedId}
-                onSelect={onSelect}
-                onOpenProperties={onOpenProperties}
-                onDuplicate={onDuplicate}
-                onDelete={onDelete}
-                onQuickAdd={onQuickAdd}
-                onStartTargetedAdd={onStartTargetedAdd}
-                onSaveAsComponent={onSaveAsComponent}
-                pendingParentId={pendingParentId}
-                availableComponents={availableComponents}
-                depth={depth}
-                isInherited={isInherited}
-              />
-            </div>
-          ))}
-        </SortableContext>
+        {children.map((child, i) => (
+          <div key={child.id} className="ss-box-col-slot">
+            {isDraggingGlobal && <DropGap parentId={parentNode.id} index={i} isActive={isDraggingGlobal} />}
+            <SortableNode
+              node={child}
+              mode={mode}
+              selectedId={selectedId}
+              onSelect={onSelect}
+              onOpenProperties={onOpenProperties}
+              onDuplicate={onDuplicate}
+              onDelete={onDelete}
+              onQuickAdd={onQuickAdd}
+              onStartTargetedAdd={onStartTargetedAdd}
+              onSaveAsComponent={onSaveAsComponent}
+              pendingParentId={pendingParentId}
+              availableComponents={availableComponents}
+              depth={depth}
+              isInherited={isInherited}
+            />
+          </div>
+        ))}
+        {isDraggingGlobal && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
       </div>
     );
   }
@@ -38,10 +70,10 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
   // Normal stacked children
   return (
     <div className="ss-box-children-wrap">
-      <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
-        {children.map(child => (
+      {children.map((child, i) => (
+        <div key={child.id} className="ss-drop-slot">
+          {isDraggingGlobal && <DropGap parentId={parentNode.id} index={i} isActive={isDraggingGlobal} />}
           <SortableNode
-            key={child.id}
             node={child}
             mode={mode}
             selectedId={selectedId}
@@ -57,8 +89,10 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
             depth={depth}
             isInherited={isInherited}
           />
-        ))}
-      </SortableContext>
+        </div>
+      ))}
+      {/* Final gap — drop after last child */}
+      {isDraggingGlobal && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
       {/* Empty padding at the bottom of a container to allow dropping */}
       <div className="ss-box-empty-drop-area" />
     </div>
