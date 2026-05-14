@@ -1,24 +1,77 @@
 import { useState, useEffect, useRef } from 'react';
 import './StyleBuilder.css';
 
+const STANDARD_PROPS = [
+  'font-size', 'font-weight', 'color', 'line-height', 'letter-spacing', 'text-align', 'text-transform', 'font-family',
+  'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+  'margin', 'margin-top', 'margin-bottom', 'margin-right', 'margin-left',
+  'display', 'width', 'height', 'max-width', 'position', 'z-index', 'flex-direction', 'justify-content', 'align-items', 'gap',
+  'background-color', 'background', 'border', 'border-radius', 'box-shadow', 'opacity', 'cursor', 'transition'
+];
+
 /**
  * Site Studio-style Custom Style Builder.
  * Manages a tree of selectors and properties for a single custom class.
  */
 export function StyleBuilder({ style, onSave, onBack }) {
-  const [data, setData] = useState(style.data || {
-    selector: '&',
-    properties: {},
-    children: []
+  const [data, setData] = useState(() => {
+    let initialData = style.data;
+    if (!initialData) {
+      return {
+        selector: '&',
+        properties: {},
+        custom_properties: {},
+        children: []
+      };
+    }
+    // Deep clone to prevent mutating props
+    let clonedData = JSON.parse(JSON.stringify(initialData));
+    
+    // Migrate old custom CSS properties from properties to custom_properties
+    const migrateCustomProps = (node) => {
+      if (node.properties) {
+        if (!node.custom_properties) node.custom_properties = {};
+        Object.keys(node.properties).forEach(key => {
+          if (!STANDARD_PROPS.includes(key)) {
+            // It's a custom property!
+            node.custom_properties[key] = node.properties[key];
+            delete node.properties[key];
+          }
+        });
+      }
+      if (node.children) {
+        node.children.forEach(migrateCustomProps);
+      }
+    };
+    migrateCustomProps(clonedData);
+    return clonedData;
   });
   const [selectedNodePath, setSelectedNodePath] = useState(['root']);
   const [label, setLabel] = useState(style.label || style.id);
+  const [classId, setClassId] = useState(style.id);
+
+  // Pending custom property state
+  const [pendingProp, setPendingProp] = useState('');
+  const [pendingValue, setPendingValue] = useState('');
   
   // State for inline renaming or adding
   const [editingNodePath, setEditingNodePath] = useState(null); // Path of node being renamed/added
   const [editValue, setEditValue] = useState('');
   const [isAddingNew, setIsAddingNew] = useState(false); // True if editValue is for a new node
   const [collapsedPaths, setCollapsedPaths] = useState(new Set()); // Set of collapsed node path strings
+
+  const slugify = (text) => text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+
+  const handleLabelChange = (e) => {
+    const newLabel = e.target.value;
+    const prevSlug = slugify(label);
+    setLabel(newLabel);
+    
+    // Auto-update class ID if it matches the slug of the previous label or if it is a default 'style-xxxx' name
+    if (classId === prevSlug || classId.startsWith('style-')) {
+      setClassId(slugify(newLabel));
+    }
+  };
 
   const toggleCollapse = (e, pathStr) => {
     e.stopPropagation();
@@ -140,17 +193,60 @@ export function StyleBuilder({ style, onSave, onBack }) {
   };
 
   const updateProperty = (prop, value) => {
-    setData(prev => {
-      const updates = { 
-        properties: { 
-          ...selectedNode.properties, 
-          [prop]: value 
-        } 
-      };
-      if (value === '' || value === undefined) {
-        delete updates.properties[prop];
+    const newData = JSON.parse(JSON.stringify(data));
+    let target = newData;
+    for (let i = 1; i < selectedNodePath.length; i++) {
+      target = target.children[selectedNodePath[i]];
+    }
+    if (!target.properties) target.properties = {};
+    if (value) {
+      target.properties[prop] = value;
+    } else {
+      delete target.properties[prop];
+    }
+    setData(newData);
+  };
+
+  const updateCustomProperty = (prop, value, oldProp = null) => {
+    const newData = JSON.parse(JSON.stringify(data));
+    let target = newData;
+    for (let i = 1; i < selectedNodePath.length; i++) {
+      target = target.children[selectedNodePath[i]];
+    }
+    if (!target.custom_properties) target.custom_properties = {};
+    
+    // If we're renaming a property, delete the old one first
+    if (oldProp && oldProp !== prop) {
+      delete target.custom_properties[oldProp];
+    }
+    
+    if (value) {
+      target.custom_properties[prop] = value;
+    } else {
+      delete target.custom_properties[prop];
+    }
+    setData(newData);
+  };
+
+  const handleMainSave = () => {
+    let finalData = JSON.parse(JSON.stringify(data));
+    
+    // If there is a pending custom property, apply it to the selected node
+    if (pendingProp.trim() && pendingValue.trim()) {
+      let target = finalData;
+      for (let i = 1; i < selectedNodePath.length; i++) {
+        target = target.children[selectedNodePath[i]];
       }
-      return updateNodeByPath(prev, selectedNodePath, updates);
+      if (!target.custom_properties) target.custom_properties = {};
+      target.custom_properties[pendingProp.trim()] = pendingValue.trim();
+    }
+
+    onSave({ 
+      ...style, 
+      label, 
+      id: classId || style.id, 
+      old_id: style.id, 
+      data: finalData 
     });
   };
 
@@ -391,18 +487,30 @@ export function StyleBuilder({ style, onSave, onBack }) {
               <span>←</span> Back to Layout
             </button>
             <div className="style-info">
-              <input 
-                type="text" 
-                value={label} 
-                onChange={e => setLabel(e.target.value)}
-                className="style-label-input"
-                placeholder="Enter Style Label"
-              />
-              <span className="style-id-hint">ID: {style.id} • PREFIX: .uib-{style.id}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <input 
+                  type="text" 
+                  value={label} 
+                  onChange={handleLabelChange}
+                  className="style-label-input"
+                  placeholder="Enter Style Label"
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b' }}>
+                  <span>Class:</span>
+                  <span style={{ fontFamily: 'monospace' }}>.uib-</span>
+                  <input
+                    type="text"
+                    value={classId}
+                    onChange={e => setClassId(slugify(e.target.value))}
+                    style={{ border: 'none', background: 'transparent', color: '#64748b', fontFamily: 'monospace', outline: 'none', padding: 0, width: '150px' }}
+                    placeholder="class-name"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <div className="header-actions">
-            <button type="button" className="save-btn" onClick={() => onSave({ ...style, label, data })}>Save Style</button>
+            <button type="button" className="save-btn" onClick={handleMainSave}>Save Style</button>
           </div>
         </div>
 
@@ -468,6 +576,17 @@ export function StyleBuilder({ style, onSave, onBack }) {
                   <Prop label="Cursor" name="cursor" type="select" value={selectedNode.properties['cursor']} onChange={updateProperty} options={['default', 'pointer', 'text', 'move', 'not-allowed']} />
                   <Prop label="Transition" name="transition" value={selectedNode.properties['transition']} onChange={updateProperty} placeholder="e.g. all 0.3s ease" />
                 </Group>
+                
+                <Group title="Custom CSS" icon="{ }">
+                  <CustomCssEditor 
+                    customProperties={selectedNode.custom_properties} 
+                    onChange={updateCustomProperty} 
+                    newProp={pendingProp}
+                    setNewProp={setPendingProp}
+                    newValue={pendingValue}
+                    setNewValue={setPendingValue}
+                  />
+                </Group>
               </div>
             </div>
           </div>
@@ -478,7 +597,7 @@ export function StyleBuilder({ style, onSave, onBack }) {
 }
 
 function Group({ title, icon, children }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   return (
     <div className={`prop-group ${open ? 'open' : ''}`}>
       <div className="group-title" onClick={() => setOpen(!open)}>
@@ -510,6 +629,81 @@ function Prop({ label, name, value = '', type = 'text', options = [], onChange, 
           placeholder={placeholder}
         />
       )}
+    </div>
+  );
+}
+
+
+
+function CustomCssEditor({ customProperties, onChange, newProp, setNewProp, newValue, setNewValue }) {
+  const handleAdd = () => {
+    if (newProp.trim() && newValue.trim()) {
+      onChange(newProp.trim(), newValue.trim());
+      setNewProp('');
+      setNewValue('');
+    }
+  };
+
+  const customProps = Object.keys(customProperties || {});
+
+  return (
+    <div className="custom-css-editor">
+      {customProps.length > 0 && (
+        <div className="custom-css-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          {customProps.map(prop => (
+            <div key={prop} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input 
+                type="text" 
+                defaultValue={prop} 
+                onBlur={(e) => {
+                  if (e.target.value !== prop) {
+                    onChange(e.target.value, customProperties[prop], prop);
+                  }
+                }}
+                style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
+              />
+              <input 
+                type="text" 
+                value={customProperties[prop]} 
+                onChange={(e) => onChange(prop, e.target.value)}
+                style={{ flex: 2, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
+              />
+              <button 
+                type="button" 
+                onClick={() => onChange(prop, '')}
+                style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '4px' }}
+                title="Remove property"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#fdfdfd', padding: '12px', borderRadius: '6px', border: '1px dashed var(--sb-border)' }}>
+        <input 
+          type="text" 
+          placeholder="Property (e.g. filter)" 
+          value={newProp} 
+          onChange={e => setNewProp(e.target.value)}
+          style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
+        />
+        <input 
+          type="text" 
+          placeholder="Value" 
+          value={newValue} 
+          onChange={e => setNewValue(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
+        />
+        <button 
+          type="button" 
+          onClick={handleAdd}
+          style={{ padding: '6px 12px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
+        >
+          Add
+        </button>
+      </div>
     </div>
   );
 }

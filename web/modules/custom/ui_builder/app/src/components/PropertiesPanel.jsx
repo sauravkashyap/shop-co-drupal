@@ -3,6 +3,51 @@ import { FieldEditor } from './FieldEditor';
 import { ImageEditor } from './ImageEditor';
 import { getCustomClassesOnly, mergeClasses } from '../utils/styleUtils';
 
+function AccordionSection({ title, children, defaultOpen = false }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <div className={`prop-group ${isOpen ? 'open' : ''}`}>
+      <div 
+        className="prop-group-header" 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          padding: '16px 20px', 
+          background: isOpen ? '#fdfdfd' : '#fff', 
+          cursor: 'pointer', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          fontWeight: '600', 
+          fontSize: '14px', 
+          color: 'var(--sb-text-main)', 
+          userSelect: 'none', 
+          borderBottom: isOpen ? '1px solid var(--sb-border)' : 'none'
+        }}
+      >
+        <span className="prop-group-title">{title}</span>
+        <div 
+          className="prop-group-icon"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'none', 
+            transition: 'transform 0.2s ease', 
+            color: 'var(--sb-text-muted)'
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+      {isOpen && (
+        <div className="prop-group-body" style={{ padding: '20px', background: '#fdfdfd' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PropertiesPanel({
   mode,
   selectedNode,
@@ -130,23 +175,23 @@ export function PropertiesPanel({
 
         <div className="properties-content">
           {activeTab === 'general' && (
-            <div className="animate-fade">
-              <div className="form-section-title">Identity</div>
-              <div className="form-group">
-                <label>Label</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  value={selectedNode.label || ''} 
-                  onChange={e => updateNodeField(selectedNode.id, { label: e.target.value })}
-                  placeholder="Internal label..."
-                />
-              </div>
+            <div className="animate-fade property-groups">
+              <AccordionSection title="Identity">
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label>Label</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={selectedNode.label || ''} 
+                    onChange={e => updateNodeField(selectedNode.id, { label: e.target.value })}
+                    placeholder="Internal label..."
+                  />
+                </div>
+              </AccordionSection>
 
               {selectedNode.tag === 'aside' && (
-                <div className="animate-fade" style={{ marginTop: '24px' }}>
-                  <div className="form-section-title">Aside Settings</div>
-                  <div className="form-group">
+                <AccordionSection title="Aside Settings">
+                  <div className="form-group" style={{ marginTop: '16px' }}>
                     <label>Position</label>
                     <select 
                       className="form-control"
@@ -168,82 +213,83 @@ export function PropertiesPanel({
                     </label>
                     <p className="help-text">Allows the sidebar to be toggled on mobile devices.</p>
                   </div>
-                </div>
+                </AccordionSection>
               )}
-              <div className="form-section-title" style={{ marginTop: '24px' }}>Custom Classes</div>
-              <div className="form-group">
-                <label>Select Custom Style</label>
-                <select 
-                  className="form-control"
-                  onChange={(e) => {
-                    if (!e.target.value) return;
-                    const current = selectedNode.props?.class || '';
-                    const classes = current.split(/\s+/).filter(Boolean);
-                    if (!classes.includes(e.target.value)) {
-                      const updated = [...classes, e.target.value].join(' ');
-                      updateNodeProperty(selectedNode.id, 'class', updated);
-                    }
-                    e.target.value = '';
-                  }}
-                >
-                  <option value="">-- Apply a custom style --</option>
-                  {customStyles.map(s => {
-                    const classId = s.id.startsWith('uib-') ? s.id : 'uib-' + s.id;
-                    return <option key={s.id} value={classId}>{s.label || s.id}</option>;
-                  })}
-                </select>
-              </div>
-
-              <div className="form-group" style={{ marginTop: '12px' }}>
-                <label>Applied Classes</label>
-                <div className="active-styles-list">
-                  {(() => {
-                    const current = selectedNode.props?.class || '';
-                    const classes = current.split(/\s+/).filter(Boolean);
-                    if (classes.length === 0) return <p className="help-text">No custom classes applied.</p>;
-                    return classes.map(cls => (
-                      <div key={cls} className="style-tag">
-                        <span className="style-tag-label">{cls}</span>
-                        <button 
-                          type="button"
-                          className="style-tag-remove"
-                          onClick={() => {
-                            const filtered = classes.filter(c => c !== cls).join(' ');
-                            updateNodeProperty(selectedNode.id, 'class', filtered);
-                          }}
-                        >✕</button>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Add Extra Class Manually</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
+              <AccordionSection title="Custom Classes">
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label>Select Custom Style</label>
+                  <select 
                     className="form-control"
-                    placeholder="Type class and press Enter..."
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && e.target.value.trim()) {
-                        const newClass = e.target.value.trim();
-                        const current = selectedNode.props?.class || '';
-                        const classes = current.split(/\s+/).filter(Boolean);
-                        const newClassesToAdd = newClass.split(/\s+/).filter(Boolean);
-                        
-                        let updatedClasses = [...classes];
-                        newClassesToAdd.forEach(c => {
-                          if (!updatedClasses.includes(c)) updatedClasses.push(c);
-                        });
-                        
-                        updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
-                        e.target.value = '';
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const current = selectedNode.props?.class || '';
+                      const classes = current.split(/\s+/).filter(Boolean);
+                      if (!classes.includes(e.target.value)) {
+                        const updated = [...classes, e.target.value].join(' ');
+                        updateNodeProperty(selectedNode.id, 'class', updated);
                       }
+                      e.target.value = '';
                     }}
-                  />
+                  >
+                    <option value="">-- Apply a custom style --</option>
+                    {customStyles.map(s => {
+                      const classId = s.id.startsWith('uib-') ? s.id : 'uib-' + s.id;
+                      return <option key={s.id} value={classId}>{s.label || s.id}</option>;
+                    })}
+                  </select>
                 </div>
-              </div>
+
+                <div className="form-group" style={{ marginTop: '12px' }}>
+                  <label>Applied Classes</label>
+                  <div className="active-styles-list">
+                    {(() => {
+                      const current = selectedNode.props?.class || '';
+                      const classes = current.split(/\s+/).filter(Boolean);
+                      if (classes.length === 0) return <p className="help-text">No custom classes applied.</p>;
+                      return classes.map(cls => (
+                        <div key={cls} className="style-tag">
+                          <span className="style-tag-label">{cls}</span>
+                          <button 
+                            type="button"
+                            className="style-tag-remove"
+                            onClick={() => {
+                              const filtered = classes.filter(c => c !== cls).join(' ');
+                              updateNodeProperty(selectedNode.id, 'class', filtered);
+                            }}
+                          >✕</button>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Add Extra Class Manually</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Type class and press Enter..."
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && e.target.value.trim()) {
+                          const newClass = e.target.value.trim();
+                          const current = selectedNode.props?.class || '';
+                          const classes = current.split(/\s+/).filter(Boolean);
+                          const newClassesToAdd = newClass.split(/\s+/).filter(Boolean);
+                          
+                          let updatedClasses = [...classes];
+                          newClassesToAdd.forEach(c => {
+                            if (!updatedClasses.includes(c)) updatedClasses.push(c);
+                          });
+                          
+                          updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </AccordionSection>
 
               <div className="form-group" style={{ marginTop: '32px' }}>
                 <button 
@@ -257,30 +303,31 @@ export function PropertiesPanel({
           )}
 
           {activeTab === 'styles' && (
-            <div className="animate-fade">
-              <div className="form-section-title">Global Styles</div>
-              <div className="form-group">
-                <label>Apply Global Style</label>
-                <select 
-                  className="form-control"
-                  onChange={(e) => {
-                    if (!e.target.value) return;
-                    const current = selectedNode.props?.class || '';
-                    const classes = current.split(/\s+/).filter(Boolean);
-                    if (!classes.includes(e.target.value)) {
-                      classes.push(e.target.value);
-                      updateNodeProperty(selectedNode.id, 'class', classes.join(' '));
-                    }
-                    e.target.value = '';
-                  }}
-                >
-                  <option value="">Select style to apply...</option>
-                  {customStyles.map(s => {
-                    const classId = s.id.startsWith('uib-') ? s.id : 'uib-' + s.id;
-                    return <option key={s.id} value={classId}>{s.label || s.id}</option>;
-                  })}
-                </select>
-              </div>
+            <div className="animate-fade property-groups">
+              <AccordionSection title="Global Styles">
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label>Apply Global Style</label>
+                  <select 
+                    className="form-control"
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const current = selectedNode.props?.class || '';
+                      const classes = current.split(/\s+/).filter(Boolean);
+                      if (!classes.includes(e.target.value)) {
+                        classes.push(e.target.value);
+                        updateNodeProperty(selectedNode.id, 'class', classes.join(' '));
+                      }
+                      e.target.value = '';
+                    }}
+                  >
+                    <option value="">Select style to apply...</option>
+                    {customStyles.map(s => {
+                      const classId = s.id.startsWith('uib-') ? s.id : 'uib-' + s.id;
+                      return <option key={s.id} value={classId}>{s.label || s.id}</option>;
+                    })}
+                  </select>
+                </div>
+              </AccordionSection>
               
               <button 
                 type="button" 
@@ -294,69 +341,72 @@ export function PropertiesPanel({
           )}
 
           {activeTab === 'content' && (
-            <div className="animate-fade">
-              <div className="form-section-title">Data Binding</div>
-              {isPrimitive ? (
-                <>
-                  <div className="form-group">
-                    <label>Field Identifier</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. hero_title"
-                      value={selectedNode.fieldLabel || ''}
-                      onChange={e => updateNodeField(selectedNode.id, { fieldLabel: e.target.value })}
-                    />
-                    <p className="help-text" style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>This ID connects this element to Drupal content fields.</p>
-                  </div>
-                  <div className="form-group">
-                    <label>{selectedNode.tag === 'img' ? 'Image Source' : 'Text Content'}</label>
-                    {selectedNode.tag === 'img' ? (
-                      <ImageEditor
-                        mode={selectedNode.fieldMode || 'static'}
-                        value={selectedNode.content || ''}
-                        onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
-                      />
-                    ) : (
-                      <FieldEditor
-                        mode={selectedNode.fieldMode || 'static'}
-                        value={selectedNode.content || ''}
-                        onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="component-fields">
-                  {(() => {
-                    const schema = selectedComponent?.form_schema || {};
-                    const entries = typeof schema === 'object' && !Array.isArray(schema) ? Object.entries(schema) : [];
-                    if (entries.length === 0) return <p className="no-items-hint">No editable fields.</p>;
-                    return entries.map(([key, fieldSchema]) => {
-                      const data = selectedNode.values?.[key] || { mode: 'static', value: '' };
-                      const entry = typeof data === 'object' ? data : { mode: 'static', value: data };
-                      return (
-                        <div className="form-group" key={key}>
-                          <label>{fieldSchema.title || key}</label>
-                          {fieldSchema.type === 'image' ? (
-                            <ImageEditor
-                              mode={entry.mode}
-                              value={entry.value}
-                              onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
-                            />
-                          ) : (
-                            <FieldEditor
-                              mode={entry.mode}
-                              value={entry.value}
-                              onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
-                            />
-                          )}
-                        </div>
-                      );
-                    });
-                  })()}
+            <div className="animate-fade property-groups">
+              <AccordionSection title="Data Binding">
+                <div style={{ marginTop: '16px' }}>
+                  {isPrimitive ? (
+                    <>
+                      <div className="form-group">
+                        <label>Field Identifier</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="e.g. hero_title"
+                          value={selectedNode.fieldLabel || ''}
+                          onChange={e => updateNodeField(selectedNode.id, { fieldLabel: e.target.value })}
+                        />
+                        <p className="help-text" style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>This ID connects this element to Drupal content fields.</p>
+                      </div>
+                      <div className="form-group">
+                        <label>{selectedNode.tag === 'img' ? 'Image Source' : 'Text Content'}</label>
+                        {selectedNode.tag === 'img' ? (
+                          <ImageEditor
+                            mode={selectedNode.fieldMode || 'static'}
+                            value={selectedNode.content || ''}
+                            onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
+                          />
+                        ) : (
+                          <FieldEditor
+                            mode={selectedNode.fieldMode || 'static'}
+                            value={selectedNode.content || ''}
+                            onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
+                          />
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="component-fields">
+                      {(() => {
+                        const schema = selectedComponent?.form_schema || {};
+                        const entries = typeof schema === 'object' && !Array.isArray(schema) ? Object.entries(schema) : [];
+                        if (entries.length === 0) return <p className="no-items-hint">No editable fields.</p>;
+                        return entries.map(([key, fieldSchema]) => {
+                          const data = selectedNode.values?.[key] || { mode: 'static', value: '' };
+                          const entry = typeof data === 'object' ? data : { mode: 'static', value: data };
+                          return (
+                            <div className="form-group" key={key}>
+                              <label>{fieldSchema.title || key}</label>
+                              {fieldSchema.type === 'image' ? (
+                                <ImageEditor
+                                  mode={entry.mode}
+                                  value={entry.value}
+                                  onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
+                                />
+                              ) : (
+                                <FieldEditor
+                                  mode={entry.mode}
+                                  value={entry.value}
+                                  onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
+                                />
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </div>
-              )}
+              </AccordionSection>
             </div>
           )}
         </div>

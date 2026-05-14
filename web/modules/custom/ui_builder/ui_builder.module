@@ -159,6 +159,7 @@ function ui_builder_library_info_build() {
     // generateString() returns a root-relative URL like
     // /sites/default/files/ui_builder/uib-styles.css
     $url = \Drupal::service('file_url_generator')->generateString($uri);
+    $url .= '?v=' . filemtime($uri);
 
     $libraries['custom_styles'] = [
       'css' => [

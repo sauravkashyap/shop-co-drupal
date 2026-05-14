@@ -57,6 +57,7 @@ class CssCompiler {
     $this->fileSystem->saveData($css, $directory . '/uib-styles.css', FileSystemInterface::EXISTS_REPLACE);
 
     // Flush asset caches if needed.
+    \Drupal::service('library.discovery')->clearCachedDefinitions();
     // \Drupal::service('asset.js.collection_optimizer')->deleteAll();
     // \Drupal::service('asset.css.collection_optimizer')->deleteAll();
   }
@@ -68,13 +69,25 @@ class CssCompiler {
     $css = "";
     
     // Process properties of the current node
-    if (!empty($node['properties'])) {
+    if (!empty($node['properties']) || !empty($node['custom_properties'])) {
       $css .= $selector . " {\n";
-      foreach ($node['properties'] as $prop => $value) {
-        if (!empty($value)) {
-          $css .= "  " . $prop . ": " . $value . ";\n";
+      
+      if (!empty($node['properties'])) {
+        foreach ($node['properties'] as $prop => $value) {
+          if (!empty($value)) {
+            $css .= "  " . $prop . ": " . $value . ";\n";
+          }
         }
       }
+      
+      if (!empty($node['custom_properties'])) {
+        foreach ($node['custom_properties'] as $prop => $value) {
+          if (!empty($value)) {
+            $css .= "  " . $prop . ": " . $value . ";\n";
+          }
+        }
+      }
+      
       $css .= "}\n";
     }
 

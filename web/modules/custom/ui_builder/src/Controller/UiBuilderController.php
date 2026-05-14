@@ -103,11 +103,20 @@ class UiBuilderController extends ControllerBase {
       return new JsonResponse(['error' => 'Missing required fields'], 400);
     }
 
+    $old_id = $data['old_id'] ?? NULL;
     $id = $data['id'];
     $label = $data['label'];
     $style_data = $data['data'] ?? [];
 
     $storage = $this->entityTypeManager()->getStorage('ui_builder_style');
+
+    if ($old_id && $old_id !== $id) {
+      $existing_old = $storage->load($old_id);
+      if ($existing_old) {
+        $existing_old->delete();
+      }
+    }
+
     /** @var \Drupal\ui_builder\Entity\UiBuilderStyle $existing */
     $existing = $storage->load($id);
 

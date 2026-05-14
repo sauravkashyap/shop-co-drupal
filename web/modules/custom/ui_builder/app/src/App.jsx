@@ -560,22 +560,56 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
 
   const handleSaveStyle = async (styleData) => {
     try {
+      const payload = { ...styleData };
       const response = await fetch('/api/ui-builder/style/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(styleData)
+        body: JSON.stringify(payload)
       });
       const result = await response.json();
       if (result.success) {
         setCustomStyles(prev => {
-          const index = prev.findIndex(s => s.id === styleData.id);
-          if (index > -1) {
-            const next = [...prev];
-            next[index] = { ...next[index], ...styleData };
-            return next;
+          let next = [...prev];
+          if (styleData.old_id && styleData.old_id !== styleData.id) {
+            next = next.filter(s => s.id !== styleData.old_id);
           }
-          return [...prev, { ...styleData }];
+          const index = next.findIndex(s => s.id === styleData.id);
+          if (index > -1) {
+            next[index] = { ...next[index], ...styleData };
+          } else {
+            next.push({ ...styleData });
+          }
+          return next;
         });
+
+        // Update any components in layoutTree that used the old class name
+        if (styleData.old_id && styleData.old_id !== styleData.id) {
+          setLayoutTree(prev => {
+            const tree = deepClone(prev);
+            const oldClass = `uib-${styleData.old_id}`;
+            const newClass = `uib-${styleData.id}`;
+            const updateClasses = (nodes) => {
+              nodes.forEach(node => {
+                if (node.props && node.props.class) {
+                  const classes = node.props.class.split(' ');
+                  const classIndex = classes.indexOf(oldClass);
+                  if (classIndex !== -1) {
+                    classes[classIndex] = newClass;
+                    node.props.class = classes.join(' ');
+                  }
+                }
+                if (node.children) updateClasses(node.children);
+              });
+            };
+            updateClasses(tree);
+            return tree;
+          });
+          
+          // Update currentStyle if it was the one being edited
+          if (currentStyle && currentStyle.id === styleData.old_id) {
+            setCurrentStyle({ ...styleData });
+          }
+        }
         alert('Style saved!');
       }
     } catch (err) {
