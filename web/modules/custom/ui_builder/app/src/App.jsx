@@ -188,20 +188,55 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       'flexShrink'
     ];
 
+    const generateStyleTreeRules = (styleData, baseSelector) => {
+      if (!styleData) return '';
+      let css = '';
+      
+      const processNode = (node, parentSelector) => {
+        let currentSelector = node.selector;
+        if (currentSelector.includes('&')) {
+          currentSelector = currentSelector.replace(/&/g, parentSelector);
+        } else {
+          currentSelector = `${parentSelector} ${currentSelector}`;
+        }
+
+        const rules = [];
+        if (node.properties) {
+          Object.entries(node.properties).forEach(([prop, val]) => {
+            if (val) rules.push(`${prop}: ${val} !important;`);
+          });
+        }
+        if (node.custom_properties) {
+          Object.entries(node.custom_properties).forEach(([prop, val]) => {
+            if (val) rules.push(`${prop}: ${val} !important;`);
+          });
+        }
+
+        if (rules.length > 0) {
+          css += `${currentSelector} { ${rules.join(' ')} }\n`;
+        }
+
+        if (node.children) {
+          node.children.forEach(child => processNode(child, currentSelector));
+        }
+      };
+
+      processNode(styleData, baseSelector);
+      return css;
+    };
+
     const generateRules = (nodes) => {
       let css = '';
       nodes.forEach(node => {
+        // Standard layout props
         if (node.props) {
           const rules = [];
-          
           if (node.props.flexDirection) rules.push(`flex-direction: ${node.props.flexDirection} !important;`);
           if (node.props.justifyContent) rules.push(`justify-content: ${node.props.justifyContent} !important;`);
           if (node.props.alignItems) rules.push(`align-items: ${node.props.alignItems} !important;`);
           if (node.props.alignSelf) rules.push(`align-self: ${node.props.alignSelf} !important;`);
-          
           if (node.props.flexGrow !== undefined && node.props.flexGrow !== 0) rules.push(`flex-grow: ${node.props.flexGrow} !important;`);
           if (node.props.flexShrink !== undefined && node.props.flexShrink !== 1) rules.push(`flex-shrink: ${node.props.flexShrink} !important;`);
-          
           if (node.props.width) rules.push(`width: ${node.props.width} !important;`);
           if (node.props.height) rules.push(`height: ${node.props.height} !important;`);
           
@@ -209,6 +244,12 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
             css += `.uib-${node.id} { ${rules.join(' ')} }\n`;
           }
         }
+
+        // Instance styles (Site Studio style)
+        if (node.instanceStyles) {
+          css += generateStyleTreeRules(node.instanceStyles, `.uib-${node.id}`);
+        }
+
         if (node.children) css += generateRules(node.children);
       });
       return css;
@@ -489,6 +530,17 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       const tree = deepClone(prev);
       const node = findNodeById(tree, instanceId);
       if (node) { node.values = { ...(node.values || {}), [key]: { mode: valueMode, value } }; }
+      return tree;
+    });
+  };
+
+  const updateInstanceStyles = (id, newStyleData) => {
+    setLayoutTree(prev => {
+      const tree = deepClone(prev);
+      const node = findNodeById(tree, id);
+      if (node) {
+        node.instanceStyles = newStyleData;
+      }
       return tree;
     });
   };
@@ -879,12 +931,15 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         mode={mode}
         selectedNode={propertiesNode}
         selectedNodeId={propertiesOpenId}
+        selectedStyle={selectedStyle}
         selectedComponent={selectedComponent}
         updateNodeProperty={updateNodeProperty}
         resetToDefaultProps={resetToDefaultProps}
         removeNode={(id) => { removeNode(id); setPropertiesOpenId(null); }}
         updateNodeField={updateNodeField}
         updateInstanceValue={updateInstanceValue}
+        updateInstanceStyles={updateInstanceStyles}
+        onSaveStyle={handleSaveStyle}
         onDeselect={() => { 
           setPropertiesOpenId(null);
           setSelectedNodeId(null); 

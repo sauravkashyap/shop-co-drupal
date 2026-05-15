@@ -274,8 +274,19 @@ class UiBuilderJsonFormatter extends FormatterBase {
         }
 
         if (!empty($rules)) {
-          $attributes['class'][] = 'uib-' . $node_id;
+          if (!in_array('uib-' . $node_id, $attributes['class'])) {
+            $attributes['class'][] = 'uib-' . $node_id;
+          }
           $dynamic_css .= ".uib-$node_id { " . implode(' ', $rules) . " }\n";
+        }
+
+        // Handle Site Studio Instance Styles
+        if (!empty($component['instanceStyles'])) {
+          $base_selector = '.uib-' . $node_id;
+          if (!in_array('uib-' . $node_id, $attributes['class'])) {
+            $attributes['class'][] = 'uib-' . $node_id;
+          }
+          $dynamic_css .= $this->compileStyleTree($component['instanceStyles'], $base_selector);
         }
       }
       
@@ -432,6 +443,44 @@ class UiBuilderJsonFormatter extends FormatterBase {
     }
 
     return $data;
+  }
+
+  /**
+   * Compiles the Site Studio-style style tree into CSS.
+   */
+  protected function compileStyleTree(array $style_data, $parent_selector) {
+    $css = '';
+    $current_selector = $style_data['selector'] ?? '&';
+    
+    if (strpos($current_selector, '&') !== FALSE) {
+      $current_selector = str_replace('&', $parent_selector, $current_selector);
+    } else {
+      $current_selector = $parent_selector . ' ' . $current_selector;
+    }
+
+    $rules = [];
+    if (!empty($style_data['properties'])) {
+      foreach ($style_data['properties'] as $prop => $val) {
+        if (!empty($val)) $rules[] = "$prop: $val !important;";
+      }
+    }
+    if (!empty($style_data['custom_properties'])) {
+      foreach ($style_data['custom_properties'] as $prop => $val) {
+        if (!empty($val)) $rules[] = "$prop: $val !important;";
+      }
+    }
+
+    if (!empty($rules)) {
+      $css .= "$current_selector { " . implode(' ', $rules) . " }\n";
+    }
+
+    if (!empty($style_data['children'])) {
+      foreach ($style_data['children'] as $child) {
+        $css .= $this->compileStyleTree($child, $current_selector);
+      }
+    }
+
+    return $css;
   }
 
   /**

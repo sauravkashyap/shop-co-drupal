@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { FieldEditor } from './FieldEditor';
 import { ImageEditor } from './ImageEditor';
 import { getCustomClassesOnly, mergeClasses } from '../utils/styleUtils';
+import { 
+  STANDARD_PROPS, 
+  PropertyEditor, 
+  SelectorTree 
+} from './StyleBuilderComponents';
+import './StyleBuilder.css'; // Reuse same styles
 
 function AccordionSection({ title, children, defaultOpen = false }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -47,8 +53,7 @@ function AccordionSection({ title, children, defaultOpen = false }) {
     </div>
   );
 }
-
-export function PropertiesPanel({
+export function PropertiesPanel({ 
   mode,
   selectedNode,
   selectedNodeId,
@@ -59,10 +64,145 @@ export function PropertiesPanel({
   removeNode,
   updateNodeField,
   updateInstanceValue,
+  updateInstanceStyles,
   onSaveStyle,
   onDeselect,
   customStyles = []
 }) {
+  // Instance Style State
+  const [instanceData, setInstanceData] = useState(null);
+  const [selectedInstancePath, setSelectedInstancePath] = useState(['root']);
+  const [editingNodePath, setEditingNodePath] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [collapsedPaths, setCollapsedPaths] = useState(new Set());
+  const [draggedNodePath, setDraggedNodePath] = useState(null);
+  const [dropTargetInfo, setDropTargetInfo] = useState(null);
+  const [pendingProp, setPendingProp] = useState('');
+  const [pendingValue, setPendingValue] = useState('');
+
+  // Global style editor state
+  const [styleCode, setStyleCode] = useState('');
+  const [styleLabel, setStyleLabel] = useState('');
+
+  // SYNC INSTANCE STYLE STATE
+  useEffect(() => {
+    if (selectedNode && selectedNode.instanceStyles) {
+      setInstanceData(JSON.parse(JSON.stringify(selectedNode.instanceStyles)));
+    } else {
+      setInstanceData({
+        selector: '&',
+        properties: {},
+        custom_properties: {},
+        children: []
+      });
+    }
+    setSelectedInstancePath(['root']);
+  }, [selectedNodeId]);
+
+  const findInstanceNodeByPath = (tree, path) => {
+    if (!tree) return null;
+    if (path.length === 1 && path[0] === 'root') return tree;
+    let current = tree;
+    for (let i = 1; i < path.length; i++) {
+      if (!current.children || !current.children[path[i]]) return current;
+      current = current.children[path[i]];
+    }
+    return current;
+  };
+
+  const selectedInstanceNode = findInstanceNodeByPath(instanceData, selectedInstancePath);
+
+  const handleInstanceNodeAction = (action, ...args) => {
+    if (!instanceData) return;
+    
+    const updateAndPersist = (newData) => {
+      setInstanceData(newData);
+      updateInstanceStyles(selectedNodeId, newData);
+    };
+
+    switch (action) {
+      case 'add': {
+        const [e, path] = args;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        setIsAddingNew(true);
+        setEditValue(':hover');
+        setEditingNodePath([...path, 'new']);
+        break;
+      }
+      case 'rename': {
+        const [e, path] = args;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        if (path.length === 1 && path[0] === 'root') return;
+        const node = findInstanceNodeByPath(instanceData, path);
+        setIsAddingNew(false);
+        setEditValue(node.selector);
+        setEditingNodePath(path);
+        setSelectedInstancePath(path);
+        break;
+      }
+      case 'finishEdit': {
+        const trimmed = editValue.trim();
+        if (!trimmed) {
+          setEditingNodePath(null);
+          setIsAddingNew(false);
+          return;
+        }
+        const newData = JSON.parse(JSON.stringify(instanceData));
+        if (isAddingNew) {
+          const parentPath = editingNodePath.slice(0, -1);
+          let current = newData;
+          if (parentPath[0] !== 'root' || parentPath.length > 1) {
+            for (let i = 1; i < parentPath.length; i++) {
+              current = current.children[parentPath[i]];
+            }
+          }
+          current.children = current.children || [];
+          const newIndex = current.children.length;
+          current.children.push({ selector: trimmed, properties: {}, children: [] });
+          setSelectedInstancePath([...parentPath, newIndex]);
+        } else {
+          let current = newData;
+          if (editingNodePath.length > 1) {
+            for (let i = 1; i < editingNodePath.length; i++) {
+              current = current.children[editingNodePath[i]];
+            }
+          }
+          current.selector = trimmed;
+        }
+        updateAndPersist(newData);
+        setEditingNodePath(null);
+        setIsAddingNew(false);
+        break;
+      }
+      // Add drag/drop actions if needed, but let's keep it simple for now
+    }
+  };
+
+  const updateInstanceProperty = (prop, value) => {
+    const newData = JSON.parse(JSON.stringify(instanceData));
+    let target = newData;
+    for (let i = 1; i < selectedInstancePath.length; i++) {
+      target = target.children[selectedInstancePath[i]];
+    }
+    if (!target.properties) target.properties = {};
+    if (value) target.properties[prop] = value; else delete target.properties[prop];
+    setInstanceData(newData);
+    updateInstanceStyles(selectedNodeId, newData);
+  };
+
+  const updateInstanceCustomProperty = (prop, value, oldProp = null) => {
+    const newData = JSON.parse(JSON.stringify(instanceData));
+    let target = newData;
+    for (let i = 1; i < selectedInstancePath.length; i++) {
+      target = target.children[selectedInstancePath[i]];
+    }
+    if (!target.custom_properties) target.custom_properties = {};
+    if (oldProp && oldProp !== prop) delete target.custom_properties[oldProp];
+    if (value) target.custom_properties[prop] = value; else delete target.custom_properties[prop];
+    setInstanceData(newData);
+    updateInstanceStyles(selectedNodeId, newData);
+  };
   // SYNC STYLE EDITOR STATE
   useEffect(() => {
     if (selectedStyle) {
@@ -412,6 +552,55 @@ export function PropertiesPanel({
                       onChange={e => updateNodeProperty(selectedNode.id, 'flexShrink', parseInt(e.target.value) || 0)}
                     />
                   </div>
+                </div>
+              </AccordionSection>
+            )}
+
+            {/* Site Studio Instance Styling */}
+            {(['container', 'row', 'column', 'plain div', 'div', 'section', 'article', 'main', 'aside', 'navigation', 'grid'].some(type => selectedNode.label?.toLowerCase().startsWith(type)) || (selectedNode.tag === 'div' && !selectedNode.component_id)) && (
+              <AccordionSection title="Instance Styling (Site Studio Style)" defaultOpen={false}>
+                <div style={{ marginTop: '16px' }} className="instance-style-editor">
+                  <p className="help-text" style={{ marginBottom: '12px' }}>
+                    Define styles scoped to this specific {selectedNode.label || selectedNode.tag} and its children.
+                  </p>
+                  
+                  <div className="style-builder-mini-tree" style={{ border: '1px solid var(--sb-border)', borderRadius: '4px', marginBottom: '16px', background: '#fff' }}>
+                    <SelectorTree 
+                      data={instanceData}
+                      selectedNodePath={selectedInstancePath}
+                      setSelectedNodePath={setSelectedInstancePath}
+                      editingNodePath={editingNodePath}
+                      setEditingNodePath={setEditingNodePath}
+                      editValue={editValue}
+                      setEditValue={setEditValue}
+                      isAddingNew={isAddingNew}
+                      setIsAddingNew={setIsAddingNew}
+                      collapsedPaths={collapsedPaths}
+                      setCollapsedPaths={setCollapsedPaths}
+                      draggedNodePath={draggedNodePath}
+                      setDraggedNodePath={setDraggedNodePath}
+                      dropTargetInfo={dropTargetInfo}
+                      setDropTargetInfo={setDropTargetInfo}
+                      onNodeAction={handleInstanceNodeAction}
+                    />
+                  </div>
+
+                  {selectedInstanceNode && (
+                    <div className="style-builder-mini-props" style={{ border: '1px solid var(--sb-border)', borderRadius: '4px', padding: '12px', background: '#fff' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--sb-text-main)' }}>
+                        Properties for: <code style={{ color: 'var(--sb-primary)' }}>{selectedInstanceNode.selector}</code>
+                      </h4>
+                      <PropertyEditor 
+                        selectedNode={selectedInstanceNode}
+                        updateProperty={updateInstanceProperty}
+                        updateCustomProperty={updateInstanceCustomProperty}
+                        pendingProp={pendingProp}
+                        setPendingProp={setPendingProp}
+                        pendingValue={pendingValue}
+                        setPendingValue={setPendingValue}
+                      />
+                    </div>
+                  )}
                 </div>
               </AccordionSection>
             )}
