@@ -82,4 +82,22 @@ class UiBuilderStyle extends ConfigEntityBase implements UiBuilderStyleInterface
     return $this;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function postSave(\Drupal\Core\Entity\EntityStorageInterface $storage, $update = TRUE) {
+    parent::postSave($storage, $update);
+    // Recompile CSS when a style is saved.
+    \Drupal::service('ui_builder.css_compiler')->compileAll();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function postDelete(\Drupal\Core\Entity\EntityStorageInterface $storage, array $entities) {
+    parent::postDelete($storage, $entities);
+    // Recompile CSS when a style is deleted.
+    \Drupal::service('ui_builder.css_compiler')->compileAll();
+  }
+
 }

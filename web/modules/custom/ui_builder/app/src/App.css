@@ -717,9 +717,8 @@
   flex-direction: column;
 }
 
-/* For Row elements specifically */
 .ss-box-row-body {
-  padding: 12px;
+  padding: 4px;
 }
 
 .ss-box-children-wrap {
@@ -736,16 +735,36 @@
 /* ─── Columns wrapper (side-by-side flex layout) ─── */
 .ss-box-columns-wrap {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap; /* Ensure columns wrap when span exceeds 12 */
   width: 100%;
+  /* Neutralize negative margins from .uib-row in the builder */
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .ss-box-col-slot {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 60px;
+  min-height: 24px;
+  box-sizing: border-box;
+  /* Neutralize theme column padding in the builder for a tighter look */
+  padding-left: 4px !important;
+  padding-right: 4px !important;
 }
+
+/* 12-Column Grid System for Editor Preview */
+.uib-col-1  { flex: 0 0 8.333333%; max-width: 8.333333%; }
+.uib-col-2  { flex: 0 0 16.666667%; max-width: 16.666667%; }
+.uib-col-3  { flex: 0 0 25%; max-width: 25%; }
+.uib-col-4  { flex: 0 0 33.333333%; max-width: 33.333333%; }
+.uib-col-5  { flex: 0 0 41.666667%; max-width: 41.666667%; }
+.uib-col-6  { flex: 0 0 50%; max-width: 50%; }
+.uib-col-7  { flex: 0 0 58.333333%; max-width: 58.333333%; }
+.uib-col-8  { flex: 0 0 66.666667%; max-width: 66.666667%; }
+.uib-col-9  { flex: 0 0 75%; max-width: 75%; }
+.uib-col-10 { flex: 0 0 83.333333%; max-width: 83.333333%; }
+.uib-col-11 { flex: 0 0 91.666667%; max-width: 91.666667%; }
+.uib-col-12 { flex: 0 0 100%; max-width: 100%; }
 
 /* ─── Text Content Area ─── */
 .ss-box-text-content {
@@ -769,7 +788,7 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.15);
-  z-index: 199;
+  z-index: 400;
   animation: fadeInBackdrop 0.2s ease;
 }
 
@@ -780,7 +799,7 @@
 
 .ui-builder-properties {
   position: fixed;
-  top: 0;
+  top: 80px; /* Offset to clear Drupal admin toolbar */
   right: 0;
   bottom: 0;
   width: 400px;
@@ -789,7 +808,7 @@
   display: flex;
   flex-direction: column;
   color: var(--text-main);
-  z-index: 200;
+  z-index: 401;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   animation: slideInRight 0.2s ease;
 }
@@ -1037,6 +1056,17 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 .style-tag-label { margin-right: 6px; }
+
+.style-tag.is-protected {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  cursor: help;
+}
+
+.style-tag.is-protected .style-tag-label {
+  margin-right: 0;
+}
 
 .style-tag-remove {
   background: none;

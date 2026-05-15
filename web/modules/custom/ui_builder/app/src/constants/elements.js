@@ -2,15 +2,16 @@ export const ELEMENT_CATEGORIES = [
   {
     name: 'Layout',
     elements: [
-      { type: 'div', label: 'Container', icon: '□', isField: false, defaultProps: { class: 'container' } },
-      { type: 'div', label: 'Row', icon: '⊞', isField: false, defaultProps: { class: 'row' } },
-      { type: 'div', label: 'Column', icon: '⊞', isField: false, defaultProps: { class: 'column' } },
+      { type: 'div', label: 'Container', icon: '□', isField: false, defaultProps: { class: 'uib-container' } },
+      { type: 'div', label: 'Plain Div', icon: '□', isField: false, defaultProps: { class: '' } },
+      { type: 'div', label: 'Row', icon: '⊞', isField: false, defaultProps: { class: 'uib-row' } },
+      { type: 'div', label: 'Column', icon: '⊞', isField: false, defaultProps: { class: 'uib-col-12' } },
       { type: 'section', label: 'Section', icon: '📑', isField: false, defaultProps: { class: 'uib-section' } },
       { type: 'article', label: 'Article', icon: '📄', isField: false, defaultProps: { class: 'uib-article' } },
       { type: 'main', label: 'Main', icon: '🔲', isField: false, defaultProps: { class: 'uib-main' } },
       { type: 'aside', label: 'Aside', icon: '◧', isField: false, defaultProps: { class: 'uib-aside' } },
       { type: 'nav', label: 'Navigation', icon: '⟁', isField: false, defaultProps: { class: 'uib-nav' } },
-      { type: 'div', label: 'Grid', icon: '⊞', isField: false, defaultProps: { class: 'grid' } },
+      { type: 'div', label: 'Grid', icon: '⊞', isField: false, defaultProps: { class: 'uib-grid' } },
     ]
   },
   {

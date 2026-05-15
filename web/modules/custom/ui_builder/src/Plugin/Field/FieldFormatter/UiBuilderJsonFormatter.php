@@ -29,16 +29,30 @@ class UiBuilderJsonFormatter extends FormatterBase {
       if (!empty($item->value)) {
         $json_data = json_decode($item->value, TRUE);
         if (json_last_error() === JSON_ERROR_NONE && is_array($json_data)) {
+          $dynamic_css = '';
+          $render_array = $this->buildRenderArray($json_data, $item->getEntity(), $dynamic_css);
+
           $elements[$delta] = [
             '#type' => 'container',
             '#attributes' => [
               'class' => ['ui-builder-content'],
             ],
-            'content' => $this->buildRenderArray($json_data, $item->getEntity()),
+            'content' => $render_array,
             '#attached' => [
               'library' => [
                 'ui_builder/frontend_defaults',
                 'ui_builder/custom_styles',
+                'ui_builder/dynamic_styles',
+              ],
+              'html_head' => [
+                [
+                  [
+                    '#type' => 'html_tag',
+                    '#tag' => 'style',
+                    '#value' => $dynamic_css,
+                  ],
+                  'ui_builder_dynamic_css_' . $delta,
+                ],
               ],
             ],
           ];
@@ -55,7 +69,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
   /**
    * Recursively builds a Drupal render array from the JSON structure.
    */
-  protected function buildRenderArray(array $components, $entity = null) {
+  protected function buildRenderArray(array $components, $entity = null, &$dynamic_css = '') {
     $build = [];
 
     foreach ($components as $component) {
@@ -72,7 +86,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
             $mapped_tree = $this->processTokens($layout_tree, $values, $entity);
             
             // Build the mapped tree and attach libraries.
-            $rendered_component = $this->buildRenderArray($mapped_tree, $entity);
+            $rendered_component = $this->buildRenderArray($mapped_tree, $entity, $dynamic_css);
             
             // Attach CSS/JS if they exist.
             // Note: In Drupal, attaching physical files via #attached library is standard,
@@ -148,14 +162,36 @@ class UiBuilderJsonFormatter extends FormatterBase {
       if (!empty($component['props']['class'])) {
         $raw_classes = explode(' ', $component['props']['class']);
         $prefixed_classes = [];
+        
+        // Cache valid style IDs for this request to optimize performance.
+        static $valid_style_ids = null;
+        if ($valid_style_ids === null) {
+          $valid_style_ids = \Drupal::entityQuery('ui_builder_style')->execute();
+          // Normalize IDs to include uib- prefix for comparison.
+          $valid_style_ids = array_map(fn($id) => str_starts_with($id, 'uib-') ? $id : 'uib-' . $id, $valid_style_ids);
+          // Add standard structural classes that should never be stripped.
+          $valid_style_ids = array_merge($valid_style_ids, [
+            'uib-container', 'uib-full-width', 'uib-row', 'uib-section', 'uib-article', 
+            'uib-main', 'uib-aside', 'uib-nav', 'uib-grid', 'uib-plain-div'
+          ]);
+          // Add wildcard column pattern support - anything starting with uib-col- is valid.
+        }
+
         foreach ($raw_classes as $cls) {
           $cls = trim($cls);
           if (empty($cls)) continue;
-          // Prefix custom classes with uib- (skip if already prefixed)
+          // Prefix all classes with uib- to ensure they are namespaced (skip if already prefixed)
           if (!str_starts_with($cls, 'uib-')) {
             $cls = 'uib-' . $cls;
           }
-          $prefixed_classes[] = $cls;
+          
+          // DYNAMIC CLEANUP: Only output the class if it exists as a Style entity,
+          // is a base structural class, or is a grid column class.
+          $is_valid = in_array($cls, $valid_style_ids) || str_starts_with($cls, 'uib-col-');
+          
+          if ($is_valid) {
+            $prefixed_classes[] = $cls;
+          }
         }
         $attributes['class'] = $prefixed_classes;
       }
@@ -191,17 +227,56 @@ class UiBuilderJsonFormatter extends FormatterBase {
         'code' => 'uib-code',
         'small' => 'uib-small',
         'table' => 'uib-table',
+        'thead' => 'uib-thead',
+        'tbody' => 'uib-tbody',
+        'tr' => 'uib-tr',
         'th' => 'uib-th',
         'td' => 'uib-td',
         'form' => 'uib-form',
         'label' => 'uib-label',
         'input' => 'uib-input',
         'select' => 'uib-select',
+        'option' => 'uib-option',
         'textarea' => 'uib-textarea',
         'svg' => 'uib-svg',
+        'video' => 'uib-video',
       ];
       if (isset($tag_map[strtolower($tag)])) {
         $attributes['class'][] = $tag_map[strtolower($tag)];
+      }
+
+      // Add unique instance classes
+      if (!empty($component['id'])) {
+        $node_id = $component['id'];
+
+        // Generate CSS for this node
+        $rules = [];
+
+        if (!empty($component['props'])) {
+          foreach ($component['props'] as $key => $val) {
+            if (!is_scalar($val) || empty($val)) continue;
+
+            switch ($key) {
+              case 'flexDirection': $rules[] = "flex-direction: $val !important;"; break;
+              case 'justifyContent': $rules[] = "justify-content: $val !important;"; break;
+              case 'alignItems': $rules[] = "align-items: $val !important;"; break;
+              case 'alignSelf': $rules[] = "align-self: $val !important;"; break;
+              case 'flexGrow': 
+                if ($val != 0) $rules[] = "flex-grow: $val !important;"; 
+                break;
+              case 'flexShrink': 
+                if ($val != 1) $rules[] = "flex-shrink: $val !important;"; 
+                break;
+              case 'width': $rules[] = "width: $val !important;"; break;
+              case 'height': $rules[] = "height: $val !important;"; break;
+            }
+          }
+        }
+
+        if (!empty($rules)) {
+          $attributes['class'][] = 'uib-' . $node_id;
+          $dynamic_css .= ".uib-$node_id { " . implode(' ', $rules) . " }\n";
+        }
       }
       
       // Handle special Aside props
@@ -256,15 +331,6 @@ class UiBuilderJsonFormatter extends FormatterBase {
         }
       }
       
-      // Add other attributes if any
-      if (!empty($component['props']) && is_array($component['props'])) {
-        foreach ($component['props'] as $key => $val) {
-          if ($key !== 'class' && is_scalar($val)) {
-            $attributes[$key] = $val;
-          }
-        }
-      }
-      
       if (!empty($attributes)) {
         $element['#attributes'] = $attributes;
       }
@@ -288,7 +354,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
       }
       // Handle children
       elseif (!empty($component['children']) && is_array($component['children'])) {
-        $element['children'] = $this->buildRenderArray($component['children'], $entity);
+        $element['children'] = $this->buildRenderArray($component['children'], $entity, $dynamic_css);
       }
       // Handle text content
       elseif (isset($component['content'])) {
@@ -369,29 +435,10 @@ class UiBuilderJsonFormatter extends FormatterBase {
   }
 
   /**
-   * Generates the CSS string for global base style overrides.
+   * Helper function to get the current entity from the field items.
    */
-  protected function getBaseStylesCss() {
-    $config = \Drupal::config('ui_builder.base_styles');
-    $tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'button'];
-    $css = "/* UI Builder Global Base Styles - VERSION 1.0.2 */\n";
-    
-    foreach ($tags as $tag) {
-      $tag_css = $config->get($tag . '_css');
-      if (!empty($tag_css)) {
-        $css .= "$tag { $tag_css }\n";
-      }
-      
-      // Handle focus styles.
-      $focus_css = $config->get($tag . '_focus_css');
-      if (!empty($focus_css)) {
-        $css .= "{$tag}:focus-visible {\n";
-        $css .= "  {$focus_css}\n";
-        $css .= "}\n";
-      }
-    }
-    
-    return $css;
+  protected function getEntity() {
+    return $this->fieldDefinition->getEntity();
   }
 
 }

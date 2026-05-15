@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableNode } from './SortableNode';
 import { useDragState } from '../contexts/DragStateContext';
+import { hasUniqueStyles } from '../utils/treeUtils';
 
 /**
  * A thin horizontal drop zone rendered between nodes (or at the end).
@@ -39,29 +40,36 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
 
   // Row with columns — side by side flex layout
   if (isRow) {
+    const baseClass = parentNode.props?.class || 'uib-row';
+    const uniqueClass = hasUniqueStyles(parentNode) ? `uib-${parentNode.id}` : '';
     return (
-      <div className="ss-box-columns-wrap">
-        {children.map((child, i) => (
-          <div key={child.id} className="ss-box-col-slot">
-            {isDraggingGlobal && <DropGap parentId={parentNode.id} index={i} isActive={isDraggingGlobal} />}
-            <SortableNode
-              node={child}
-              mode={mode}
-              selectedId={selectedId}
-              onSelect={onSelect}
-              onOpenProperties={onOpenProperties}
-              onDuplicate={onDuplicate}
-              onDelete={onDelete}
-              onQuickAdd={onQuickAdd}
-              onStartTargetedAdd={onStartTargetedAdd}
-              onSaveAsComponent={onSaveAsComponent}
-              pendingParentId={pendingParentId}
-              availableComponents={availableComponents}
-              depth={depth}
-              isInherited={isInherited}
-            />
-          </div>
-        ))}
+      <div className={`ss-box-columns-wrap ${baseClass} ${uniqueClass}`}>
+        {children.map((child, i) => {
+          const colSpanClass = (child.props?.class || '').split(/\s+/).find(c => c.startsWith('uib-col-')) || 'uib-col-12';
+          const childUniqueClass = hasUniqueStyles(child) ? `uib-${child.id}` : '';
+
+          return (
+            <div key={child.id} className={`ss-box-col-slot ${colSpanClass} ${childUniqueClass}`}>
+              {isDraggingGlobal && <DropGap parentId={parentNode.id} index={i} isActive={isDraggingGlobal} />}
+              <SortableNode
+                node={child}
+                mode={mode}
+                selectedId={selectedId}
+                onSelect={onSelect}
+                onOpenProperties={onOpenProperties}
+                onDuplicate={onDuplicate}
+                onDelete={onDelete}
+                onQuickAdd={onQuickAdd}
+                onStartTargetedAdd={onStartTargetedAdd}
+                onSaveAsComponent={onSaveAsComponent}
+                pendingParentId={pendingParentId}
+                availableComponents={availableComponents}
+                depth={depth}
+                isInherited={isInherited}
+              />
+            </div>
+          );
+        })}
         {isDraggingGlobal && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
       </div>
     );

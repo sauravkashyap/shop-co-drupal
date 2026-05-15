@@ -41,41 +41,35 @@ export function deleteNodeById(nodes, id) {
 }
 
 export function canAcceptChild(parent, child) {
+  // ... (existing implementation)
   if (!parent) return true;
   const isContainer = CONTAINER_TAGS.includes(parent.tag);
   if (!isContainer) return false;
   
-  // Specific restrictions
   const childTag = child.type || child.tag;
-  
-  // Lists
-  if ((parent.tag === 'ul' || parent.tag === 'ol') && childTag !== 'li') {
-    return false; // Lists only accept list items
-  }
-  
-  // Tables
-  if (parent.tag === 'table' && !['thead', 'tbody', 'tr'].includes(childTag)) {
-    return false; // Tables only accept thead, tbody, or tr
-  }
-  if (['thead', 'tbody'].includes(parent.tag) && childTag !== 'tr') {
-    return false; // thead/tbody only accept tr
-  }
-  if (parent.tag === 'tr' && !['th', 'td'].includes(childTag)) {
-    return false; // Rows only accept cells
-  }
-  if (['th', 'td'].includes(childTag) && parent.tag !== 'tr') {
-    return false; // Cells must be inside rows
-  }
-
-  // Forms
-  if (parent.tag === 'select' && childTag !== 'option') {
-    return false; // Select only accepts options
-  }
-
-  // Prevent nesting major sections deeply
-  if (['section', 'header', 'footer', 'main'].includes(childTag) && !['div', 'main'].includes(parent.tag)) {
-    return false;
-  }
+  if ((parent.tag === 'ul' || parent.tag === 'ol') && childTag !== 'li') return false;
+  if (parent.tag === 'table' && !['thead', 'tbody', 'tr'].includes(childTag)) return false;
+  if (['thead', 'tbody'].includes(parent.tag) && childTag !== 'tr') return false;
+  if (parent.tag === 'tr' && !['th', 'td'].includes(childTag)) return false;
+  if (['th', 'td'].includes(childTag) && parent.tag !== 'tr') return false;
+  if (parent.tag === 'select' && childTag !== 'option') return false;
+  if (['section', 'header', 'footer', 'main'].includes(childTag) && !['div', 'main'].includes(parent.tag)) return false;
   
   return true;
+}
+
+export function hasUniqueStyles(node) {
+  if (!node || !node.props) return false;
+  const p = node.props;
+  
+  if (p.flexDirection) return true;
+  if (p.justifyContent) return true;
+  if (p.alignItems) return true;
+  if (p.alignSelf) return true;
+  if (p.flexGrow !== undefined && p.flexGrow !== 0) return true;
+  if (p.flexShrink !== undefined && p.flexShrink !== 1) return true;
+  if (p.width) return true;
+  if (p.height) return true;
+  
+  return false;
 }

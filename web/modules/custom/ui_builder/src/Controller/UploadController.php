@@ -39,7 +39,7 @@ class UploadController extends ControllerBase {
       $file->setPermanent();
       $file->save();
       
-      $url = \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+      $url = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
       
       return new JsonResponse([
         'url' => $url,

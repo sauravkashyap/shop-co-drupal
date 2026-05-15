@@ -5,9 +5,9 @@ import { CATEGORY_COLORS } from '../constants/typeColors';
 
 // Icons for element types — matching Site Studio's colored square icons
 const ELEMENT_ICONS = {
-  // Layout
   'Container': '□',
-  'Row for columns': '⊞',
+  'Plain Div': '□',
+  'Row': '⊞',
   'Column': '⊞',
   'Section': '📑',
   'Article': '📄',

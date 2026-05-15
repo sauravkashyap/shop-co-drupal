@@ -67,7 +67,13 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     return hydrateTree(hydrateComponents(rawTree));
   });
 
-  const [availableComponents, setAvailableComponents] = useState(initialComponents || []);
+  const [availableComponents, setAvailableComponents] = useState(() => {
+    const rawComps = initialComponents || [];
+    return rawComps.map(comp => ({
+      ...comp,
+      layout_tree: comp.layout_tree ? (typeof comp.layout_tree === 'string' ? JSON.parse(comp.layout_tree) : hydrateTree(comp.layout_tree)) : []
+    }));
+  });
   const [customStyles, setCustomStyles] = useState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [currentStyle, setCurrentStyle] = useState(null);
@@ -162,6 +168,54 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       if (onUpdate) onUpdate(layoutTree);
     }
   }, [layoutTree, mode, onUpdate]);
+  
+  // ── Dynamic CSS Generation ────────────────────────────────────────────────
+  useEffect(() => {
+    const styleId = 'uib-dynamic-layout-styles';
+    let styleTag = document.getElementById(styleId);
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = styleId;
+      document.head.appendChild(styleTag);
+    }
+
+    const layoutProps = [
+      'flexDirection', 
+      'justifyContent', 
+      'alignItems', 
+      'alignSelf', 
+      'flexGrow', 
+      'flexShrink'
+    ];
+
+    const generateRules = (nodes) => {
+      let css = '';
+      nodes.forEach(node => {
+        if (node.props) {
+          const rules = [];
+          
+          if (node.props.flexDirection) rules.push(`flex-direction: ${node.props.flexDirection} !important;`);
+          if (node.props.justifyContent) rules.push(`justify-content: ${node.props.justifyContent} !important;`);
+          if (node.props.alignItems) rules.push(`align-items: ${node.props.alignItems} !important;`);
+          if (node.props.alignSelf) rules.push(`align-self: ${node.props.alignSelf} !important;`);
+          
+          if (node.props.flexGrow !== undefined && node.props.flexGrow !== 0) rules.push(`flex-grow: ${node.props.flexGrow} !important;`);
+          if (node.props.flexShrink !== undefined && node.props.flexShrink !== 1) rules.push(`flex-shrink: ${node.props.flexShrink} !important;`);
+          
+          if (node.props.width) rules.push(`width: ${node.props.width} !important;`);
+          if (node.props.height) rules.push(`height: ${node.props.height} !important;`);
+          
+          if (rules.length > 0) {
+            css += `.uib-${node.id} { ${rules.join(' ')} }\n`;
+          }
+        }
+        if (node.children) css += generateRules(node.children);
+      });
+      return css;
+    };
+
+    styleTag.textContent = generateRules(layoutTree);
+  }, [layoutTree]);
 
   // ── Tree Mutations ──────────────────────────────────────────────────────────
 
@@ -409,7 +463,14 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     setLayoutTree(prev => {
       const tree = deepClone(prev);
       const node = findNodeById(tree, id);
-      if (node) { node.props = node.props || {}; node.props[key] = value; }
+      if (node) { 
+        node.props = node.props || {}; 
+        if (value === '' || value === null || value === undefined) {
+          delete node.props[key];
+        } else {
+          node.props[key] = value; 
+        }
+      }
       return tree;
     });
   };
