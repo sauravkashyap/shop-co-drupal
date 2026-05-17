@@ -40,10 +40,10 @@ export function ActionBar({ mode, onSavePage, onSaveAsComponent, onToggleStyles,
       <div className="bar-right">
         {mode === 'architect' && (
           <>
-            <button className="btn-secondary" onClick={onToggleStyles}>
+            <button type="button" className="btn-secondary" onClick={onToggleStyles}>
               <span className="icon">🎨</span> Style Library
             </button>
-            <button className="btn-secondary" onClick={onSaveAsComponent}>
+            <button type="button" className="btn-secondary" onClick={onSaveAsComponent}>
               <span className="icon">🧩</span> Save as Component
             </button>
           </>

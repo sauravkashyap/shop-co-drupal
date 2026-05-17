@@ -106,8 +106,15 @@ export function NodeCard({
 
   // Add layout info to display name for Rows and Columns
   if (isColumn) {
-    const colClass = (node.props?.class || '').split(/\s+/).find(c => c.startsWith('uib-col-')) || 'uib-col-12';
-    const span = colClass.replace('uib-col-', '');
+    let span = '12';
+    const customWidth = node.instanceStyles?.custom_properties?.['max-width'];
+    if (customWidth) {
+      const pct = parseFloat(customWidth.replace('%', ''));
+      span = Math.round((pct / 100) * 12).toString();
+    } else {
+      const colClass = (node.props?.class || '').split(/\s+/).find(c => c.startsWith('uib-col-')) || 'uib-col-12';
+      span = colClass.replace('uib-col-', '');
+    }
     displayName = `${displayName} (${span}/12)`;
   } else if (isRow) {
     const dir = node.props?.flexDirection;
@@ -132,9 +139,11 @@ export function NodeCard({
         ${node.tag === 'aside' ? `uib-aside-${node.props?.side || 'left'}` : ''}
         ${node.tag === 'aside' && node.props?.collapsible ? 'uib-collapsible' : ''}
         ${pendingParentId === node.id ? 'ss-box-is-targeted' : ''}
-        ${hasUniqueStyles(node) ? `uib-${node.id}` : ''}
       `}
-      onClick={e => { e.stopPropagation(); onSelect(node.id); }}
+      onClick={e => { 
+        e.stopPropagation(); 
+        onSelect(node.id); 
+      }}
       onDoubleClick={e => { e.stopPropagation(); if (onOpenProperties) onOpenProperties(node.id); }}
     >
       {/* Top Bar — drag handle */}
@@ -186,45 +195,45 @@ export function NodeCard({
           
           {showMenu && (
             <div className="ss-box-dropdown">
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onOpenProperties) onOpenProperties(node.id); }}>Edit Settings</button>
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDuplicate) onDuplicate(node.id); }}>Duplicate</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onOpenProperties) onOpenProperties(node.id); }}>Edit Settings</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDuplicate) onDuplicate(node.id); }}>Duplicate</button>
               
               {/* Quick Add Shortcuts */}
                {node.tag === 'table' && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'thead'); }}>+ Add Table Head (thead)</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tbody'); }}>+ Add Table Body (tbody)</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'thead'); }}>+ Add Table Head (thead)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tbody'); }}>+ Add Table Body (tbody)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
                 </>
               )}
               {['thead', 'tbody'].includes(node.tag) && (
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
               )}
               {node.tag === 'tr' && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'td'); }}>+ Add Cell (td)</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'th'); }}>+ Add Cell (th)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'td'); }}>+ Add Cell (td)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'th'); }}>+ Add Cell (th)</button>
                 </>
               )}
               {node.tag === 'form' && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'input'); }}>+ Add Input</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'label'); }}>+ Add Label</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'select'); }}>+ Add Select</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'textarea'); }}>+ Add Textarea</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'input'); }}>+ Add Input</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'label'); }}>+ Add Label</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'select'); }}>+ Add Select</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'textarea'); }}>+ Add Textarea</button>
                 </>
               )}
               {['ul', 'ol'].includes(node.tag) && (
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'li'); }}>+ Add Item</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'li'); }}>+ Add Item</button>
               )}
               {node.tag === 'select' && (
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'option'); }}>+ Add Option</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'option'); }}>+ Add Option</button>
               )}
 
               <div className="ss-box-dropdown-divider"></div>
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onSaveAsComponent) onSaveAsComponent(node.id); }}>Save to Library</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onSaveAsComponent) onSaveAsComponent(node.id); }}>Save to Library</button>
               <div className="ss-box-dropdown-divider"></div>
-              <button className="ss-box-dropdown-danger" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDelete) onDelete(node.id); }}>Delete</button>
+              <button type="button" className="ss-box-dropdown-danger" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDelete) onDelete(node.id); }}>Delete</button>
             </div>
           )}
         </div>

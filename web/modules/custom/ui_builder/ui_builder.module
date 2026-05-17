@@ -91,6 +91,8 @@ function ui_builder_form_node_form_alter(array &$form, \Drupal\Core\Form\FormSta
     'field_tags',
     'field_image',
     'field_metatag',
+    'field_width',
+    'field_height',
   ];
   foreach ($fields_to_hide as $field_name) {
     if (isset($form[$field_name])) {
@@ -98,21 +100,38 @@ function ui_builder_form_node_form_alter(array &$form, \Drupal\Core\Form\FormSta
     }
   }
 
-  // Hide sidebar/advanced sections.
-  /* Removed based on user request to keep native sidebar cards */
-  // $sections_to_hide = [
-  //   'revision_information',
-  //   'path',
-  //   'author',
-  //   'options',
-  //   'comment',
-  //   'menu',
-  // ];
-  // foreach ($sections_to_hide as $section) {
-  //   if (isset($form[$section])) {
-  //     $form[$section]['#access'] = FALSE;
-  //   }
-  // }
+  // Hide sidebar/advanced sections to remove "Revision log message" etc.
+  $sections_to_hide = [
+    'revision_information',
+    'revision_log',
+    'revision',
+    'path',
+    'author',
+    'options',
+    'comment',
+    'menu',
+  ];
+  foreach ($sections_to_hide as $section) {
+    if (isset($form[$section])) {
+      $form[$section]['#access'] = FALSE;
+    }
+  }
+
+  // Inject CSS to hide specific elements by placeholder if they slip through.
+  $form['#attached']['html_head'][] = [
+    [
+      '#tag' => 'style',
+      '#value' => '
+        input[placeholder="e.g. 100% or 200px"],
+        input[placeholder="e.g. auto or 150px"],
+        .field--name-revision-log,
+        #edit-revision-log-wrapper {
+          display: none !important;
+        }
+      ',
+    ],
+    'ui_builder_cleanup_styles',
+  ];
 
   // Hide Drupal's form actions — the React builder handles saving.
   //   $form['actions']['#access'] = FALSE;
@@ -175,4 +194,44 @@ function ui_builder_library_info_build() {
   }
 
   return $libraries;
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function ui_builder_node_insert(\Drupal\node\NodeInterface $node) {
+  ui_builder_save_instance_styles($node);
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function ui_builder_node_update(\Drupal\node\NodeInterface $node) {
+  ui_builder_save_instance_styles($node);
+}
+
+/**
+ * Helper to save instance styles to a file.
+ */
+function ui_builder_save_instance_styles(\Drupal\node\NodeInterface $node) {
+  foreach ($node->getFieldDefinitions() as $field_name => $definition) {
+    if ($definition->getType() === 'ui_builder_json') {
+      $items = $node->get($field_name);
+      foreach ($items as $item) {
+        if (empty($item->value)) continue;
+        
+        $json_data = json_decode($item->value, TRUE);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($json_data)) {
+          $css = \Drupal::service('ui_builder.css_compiler')->compileInstanceStyles($json_data);
+          if ($css) {
+            $directory = 'public://ui_builder';
+            \Drupal::service('file_system')->prepareDirectory($directory, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY | \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS);
+            
+            $filename = $directory . '/uib-node-' . $node->id() . '-' . $field_name . '.css';
+            \Drupal::service('file_system')->saveData($css, $filename, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
+          }
+        }
+      }
+    }
+  }
 }

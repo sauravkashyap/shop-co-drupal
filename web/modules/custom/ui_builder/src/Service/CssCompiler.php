@@ -81,10 +81,52 @@ class CssCompiler {
       }
       
       if (!empty($node['custom_properties'])) {
-        foreach ($node['custom_properties'] as $prop => $value) {
-          if (!empty($value)) {
-            $css .= "  " . $prop . ": " . $value . ";\n";
+        $config = \Drupal::config('ui_builder.base_styles');
+        $breakpoints = [
+          'tablet' => $config->get('tablet_breakpoint') ?: '1024px',
+          'mobile' => $config->get('mobile_breakpoint') ?: '767px',
+        ];
+        
+        $custom_breakpoints = $config->get('custom_breakpoints') ?: [];
+        foreach ($custom_breakpoints as $item) {
+          if (!empty($item['key']) && !empty($item['value'])) {
+            $breakpoints[$item['key']] = $item['value'];
           }
+        }
+
+        $base_props = [];
+        $grouped_props = [];
+
+        foreach ($node['custom_properties'] as $prop => $value) {
+          if (empty($value)) continue;
+
+          $matched = false;
+          foreach ($breakpoints as $key => $width) {
+            if (str_starts_with($prop, $key . ':')) {
+              $grouped_props[$key][substr($prop, strlen($key) + 1)] = $value;
+              $matched = true;
+              break;
+            }
+          }
+
+          if (!$matched) {
+            $base_props[$prop] = $value;
+          }
+        }
+
+        // Output base props
+        foreach ($base_props as $prop => $value) {
+          $css .= "  " . $prop . ": " . $value . ";\n";
+        }
+
+        // Output Breakpoint props
+        foreach ($grouped_props as $key => $props) {
+          $width = $breakpoints[$key] ?? '0px';
+          $css .= "  @media (max-width: $width) {\n";
+          foreach ($props as $prop => $value) {
+            $css .= "    " . $prop . ": " . $value . ";\n";
+          }
+          $css .= "  }\n";
         }
       }
       
@@ -132,4 +174,151 @@ class CssCompiler {
     return $selector;
   }
 
+  /**
+   * Compiles instance styles from a layout JSON array.
+   *
+   * @param array $components
+   *   The layout components array.
+   *
+   * @return string
+   *   The compiled CSS.
+   */
+  public function compileInstanceStyles(array $components) {
+    $css = "";
+    $this->traverseAndCompile($components, $css);
+    return $css;
+  }
+
+  /**
+   * Helper to traverse tree and compile CSS.
+   */
+  protected function traverseAndCompile(array $components, &$css) {
+    foreach ($components as $component) {
+      if (empty($component['id'])) continue;
+      
+      $node_id = $component['id'];
+      $rules = [];
+      
+      // Compile props (dimensions, flexbox)
+      if (!empty($component['props'])) {
+        foreach ($component['props'] as $key => $val) {
+          if (!is_scalar($val) || empty($val)) continue;
+          
+          switch ($key) {
+            case 'flexDirection': $rules[] = "flex-direction: $val !important;"; break;
+            case 'justifyContent': $rules[] = "justify-content: $val !important;"; break;
+            case 'alignItems': $rules[] = "align-items: $val !important;"; break;
+            case 'alignSelf': $rules[] = "align-self: $val !important;"; break;
+            case 'flexGrow': if ($val != 0) $rules[] = "flex-grow: $val !important;"; break;
+            case 'flexShrink': if ($val != 1) $rules[] = "flex-shrink: $val !important;"; break;
+          }
+        }
+      }
+      
+      if (!empty($rules)) {
+        $css .= ".uib-$node_id { " . implode(' ', $rules) . " }\n";
+      }
+      
+      // Compile instanceStyles - ONLY for Container and Plain Div
+      $label = $component['label'] ?? '';
+      $tag = $component['tag'] ?? 'div';
+      $is_container_or_div = (str_starts_with($label, 'Container') || str_starts_with($label, 'Plain Div') || $tag === 'div');
+
+      if ($is_container_or_div && !empty($component['instanceStyles'])) {
+        $is_col = FALSE;
+        if (!empty($component['props']['class'])) {
+          $classes = explode(' ', $component['props']['class']);
+          foreach ($classes as $c) {
+            if (str_starts_with($c, 'uib-col-')) {
+              $is_col = TRUE;
+              break;
+            }
+          }
+        }
+        $css .= $this->compileStyleTree($component['instanceStyles'], '.uib-' . $node_id, $is_col);
+      }
+      
+      // Traverse children
+      if (!empty($component['children'])) {
+        $this->traverseAndCompile($component['children'], $css);
+      }
+    }
+  }
+
+  /**
+   * Compiles a style tree for instance styles.
+   */
+  protected function compileStyleTree(array $style_data, $parent_selector, $is_col = FALSE) {
+    $css = '';
+    $current_selector = $style_data['selector'] ?? '&';
+    
+    if (str_contains($current_selector, '&')) {
+      $current_selector = str_replace('&', $parent_selector, $current_selector);
+    } else {
+      $current_selector = $parent_selector . ' ' . $current_selector;
+    }
+
+    $config = \Drupal::config('ui_builder.base_styles');
+    $breakpoints = [
+      'tablet' => $config->get('tablet_breakpoint') ?: '1024px',
+      'mobile' => $config->get('mobile_breakpoint') ?: '767px',
+    ];
+    
+    $custom_breakpoints = $config->get('custom_breakpoints') ?: [];
+    foreach ($custom_breakpoints as $item) {
+      if (!empty($item['key']) && !empty($item['value'])) {
+        $breakpoints[$item['key']] = $item['value'];
+      }
+    }
+
+    $base_rules = [];
+    $grouped_rules = [];
+
+    if (!empty($style_data['properties'])) {
+      foreach ($style_data['properties'] as $prop => $val) {
+        if ($is_col && ($prop === 'max-width' || $prop === 'flex')) continue;
+        if (!empty($val)) $base_rules[] = "$prop: $val !important;";
+      }
+    }
+
+    if (!empty($style_data['custom_properties'])) {
+      foreach ($style_data['custom_properties'] as $prop => $val) {
+        if (empty($val)) continue;
+
+        $matched = false;
+        foreach ($breakpoints as $key => $width) {
+          if (str_starts_with($prop, $key . ':')) {
+            $grouped_rules[$key][] = substr($prop, strlen($key) + 1) . ": $val !important;";
+            $matched = true;
+            break;
+          }
+        }
+
+        if (!$matched) {
+          if ($is_col && ($prop === 'max-width' || $prop === 'flex')) continue;
+          $base_rules[] = "$prop: $val !important;";
+        }
+      }
+    }
+
+    if (!empty($base_rules)) {
+      $css .= "$current_selector { " . implode(' ', $base_rules) . " }\n";
+    }
+
+    foreach ($grouped_rules as $key => $rules) {
+      $width = $breakpoints[$key] ?? '0px';
+      $css .= "@media (max-width: $width) {\n";
+      $css .= "  $current_selector { " . implode(' ', $rules) . " }\n";
+      $css .= "}\n";
+    }
+
+    if (!empty($style_data['children'])) {
+      foreach ($style_data['children'] as $child) {
+        $css .= $this->compileStyleTree($child, $current_selector, FALSE);
+      }
+    }
+
+    return $css;
+  }
 }
+

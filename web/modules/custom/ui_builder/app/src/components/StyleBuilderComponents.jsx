@@ -45,55 +45,201 @@ export function Prop({ label, name, value = '', type = 'text', options = [], onC
   );
 }
 
-export function CustomCssEditor({ customProperties, onChange, newProp, setNewProp, newValue, setNewValue }) {
+function PropertyInput({ value, defaultValue, onChange, placeholder, style, onBlur }) {
+  const [val, setVal] = useState(value !== undefined ? value : defaultValue || '');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (value !== undefined) {
+      setVal(value);
+    }
+  }, [value]);
+
+  const handleInputChange = (e) => {
+    const currentVal = e.target.value;
+    setVal(currentVal);
+    if (onChange) onChange(e);
+    
+    if (currentVal.trim()) {
+      const filtered = STANDARD_PROPS.filter(p => p.startsWith(currentVal.toLowerCase()));
+      setSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0);
+      setActiveIndex(0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => Math.min(prev + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (suggestions[activeIndex]) {
+        setVal(suggestions[activeIndex]);
+        if (onChange) onChange({ target: { value: suggestions[activeIndex] } });
+        setShowSuggestions(false);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative', flex: style?.flex || 'unset', minWidth: 0 }}>
+      <input 
+        type="text"
+        value={val}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onBlur={(e) => {
+          setTimeout(() => setShowSuggestions(false), 200);
+          if (onBlur) onBlur(e);
+        }}
+        placeholder={placeholder}
+        style={{ ...style, width: '100%' }}
+      />
+      {showSuggestions && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          background: '#fff',
+          border: '1px solid var(--sb-border)',
+          borderRadius: '4px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          zIndex: 1000,
+          maxHeight: '150px',
+          overflowY: 'auto'
+        }}>
+          {suggestions.map((s, index) => (
+            <div
+              key={s}
+              onClick={() => {
+                setVal(s);
+                if (onChange) onChange({ target: { value: s } });
+                setShowSuggestions(false);
+              }}
+              style={{
+                padding: '6px 8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                background: index === activeIndex ? '#e6f7ff' : '#fff',
+                color: 'var(--text-main)'
+              }}
+            >
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CustomCssEditor({ customProperties, onChange, newProp, setNewProp, newValue, setNewValue, activeDevice = 'desktop', setActiveDevice }) {
+
+  const breakpoints = window.drupalSettings?.ui_builder?.breakpoints || { tablet: '1024px', mobile: '767px' };
+  const breakpointKeys = Object.keys(breakpoints);
+
   const handleAdd = () => {
     if (newProp.trim() && newValue.trim()) {
-      onChange(newProp.trim(), newValue.trim());
+      let finalProp = newProp.trim();
+      if (activeDevice !== 'desktop') {
+        finalProp = `${activeDevice}:${finalProp}`;
+      }
+      onChange(finalProp, newValue.trim());
       setNewProp('');
       setNewValue('');
     }
   };
 
   const customProps = Object.keys(customProperties || {});
+  
+  // Filter properties based on active device
+  const filteredProps = customProps.filter(prop => {
+    if (activeDevice === 'desktop') {
+      return !breakpointKeys.some(key => prop.startsWith(`${key}:`));
+    } else {
+      return prop.startsWith(`${activeDevice}:`);
+    }
+  });
 
   return (
     <div className="custom-css-editor">
-      {customProps.length > 0 && (
+      {/* Device Selector Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', borderBottom: '1px solid var(--sb-border)', paddingBottom: '8px' }}>
+        <button 
+          type="button"
+          onClick={() => setActiveDevice('desktop')}
+          style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', background: activeDevice === 'desktop' ? '#e6f7ff' : 'none', border: 'none', cursor: 'pointer', color: activeDevice === 'desktop' ? '#0050b3' : 'var(--text-muted)' }}
+        >
+          🖥️ Desktop
+        </button>
+        {breakpointKeys.map(key => (
+          <button 
+            key={key}
+            type="button"
+            onClick={() => setActiveDevice(key)}
+            style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', background: activeDevice === key ? '#e6f7ff' : 'none', border: 'none', cursor: 'pointer', color: activeDevice === key ? '#0050b3' : 'var(--text-muted)' }}
+          >
+            {key.charAt(0).toUpperCase() + key.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {filteredProps.length > 0 && (
         <div className="custom-css-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-          {customProps.map(prop => (
-            <div key={prop} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input 
-                type="text" 
-                defaultValue={prop} 
-                onBlur={(e) => {
-                  if (e.target.value !== prop) {
-                    onChange(e.target.value, customProperties[prop], prop);
-                  }
-                }}
-                style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
-              />
-              <input 
-                type="text" 
-                value={customProperties[prop]} 
-                onChange={(e) => onChange(prop, e.target.value)}
-                style={{ flex: 2, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
-              />
-              <button 
-                type="button" 
-                onClick={() => onChange(prop, '')}
-                style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '4px' }}
-                title="Remove property"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+          {filteredProps.map(prop => {
+            const displayProp = prop.includes(':') ? prop.split(':').pop() : prop;
+            return (
+              <div key={prop} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <PropertyInput 
+                  defaultValue={displayProp} 
+                  onBlur={(e) => {
+                    const newPropName = e.target.value.trim();
+                    if (newPropName && newPropName !== displayProp) {
+                      let finalNewProp = newPropName;
+                      if (activeDevice !== 'desktop') {
+                        finalNewProp = `${activeDevice}:${newPropName}`;
+                      }
+                      
+                      onChange(finalNewProp, customProperties[prop], prop);
+                    }
+                  }}
+                  style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
+                />
+                <input 
+                  type="text" 
+                  value={customProperties[prop]} 
+                  onChange={(e) => onChange(prop, e.target.value)}
+                  style={{ flex: 2, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
+                />
+                <button 
+                  type="button" 
+                  onClick={() => onChange(prop, '')}
+                  style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '4px' }}
+                  title="Remove property"
+                >
+                  ✕
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#fdfdfd', padding: '12px', borderRadius: '6px', border: '1px dashed var(--sb-border)' }}>
-        <input 
-          type="text" 
-          placeholder="Property (e.g. filter)" 
+        <PropertyInput 
+          placeholder={`Property for ${activeDevice}`} 
           value={newProp} 
           onChange={e => setNewProp(e.target.value)}
           style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
@@ -118,54 +264,10 @@ export function CustomCssEditor({ customProperties, onChange, newProp, setNewPro
   );
 }
 
-export function PropertyEditor({ selectedNode, updateProperty, updateCustomProperty, pendingProp, setPendingProp, pendingValue, setPendingValue }) {
+export function PropertyEditor({ selectedNode, updateProperty, updateCustomProperty, pendingProp, setPendingProp, pendingValue, setPendingValue, activeDevice, setActiveDevice }) {
   return (
     <div className="property-groups">
-      <Group title="Typography" icon="Tt">
-        <Prop label="Font Size" name="font-size" value={selectedNode.properties['font-size']} onChange={updateProperty} placeholder="e.g. 16px" />
-        <Prop label="Font Weight" name="font-weight" value={selectedNode.properties['font-weight']} onChange={updateProperty} type="select" options={['100', '200', '300', '400', '500', '600', '700', '800', '900']} />
-        <Prop label="Color" name="color" type="color" value={selectedNode.properties['color']} onChange={updateProperty} />
-        <Prop label="Line Height" name="line-height" value={selectedNode.properties['line-height']} onChange={updateProperty} placeholder="e.g. 1.5" />
-        <Prop label="Letter Spacing" name="letter-spacing" value={selectedNode.properties['letter-spacing']} onChange={updateProperty} placeholder="e.g. 0.05em" />
-        <Prop label="Text Align" name="text-align" value={selectedNode.properties['text-align']} onChange={updateProperty} type="select" options={['left', 'center', 'right', 'justify']} />
-        <Prop label="Text Transform" name="text-transform" value={selectedNode.properties['text-transform']} onChange={updateProperty} type="select" options={['none', 'uppercase', 'lowercase', 'capitalize']} />
-        <Prop label="Font Family" name="font-family" value={selectedNode.properties['font-family']} onChange={updateProperty} placeholder="e.g. 'Inter', sans-serif" />
-      </Group>
-
-      <Group title="Spacing" icon="◰">
-        <Prop label="Padding" name="padding" value={selectedNode.properties['padding']} onChange={updateProperty} placeholder="e.g. 20px" />
-        <Prop label="Padding Top" name="padding-top" value={selectedNode.properties['padding-top']} onChange={updateProperty} />
-        <Prop label="Padding Right" name="padding-right" value={selectedNode.properties['padding-right']} onChange={updateProperty} />
-        <Prop label="Padding Bottom" name="padding-bottom" value={selectedNode.properties['padding-bottom']} onChange={updateProperty} />
-        <Prop label="Padding Left" name="padding-left" value={selectedNode.properties['padding-left']} onChange={updateProperty} />
-        <Prop label="Margin" name="margin" value={selectedNode.properties['margin']} onChange={updateProperty} placeholder="e.g. 0 auto" />
-        <Prop label="Margin Top" name="margin-top" value={selectedNode.properties['margin-top']} onChange={updateProperty} />
-        <Prop label="Margin Bottom" name="margin-bottom" value={selectedNode.properties['margin-bottom']} onChange={updateProperty} />
-      </Group>
-
-      <Group title="Layout & Positioning" icon="⛶">
-        <Prop label="Display" name="display" value={selectedNode.properties['display']} onChange={updateProperty} type="select" options={['block', 'flex', 'grid', 'inline-block', 'inline-flex', 'none']} />
-        <Prop label="Width" name="width" value={selectedNode.properties['width']} onChange={updateProperty} />
-        <Prop label="Height" name="height" value={selectedNode.properties['height']} onChange={updateProperty} />
-        <Prop label="Max Width" name="max-width" value={selectedNode.properties['max-width']} onChange={updateProperty} />
-        <Prop label="Position" name="position" value={selectedNode.properties['position']} onChange={updateProperty} type="select" options={['static', 'relative', 'absolute', 'fixed', 'sticky']} />
-        <Prop label="Z-Index" name="z-index" value={selectedNode.properties['z-index']} onChange={updateProperty} type="number" />
-        <Prop label="Flex Direction" name="flex-direction" value={selectedNode.properties['flex-direction']} onChange={updateProperty} type="select" options={['row', 'column', 'row-reverse', 'column-reverse']} />
-        <Prop label="Justify Content" name="justify-content" value={selectedNode.properties['justify-content']} onChange={updateProperty} type="select" options={['flex-start', 'center', 'flex-end', 'space-between', 'space-around']} />
-        <Prop label="Align Items" name="align-items" value={selectedNode.properties['align-items']} onChange={updateProperty} type="select" options={['stretch', 'center', 'flex-start', 'flex-end', 'baseline']} />
-        <Prop label="Gap" name="gap" value={selectedNode.properties['gap']} onChange={updateProperty} />
-      </Group>
-
-      <Group title="Visuals" icon="🎨">
-        <Prop label="Bg Color" name="background-color" type="color" value={selectedNode.properties['background-color']} onChange={updateProperty} />
-        <Prop label="Background" name="background" value={selectedNode.properties['background']} onChange={updateProperty} placeholder="e.g. linear-gradient(...)" />
-        <Prop label="Border" name="border" value={selectedNode.properties['border']} onChange={updateProperty} placeholder="e.g. 1px solid #eee" />
-        <Prop label="Border Radius" name="border-radius" value={selectedNode.properties['border-radius']} onChange={updateProperty} placeholder="e.g. 8px" />
-        <Prop label="Box Shadow" name="box-shadow" value={selectedNode.properties['box-shadow']} onChange={updateProperty} placeholder="e.g. 0 4px 6px ..." />
-        <Prop label="Opacity" name="opacity" value={selectedNode.properties['opacity']} onChange={updateProperty} placeholder="e.g. 0.5" />
-        <Prop label="Cursor" name="cursor" type="select" value={selectedNode.properties['cursor']} onChange={updateProperty} options={['default', 'pointer', 'text', 'move', 'not-allowed']} />
-        <Prop label="Transition" name="transition" value={selectedNode.properties['transition']} onChange={updateProperty} placeholder="e.g. all 0.3s ease" />
-      </Group>
+      {/* Only keeping Custom CSS as requested */}
       
       <Group title="Custom CSS" icon="{ }">
         <CustomCssEditor 
@@ -175,6 +277,8 @@ export function PropertyEditor({ selectedNode, updateProperty, updateCustomPrope
           setNewProp={setPendingProp}
           newValue={pendingValue}
           setNewValue={setPendingValue}
+          activeDevice={activeDevice}
+          setActiveDevice={setActiveDevice}
         />
       </Group>
     </div>
@@ -197,7 +301,8 @@ export function SelectorTree({
   setDraggedNodePath,
   dropTargetInfo,
   setDropTargetInfo,
-  onNodeAction // rename, add, delete, move
+  onNodeAction, // rename, add, delete, move
+  rootLabel // Add this prop
 }) {
   const editInputRef = useRef(null);
 
@@ -285,7 +390,7 @@ export function SelectorTree({
               />
             ) : (
               <span className="ss-sel-name" onDoubleClick={(e) => onNodeAction('rename', e, path)}>
-                {isRoot ? 'Default' : (node.selector || '&')}
+                {isRoot ? (rootLabel || 'Default') : (node.selector || '&')}
                 {!isRoot && depth > 1 && <span className="ss-sel-annotation"> (child)</span>}
               </span>
             )}

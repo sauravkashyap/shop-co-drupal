@@ -33,6 +33,38 @@
 .uib-col-11 { flex: 0 0 91.666667%; max-width: 91.666667%; }
 .uib-col-12 { flex: 0 0 100%; max-width: 100%; }
 
+/* Tablet Columns (<= 1024px) */
+@media (max-width: 1024px) {
+  .uib-col-md-1  { flex: 0 0 8.333333% !important; max-width: 8.333333% !important; }
+  .uib-col-md-2  { flex: 0 0 16.666667% !important; max-width: 16.666667% !important; }
+  .uib-col-md-3  { flex: 0 0 25% !important; max-width: 25% !important; }
+  .uib-col-md-4  { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; }
+  .uib-col-md-5  { flex: 0 0 41.666667% !important; max-width: 41.666667% !important; }
+  .uib-col-md-6  { flex: 0 0 50% !important; max-width: 50% !important; }
+  .uib-col-md-7  { flex: 0 0 58.333333% !important; max-width: 58.333333% !important; }
+  .uib-col-md-8  { flex: 0 0 66.666667% !important; max-width: 66.666667% !important; }
+  .uib-col-md-9  { flex: 0 0 75% !important; max-width: 75% !important; }
+  .uib-col-md-10 { flex: 0 0 83.333333% !important; max-width: 83.333333% !important; }
+  .uib-col-md-11 { flex: 0 0 91.666667% !important; max-width: 91.666667% !important; }
+  .uib-col-md-12 { flex: 0 0 100% !important; max-width: 100% !important; }
+}
+
+/* Mobile Columns (<= 767px) */
+@media (max-width: 767px) {
+  .uib-col-sm-1  { flex: 0 0 8.333333% !important; max-width: 8.333333% !important; }
+  .uib-col-sm-2  { flex: 0 0 16.666667% !important; max-width: 16.666667% !important; }
+  .uib-col-sm-3  { flex: 0 0 25% !important; max-width: 25% !important; }
+  .uib-col-sm-4  { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; }
+  .uib-col-sm-5  { flex: 0 0 41.666667% !important; max-width: 41.666667% !important; }
+  .uib-col-sm-6  { flex: 0 0 50% !important; max-width: 50% !important; }
+  .uib-col-sm-7  { flex: 0 0 58.333333% !important; max-width: 58.333333% !important; }
+  .uib-col-sm-8  { flex: 0 0 66.666667% !important; max-width: 66.666667% !important; }
+  .uib-col-sm-9  { flex: 0 0 75% !important; max-width: 75% !important; }
+  .uib-col-sm-10 { flex: 0 0 83.333333% !important; max-width: 83.333333% !important; }
+  .uib-col-sm-11 { flex: 0 0 91.666667% !important; max-width: 91.666667% !important; }
+  .uib-col-sm-12 { flex: 0 0 100% !important; max-width: 100% !important; }
+}
+
 /* Semantic Wrappers Reset */
 .uib-section,
 .uib-article,

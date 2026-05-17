@@ -178,6 +178,117 @@ class BaseStylesForm extends ConfigFormBase {
       }
     }
 
+    $form['responsive_breakpoints'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Responsive Breakpoints'),
+      '#group' => 'styles_tabs',
+      '#open' => FALSE,
+      '#tree' => TRUE,
+    ];
+
+    $form['responsive_breakpoints']['tablet_breakpoint'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Tablet Breakpoint'),
+      '#default_value' => $config->get('tablet_breakpoint') ?? '1024px',
+      '#description' => $this->t('Max width for tablet devices (e.g., 1024px).'),
+    ];
+
+    $form['responsive_breakpoints']['mobile_breakpoint'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Mobile Breakpoint'),
+      '#default_value' => $config->get('mobile_breakpoint') ?? '767px',
+      '#description' => $this->t('Max width for mobile devices (e.g., 767px).'),
+    ];
+
+    // Custom breakpoints
+    $form['responsive_breakpoints']['custom'] = [
+      '#type' => 'container',
+      '#title' => $this->t('Custom Breakpoints'),
+      '#attributes' => ['id' => 'custom-breakpoints-wrapper'],
+    ];
+
+    $custom_breakpoints = $config->get('custom_breakpoints') ?: [];
+    
+    // Get number of items from form state if available
+    $num_items = $form_state->get('num_custom_breakpoints');
+    if ($num_items === NULL) {
+      $num_items = count($custom_breakpoints);
+      $form_state->set('num_custom_breakpoints', $num_items);
+    }
+
+    $saved_count = count($custom_breakpoints);
+
+    // Render saved items
+    for ($i = 0; $i < $saved_count; $i++) {
+      $item = $custom_breakpoints[$i];
+
+      $form['responsive_breakpoints']['custom'][$i] = [
+        '#type' => 'container',
+        '#attributes' => ['style' => 'display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px; width: 100%; max-width: 600px;'],
+      ];
+
+      $form['responsive_breakpoints']['custom'][$i]['value'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('@prefix Breakpoint', ['@prefix' => ucfirst($item['key'])]),
+        '#default_value' => $item['value'],
+        '#wrapper_attributes' => ['style' => 'flex: 1; min-width: 0; margin-bottom: 0;'],
+      ];
+
+      // Keep the key in a hidden field so it's submitted
+      $form['responsive_breakpoints']['custom'][$i]['key'] = [
+        '#type' => 'hidden',
+        '#value' => $item['key'],
+      ];
+
+      $form['responsive_breakpoints']['custom'][$i]['delete'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Delete'),
+        '#name' => 'delete_' . $i,
+        '#submit' => ['::deleteBreakpointSubmit'],
+        '#ajax' => [
+          'callback' => '::addMoreCallback',
+          'wrapper' => 'custom-breakpoints-wrapper',
+        ],
+        '#limit_validation_errors' => [],
+        '#attributes' => ['style' => 'margin-bottom: 0;'],
+      ];
+    }
+
+    // Render new items
+    for ($i = $saved_count; $i < $num_items; $i++) {
+      $form['responsive_breakpoints']['custom'][$i] = [
+        '#type' => 'container',
+        '#attributes' => ['style' => 'display: flex; gap: 10px; margin-bottom: 20px; width: 100%; max-width: 600px;'],
+      ];
+
+      $form['responsive_breakpoints']['custom'][$i]['key'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Prefix'),
+        '#title_display' => 'invisible',
+        '#placeholder' => $this->t('Prefix (e.g., large)'),
+        '#wrapper_attributes' => ['style' => 'flex: 1; min-width: 0; margin-bottom: 0;'],
+      ];
+
+      $form['responsive_breakpoints']['custom'][$i]['value'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Breakpoint'),
+        '#title_display' => 'invisible',
+        '#placeholder' => $this->t('Width (e.g., 1440px)'),
+        '#wrapper_attributes' => ['style' => 'flex: 1; min-width: 0; margin-bottom: 0;'],
+      ];
+    }
+
+    $form['responsive_breakpoints']['custom']['add_more'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add more'),
+      '#submit' => ['::addMoreSubmit'],
+      '#ajax' => [
+        'callback' => '::addMoreCallback',
+        'wrapper' => 'custom-breakpoints-wrapper',
+      ],
+      '#limit_validation_errors' => [],
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -193,6 +304,25 @@ class BaseStylesForm extends ConfigFormBase {
         $config->set($key, $value);
       }
     }
+
+    $responsive_values = $values['responsive_breakpoints'] ?? [];
+    
+    $config->set('tablet_breakpoint', $responsive_values['tablet_breakpoint'] ?? '1024px');
+    $config->set('mobile_breakpoint', $responsive_values['mobile_breakpoint'] ?? '767px');
+
+    // Process custom breakpoints
+    $custom_breakpoints = [];
+    if (!empty($responsive_values['custom'])) {
+      foreach ($responsive_values['custom'] as $i => $item) {
+        if (is_numeric($i) && !empty($item['key']) && !empty($item['value'])) {
+          $custom_breakpoints[] = [
+            'key' => $item['key'],
+            'value' => $item['value'],
+          ];
+        }
+      }
+    }
+    $config->set('custom_breakpoints', $custom_breakpoints);
     
     $config->save();
 
@@ -279,6 +409,37 @@ class BaseStylesForm extends ConfigFormBase {
     
     // Clear library cache to ensure the file is picked up.
     \Drupal::service('library.discovery')->clearCachedDefinitions();
+  }
+
+  public function addMoreSubmit(array &$form, FormStateInterface $form_state) {
+    $num_items = $form_state->get('num_custom_breakpoints');
+    $form_state->set('num_custom_breakpoints', $num_items + 1);
+    $form_state->setRebuild();
+  }
+
+  public function addMoreCallback(array &$form, FormStateInterface $form_state) {
+    return $form['responsive_breakpoints']['custom'];
+  }
+
+  public function deleteBreakpointSubmit(array &$form, FormStateInterface $form_state) {
+    $trigger = $form_state->getTriggeringElement();
+    $name = $trigger['#name'];
+    $index = str_replace('delete_', '', $name);
+    
+    $config = $this->configFactory()->getEditable('ui_builder.base_styles');
+    $custom_breakpoints = $config->get('custom_breakpoints') ?: [];
+    
+    if (isset($custom_breakpoints[$index])) {
+      unset($custom_breakpoints[$index]);
+      $custom_breakpoints = array_values($custom_breakpoints);
+      $config->set('custom_breakpoints', $custom_breakpoints);
+      $config->save();
+      
+      $form_state->set('num_custom_breakpoints', count($custom_breakpoints));
+      $this->generateCssFile();
+    }
+    
+    $form_state->setRebuild();
   }
 
 }

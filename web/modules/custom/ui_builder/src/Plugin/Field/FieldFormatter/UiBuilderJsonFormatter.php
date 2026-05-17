@@ -29,8 +29,22 @@ class UiBuilderJsonFormatter extends FormatterBase {
       if (!empty($item->value)) {
         $json_data = json_decode($item->value, TRUE);
         if (json_last_error() === JSON_ERROR_NONE && is_array($json_data)) {
-          $dynamic_css = '';
-          $render_array = $this->buildRenderArray($json_data, $item->getEntity(), $dynamic_css);
+          $render_array = $this->buildRenderArray($json_data, $item->getEntity());
+
+          $node = $item->getEntity();
+          $node_id = $node->id();
+          $field_name = $this->fieldDefinition->getName();
+          $uri = "public://ui_builder/uib-node-$node_id-$field_name.css";
+          
+          // Fallback: Generate file if it doesn't exist
+          if (!file_exists($uri)) {
+            $css = \Drupal::service('ui_builder.css_compiler')->compileInstanceStyles($json_data);
+            if ($css) {
+              $directory = 'public://ui_builder';
+              \Drupal::service('file_system')->prepareDirectory($directory, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY | \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS);
+              \Drupal::service('file_system')->saveData($css, $uri, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
+            }
+          }
 
           $elements[$delta] = [
             '#type' => 'container',
@@ -44,18 +58,26 @@ class UiBuilderJsonFormatter extends FormatterBase {
                 'ui_builder/custom_styles',
                 'ui_builder/dynamic_styles',
               ],
-              'html_head' => [
-                [
-                  [
-                    '#type' => 'html_tag',
-                    '#tag' => 'style',
-                    '#value' => $dynamic_css,
-                  ],
-                  'ui_builder_dynamic_css_' . $delta,
-                ],
-              ],
             ],
           ];
+
+          // Attach file if it exists (or was just generated)
+          if (file_exists($uri)) {
+            $url = \Drupal::service('file_url_generator')->generateString($uri);
+            $url .= '?v=' . filemtime($uri);
+            
+            $elements[$delta]['#attached']['html_head'][] = [
+              [
+                '#type' => 'html_tag',
+                '#tag' => 'link',
+                '#attributes' => [
+                  'rel' => 'stylesheet',
+                  'href' => $url,
+                ],
+              ],
+              'ui_builder_dynamic_css_' . $delta,
+            ];
+          }
         }
         else {
           $elements[$delta] = ['#markup' => '<!-- Invalid UI Builder JSON -->'];
@@ -69,7 +91,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
   /**
    * Recursively builds a Drupal render array from the JSON structure.
    */
-  protected function buildRenderArray(array $components, $entity = null, &$dynamic_css = '') {
+  protected function buildRenderArray(array $components, $entity = null) {
     $build = [];
 
     foreach ($components as $component) {
@@ -85,8 +107,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
             // Map the values into the layout tree.
             $mapped_tree = $this->processTokens($layout_tree, $values, $entity);
             
-            // Build the mapped tree and attach libraries.
-            $rendered_component = $this->buildRenderArray($mapped_tree, $entity, $dynamic_css);
+            $rendered_component = $this->buildRenderArray($mapped_tree, $entity);
             
             // Attach CSS/JS if they exist.
             // Note: In Drupal, attaching physical files via #attached library is standard,
@@ -245,48 +266,12 @@ class UiBuilderJsonFormatter extends FormatterBase {
         $attributes['class'][] = $tag_map[strtolower($tag)];
       }
 
-      // Add unique instance classes
-      if (!empty($component['id'])) {
+      // Add unique instance classes only if they have unique styles.
+      if (!empty($component['id']) && $this->hasUniqueStyles($component)) {
         $node_id = $component['id'];
 
-        // Generate CSS for this node
-        $rules = [];
-
-        if (!empty($component['props'])) {
-          foreach ($component['props'] as $key => $val) {
-            if (!is_scalar($val) || empty($val)) continue;
-
-            switch ($key) {
-              case 'flexDirection': $rules[] = "flex-direction: $val !important;"; break;
-              case 'justifyContent': $rules[] = "justify-content: $val !important;"; break;
-              case 'alignItems': $rules[] = "align-items: $val !important;"; break;
-              case 'alignSelf': $rules[] = "align-self: $val !important;"; break;
-              case 'flexGrow': 
-                if ($val != 0) $rules[] = "flex-grow: $val !important;"; 
-                break;
-              case 'flexShrink': 
-                if ($val != 1) $rules[] = "flex-shrink: $val !important;"; 
-                break;
-              case 'width': $rules[] = "width: $val !important;"; break;
-              case 'height': $rules[] = "height: $val !important;"; break;
-            }
-          }
-        }
-
-        if (!empty($rules)) {
-          if (!in_array('uib-' . $node_id, $attributes['class'])) {
-            $attributes['class'][] = 'uib-' . $node_id;
-          }
-          $dynamic_css .= ".uib-$node_id { " . implode(' ', $rules) . " }\n";
-        }
-
-        // Handle Site Studio Instance Styles
-        if (!empty($component['instanceStyles'])) {
-          $base_selector = '.uib-' . $node_id;
-          if (!in_array('uib-' . $node_id, $attributes['class'])) {
-            $attributes['class'][] = 'uib-' . $node_id;
-          }
-          $dynamic_css .= $this->compileStyleTree($component['instanceStyles'], $base_selector);
+        if (!in_array('uib-' . $node_id, $attributes['class'])) {
+          $attributes['class'][] = 'uib-' . $node_id;
         }
       }
       
@@ -363,9 +348,8 @@ class UiBuilderJsonFormatter extends FormatterBase {
           $element['#attributes']['src'] = $img_content;
         }
       }
-      // Handle children
       elseif (!empty($component['children']) && is_array($component['children'])) {
-        $element['children'] = $this->buildRenderArray($component['children'], $entity, $dynamic_css);
+        $element['children'] = $this->buildRenderArray($component['children'], $entity);
       }
       // Handle text content
       elseif (isset($component['content'])) {
@@ -481,6 +465,51 @@ class UiBuilderJsonFormatter extends FormatterBase {
     }
 
     return $css;
+  }
+
+  /**
+   * Helper function to check if a node has unique styles.
+   */
+  protected function hasUniqueStyles(array $node) {
+    if (empty($node)) return FALSE;
+
+    $label = $node['label'] ?? '';
+    $tag = $node['tag'] ?? 'div';
+    $is_container_or_div = (str_starts_with($label, 'Container') || str_starts_with($label, 'Plain Div') || $tag === 'div');
+
+    // Instance styles (Site Studio Style) - ONLY for Container and Plain Div
+    if ($is_container_or_div && !empty($node['instanceStyles']) && !empty($node['id'])) {
+      $css = $this->compileStyleTree($node['instanceStyles'], '.uib-' . $node['id']);
+      if (!empty(trim($css))) return TRUE;
+    }
+
+    if (empty($node['props'])) return FALSE;
+    $p = $node['props'];
+    
+    // If it's a column, we skip checking these props because they are handled by classes
+    $is_col = FALSE;
+    if (!empty($p['class'])) {
+      $classes = explode(' ', $p['class']);
+      foreach ($classes as $c) {
+        if (str_starts_with($c, 'uib-col-')) {
+          $is_col = TRUE;
+          break;
+        }
+      }
+    }
+    
+    if (!$is_col) {
+      if (!empty($p['flexDirection'])) return TRUE;
+      if (!empty($p['justifyContent'])) return TRUE;
+      if (!empty($p['alignItems'])) return TRUE;
+      if (!empty($p['alignSelf'])) return TRUE;
+      if (isset($p['flexGrow']) && $p['flexGrow'] != 0) return TRUE;
+      if (isset($p['flexShrink']) && $p['flexShrink'] != 1) return TRUE;
+      if (!empty($p['width'])) return TRUE;
+      if (!empty($p['height'])) return TRUE;
+    }
+
+    return FALSE;
   }
 
   /**

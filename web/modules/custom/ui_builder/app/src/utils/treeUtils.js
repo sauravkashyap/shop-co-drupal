@@ -59,17 +59,41 @@ export function canAcceptChild(parent, child) {
 }
 
 export function hasUniqueStyles(node) {
-  if (!node || !node.props) return false;
+  if (!node) return false;
+
+  const label = node.label || '';
+  const isContainerOrDiv = label.startsWith('Container') || label.startsWith('Plain Div') || node.tag === 'div';
+
+  // Helper to check if style data has actual properties
+  const hasActualProps = (styles) => {
+    if (!styles) return false;
+    if (styles.properties && Object.values(styles.properties).some(val => val && val.trim() !== '')) return true;
+    if (styles.custom_properties && Object.values(styles.custom_properties).some(val => val && val.trim() !== '')) return true;
+    if (styles.children && styles.children.some(child => hasActualProps(child))) return true;
+    return false;
+  };
+
+  // Instance styles (Site Studio Style) - ONLY for Container and Plain Div
+  if (isContainerOrDiv && node.instanceStyles && hasActualProps(node.instanceStyles)) {
+    return true;
+  }
+
+  if (!node.props) return false;
   const p = node.props;
   
-  if (p.flexDirection) return true;
-  if (p.justifyContent) return true;
-  if (p.alignItems) return true;
-  if (p.alignSelf) return true;
-  if (p.flexGrow !== undefined && p.flexGrow !== 0) return true;
-  if (p.flexShrink !== undefined && p.flexShrink !== 1) return true;
-  if (p.width) return true;
-  if (p.height) return true;
+  // If it's a column, we skip checking these props because they are handled by classes
+  const isCol = node.props?.class?.split(' ').some(c => c.startsWith('uib-col-'));
+  
+  if (!isCol) {
+    if (p.flexDirection) return true;
+    if (p.justifyContent) return true;
+    if (p.alignItems) return true;
+    if (p.alignSelf) return true;
+    if (p.flexGrow !== undefined && p.flexGrow !== 0) return true;
+    if (p.flexShrink !== undefined && p.flexShrink !== 1) return true;
+    if (p.width) return true;
+    if (p.height) return true;
+  }
   
   return false;
 }

@@ -141,11 +141,19 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           const shouldBeField = node.isField !== undefined ? node.isField : !isContainer;
 
           if (shouldBeField) {
-            const key = node.fieldLabel
+            let key = node.fieldLabel
               ? node.fieldLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '')
-              : `field_${node.id}`;
+              : '';
             
-            const title = node.fieldLabel || `${node.tag.toUpperCase()}: ${String(typeof node.content === 'string' ? node.content : (node.tag === 'img' ? 'Image' : '')).substring(0, 20)}`;
+            if (!key && node.fieldMode === 'mapping' && typeof node.content === 'string') {
+              key = node.content.toLowerCase().replace(/\s+/g, '_').replace(/[:.]/g, '_').replace(/[^\w]/g, '');
+            }
+            
+            if (!key) {
+              key = `field_${node.id}`;
+            }
+            
+            const title = node.fieldLabel || (node.fieldMode === 'mapping' ? `Mapped: ${node.content}` : `${node.tag.toUpperCase()}: ${String(typeof node.content === 'string' ? node.content : (node.tag === 'img' ? 'Image' : '')).substring(0, 20)}`);
             const fieldType = node.tag === 'img' ? 'image' : 'textfield';
             
             newSchema[key] = { 
@@ -188,11 +196,11 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       'flexShrink'
     ];
 
-    const generateStyleTreeRules = (styleData, baseSelector) => {
+    const generateStyleTreeRules = (styleData, baseSelector, isCol = false) => {
       if (!styleData) return '';
       let css = '';
       
-      const processNode = (node, parentSelector) => {
+      const processNode = (node, parentSelector, isRoot = false) => {
         let currentSelector = node.selector;
         if (currentSelector.includes('&')) {
           currentSelector = currentSelector.replace(/&/g, parentSelector);
@@ -201,14 +209,30 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         }
 
         const rules = [];
+        const mediaRules = {};
+
         if (node.properties) {
           Object.entries(node.properties).forEach(([prop, val]) => {
+            if (isRoot && isCol && (prop === 'max-width' || prop === 'flex')) return;
             if (val) rules.push(`${prop}: ${val} !important;`);
           });
         }
         if (node.custom_properties) {
           Object.entries(node.custom_properties).forEach(([prop, val]) => {
-            if (val) rules.push(`${prop}: ${val} !important;`);
+            if (!val) return;
+            
+            if (prop.startsWith('tablet:')) {
+              const realProp = prop.replace('tablet:', '');
+              if (!mediaRules['tablet']) mediaRules['tablet'] = [];
+              mediaRules['tablet'].push(`${realProp}: ${val} !important;`);
+            } else if (prop.startsWith('mobile:')) {
+              const realProp = prop.replace('mobile:', '');
+              if (!mediaRules['mobile']) mediaRules['mobile'] = [];
+              mediaRules['mobile'].push(`${realProp}: ${val} !important;`);
+            } else {
+              if (isRoot && isCol && (prop === 'max-width' || prop === 'flex')) return;
+              rules.push(`${prop}: ${val} !important;`);
+            }
           });
         }
 
@@ -216,12 +240,19 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           css += `${currentSelector} { ${rules.join(' ')} }\n`;
         }
 
+        if (mediaRules['tablet'] && mediaRules['tablet'].length > 0) {
+          css += `@media (max-width: 1024px) { ${currentSelector} { ${mediaRules['tablet'].join(' ')} } }\n`;
+        }
+        if (mediaRules['mobile'] && mediaRules['mobile'].length > 0) {
+          css += `@media (max-width: 767px) { ${currentSelector} { ${mediaRules['mobile'].join(' ')} } }\n`;
+        }
+
         if (node.children) {
-          node.children.forEach(child => processNode(child, currentSelector));
+          node.children.forEach(child => processNode(child, currentSelector, false));
         }
       };
 
-      processNode(styleData, baseSelector);
+      processNode(styleData, baseSelector, true);
       return css;
     };
 
@@ -247,7 +278,8 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
 
         // Instance styles (Site Studio style)
         if (node.instanceStyles) {
-          css += generateStyleTreeRules(node.instanceStyles, `.uib-${node.id}`);
+          const isCol = node.props?.class?.split(' ').some(c => c.startsWith('uib-col-'));
+          css += generateStyleTreeRules(node.instanceStyles, `.uib-${node.id}`, isCol);
         }
 
         if (node.children) css += generateRules(node.children);
@@ -610,10 +642,16 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   const extractFormSchema = (node) => {
     const schema = {};
     const traverse = (n) => {
-      if (n.fieldLabel) {
-        const key = n.fieldLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+      let key = n.fieldLabel ? n.fieldLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '') : '';
+      if (!key && n.fieldMode === 'mapping' && typeof n.content === 'string') {
+        key = n.content.toLowerCase().replace(/\s+/g, '_').replace(/[:.]/g, '_').replace(/[^\w]/g, '');
+      }
+      if (!key && (n.isField || !CONTAINER_TAGS.includes(n.tag))) {
+        key = `field_${n.id}`;
+      }
+      if (key) {
         schema[key] = {
-          title: n.fieldLabel,
+          title: n.fieldLabel || (n.fieldMode === 'mapping' ? `Mapped: ${n.content}` : `${n.tag.toUpperCase()} Field`),
           type: n.tag === 'img' ? 'image' : 'textfield',
           default: { mode: n.fieldMode || 'static', value: n.content || '' }
         };

@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\file\Entity\File;
+use Drupal\media\Entity\Media;
 
 /**
  * Provides an upload endpoint for the UI Builder.
@@ -39,15 +40,58 @@ class UploadController extends ControllerBase {
       $file->setPermanent();
       $file->save();
       
+      // Create Media entity.
+      $media = Media::create([
+        'bundle' => 'image',
+        'uid' => \Drupal::currentUser()->id(),
+        'field_media_image' => [
+          'target_id' => $file->id(),
+          'alt' => $filename,
+        ],
+      ]);
+      $media->setName($filename);
+      $media->save();
+      
       $url = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
       
       return new JsonResponse([
         'url' => $url,
         'fid' => $file->id(),
+        'mid' => $media->id(),
       ]);
     }
 
     return new JsonResponse(['error' => 'Could not save file'], 500);
+  }
+
+  /**
+   * Lists existing images.
+   */
+  public function list() {
+    $query = \Drupal::entityQuery('media')
+      ->condition('bundle', 'image')
+      ->sort('created', 'DESC')
+      ->range(0, 50)
+      ->accessCheck(FALSE);
+    $mids = $query->execute();
+    
+    $media_entities = Media::loadMultiple($mids);
+    $result = [];
+    foreach ($media_entities as $media) {
+      $file_id = $media->get('field_media_image')->target_id;
+      if ($file_id) {
+        $file = File::load($file_id);
+        if ($file) {
+          $result[] = [
+            'mid' => $media->id(),
+            'fid' => $file->id(),
+            'url' => \Drupal::service('file_url_generator')->generateString($file->getFileUri()),
+            'name' => $media->getName(),
+          ];
+        }
+      }
+    }
+    return new JsonResponse($result);
   }
 
 }

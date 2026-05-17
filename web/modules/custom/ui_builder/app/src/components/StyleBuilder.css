@@ -504,6 +504,10 @@
   border-top: 1px solid var(--sb-border);
 }
 
+.custom-css-editor {
+  grid-column: span 2;
+}
+
 /* ── Property Fields ─────────────────────────────────────────────────── */
 .prop-field {
   display: flex;
