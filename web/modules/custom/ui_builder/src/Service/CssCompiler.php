@@ -74,7 +74,7 @@ class CssCompiler {
       
       if (!empty($node['properties'])) {
         foreach ($node['properties'] as $prop => $value) {
-          if (!empty($value)) {
+          if (isset($value) && $value !== '') {
             $css .= "  " . $prop . ": " . $value . ";\n";
           }
         }
@@ -98,7 +98,7 @@ class CssCompiler {
         $grouped_props = [];
 
         foreach ($node['custom_properties'] as $prop => $value) {
-          if (empty($value)) continue;
+          if (!isset($value) || $value === '') continue;
 
           $matched = false;
           foreach ($breakpoints as $key => $width) {
@@ -136,11 +136,13 @@ class CssCompiler {
     // Process children (nested selectors)
     if (!empty($node['children'])) {
       foreach ($node['children'] as $child) {
-        $child_selector = $child['selector'];
+        $child_selector = isset($child['selector']) ? trim($child['selector']) : '';
         
         // Handle '&' nesting (Sass style)
         if (str_contains($child_selector, '&')) {
           $resolved_selector = str_replace('&', $selector, $child_selector);
+        } elseif (str_starts_with($child_selector, ':')) {
+          $resolved_selector = $selector . $child_selector;
         } else {
           // Prefix class selectors with uib-, leave elements and pseudo-selectors alone
           $child_selector = $this->prefixSelector($child_selector);
@@ -202,7 +204,7 @@ class CssCompiler {
       // Compile props (dimensions, flexbox)
       if (!empty($component['props'])) {
         foreach ($component['props'] as $key => $val) {
-          if (!is_scalar($val) || empty($val)) continue;
+          if (!is_scalar($val) || $val === '') continue;
           
           switch ($key) {
             case 'flexDirection': $rules[] = "flex-direction: $val !important;"; break;
@@ -215,16 +217,39 @@ class CssCompiler {
         }
       }
       
+      $has_manual_class = false;
+      $manual_classes = [];
+      if (!empty($component['props']['class'])) {
+        $classes = explode(' ', $component['props']['class']);
+        $structural_classes = [
+          'uib-container', 'uib-full-width', 'uib-row', 'uib-section', 'uib-article', 
+          'uib-main', 'uib-aside', 'uib-nav', 'uib-grid', 'uib-plain-div',
+          'uib-h1', 'uib-h2', 'uib-h3', 'uib-h4', 'uib-h5', 'uib-h6', 'uib-p', 'uib-link', 'uib-button', 'uib-ul', 'uib-ol', 'uib-li', 'uib-img', 'uib-blockquote', 'uib-span', 'uib-hr', 'uib-strong', 'uib-em', 'uib-code', 'uib-small', 'uib-table', 'uib-thead', 'uib-tbody', 'uib-tr', 'uib-th', 'uib-td', 'uib-form', 'uib-label', 'uib-input', 'uib-select', 'uib-option', 'uib-textarea', 'uib-svg', 'uib-video'
+        ];
+        
+        foreach ($classes as $cls) {
+          $cls = trim($cls);
+          if (empty($cls)) continue;
+          if (in_array($cls, $structural_classes)) continue;
+          if (str_starts_with($cls, 'uib-col-')) continue;
+          if ($cls === 'uib-' . $node_id) continue;
+          
+          $has_manual_class = true;
+          $manual_classes[] = '.' . $cls;
+        }
+      }
+
+      $selector = ".uib-$node_id";
+      if ($has_manual_class) {
+        $selector = implode('', $manual_classes);
+      }
+
       if (!empty($rules)) {
-        $css .= ".uib-$node_id { " . implode(' ', $rules) . " }\n";
+        $css .= "$selector { " . implode(' ', $rules) . " }\n";
       }
       
-      // Compile instanceStyles - ONLY for Container and Plain Div
-      $label = $component['label'] ?? '';
-      $tag = $component['tag'] ?? 'div';
-      $is_container_or_div = (str_starts_with($label, 'Container') || str_starts_with($label, 'Plain Div') || $tag === 'div');
-
-      if ($is_container_or_div && !empty($component['instanceStyles'])) {
+      // Compile instanceStyles
+      if (!empty($component['instanceStyles'])) {
         $is_col = FALSE;
         if (!empty($component['props']['class'])) {
           $classes = explode(' ', $component['props']['class']);
@@ -235,7 +260,7 @@ class CssCompiler {
             }
           }
         }
-        $css .= $this->compileStyleTree($component['instanceStyles'], '.uib-' . $node_id, $is_col);
+        $css .= $this->compileStyleTree($component['instanceStyles'], $selector, $is_col);
       }
       
       // Traverse children
@@ -250,10 +275,12 @@ class CssCompiler {
    */
   protected function compileStyleTree(array $style_data, $parent_selector, $is_col = FALSE) {
     $css = '';
-    $current_selector = $style_data['selector'] ?? '&';
+    $current_selector = isset($style_data['selector']) ? trim($style_data['selector']) : '&';
     
     if (str_contains($current_selector, '&')) {
       $current_selector = str_replace('&', $parent_selector, $current_selector);
+    } elseif (str_starts_with($current_selector, ':')) {
+      $current_selector = $parent_selector . $current_selector;
     } else {
       $current_selector = $parent_selector . ' ' . $current_selector;
     }
@@ -277,13 +304,13 @@ class CssCompiler {
     if (!empty($style_data['properties'])) {
       foreach ($style_data['properties'] as $prop => $val) {
         if ($is_col && ($prop === 'max-width' || $prop === 'flex')) continue;
-        if (!empty($val)) $base_rules[] = "$prop: $val !important;";
+        if (isset($val) && $val !== '') $base_rules[] = "$prop: $val !important;";
       }
     }
 
     if (!empty($style_data['custom_properties'])) {
       foreach ($style_data['custom_properties'] as $prop => $val) {
-        if (empty($val)) continue;
+        if (!isset($val) || $val === '') continue;
 
         $matched = false;
         foreach ($breakpoints as $key => $width) {

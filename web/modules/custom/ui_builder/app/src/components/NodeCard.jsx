@@ -241,7 +241,16 @@ export function NodeCard({
 
       {/* Body / Children */}
       {!isCollapsed && isContainer && (
-        <div ref={setDropInsideRef} className={`ss-box-body ${isRow ? 'ss-box-row-body' : ''} ${showDropOver ? 'ss-box-drop-inside-active' : ''}`}>
+        <div 
+          ref={setDropInsideRef} 
+          className={`ss-box-body ${isRow ? 'ss-box-row-body' : ''} ${showDropOver ? 'ss-box-drop-inside-active' : ''}`}
+          style={node.props?.isBgImage ? { 
+            backgroundImage: `url(${node.content})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            minHeight: '100px'
+          } : {}}
+        >
           <NodeChildren
             parentNode={node}
             mode={mode}

@@ -17,6 +17,7 @@ import { Agentation } from 'agentation';
 
 // Constants & Utils
 import { ELEMENT_CATEGORIES, CONTAINER_TAGS } from './constants/elements';
+import { getCustomClassesOnly } from './utils/styleUtils';
 import { 
   deepClone, 
   findNodeById, 
@@ -83,6 +84,14 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   const [isDraggingGlobal, setIsDraggingGlobal] = useState(false);
   const [isAllCollapsed, setIsAllCollapsed] = useState(false);
   const [pendingParentId, setPendingParentId] = useState(null);
+
+  // Add class to body when UI Builder is active
+  useEffect(() => {
+    document.body.classList.add('using-ui-builder');
+    return () => {
+      document.body.classList.remove('using-ui-builder');
+    };
+  }, []);
 
   // Fetch custom styles from Drupal
   useEffect(() => {
@@ -201,9 +210,11 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       let css = '';
       
       const processNode = (node, parentSelector, isRoot = false) => {
-        let currentSelector = node.selector;
+        let currentSelector = node.selector ? node.selector.trim() : '';
         if (currentSelector.includes('&')) {
           currentSelector = currentSelector.replace(/&/g, parentSelector);
+        } else if (currentSelector.startsWith(':')) {
+          currentSelector = `${parentSelector}${currentSelector}`;
         } else {
           currentSelector = `${parentSelector} ${currentSelector}`;
         }
@@ -259,6 +270,20 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     const generateRules = (nodes) => {
       let css = '';
       nodes.forEach(node => {
+        // Determine the best selector to use
+        let currentSelector = `.uib-${node.id}`;
+        if (node.props && node.props.class) {
+          const customClassesStr = getCustomClassesOnly(node.props.class, node.tag, node.label);
+          const customClasses = customClassesStr.split(' ').filter(Boolean);
+          const manualClasses = customClasses.filter(c => 
+            c !== `uib-${node.id}` && 
+            !c.startsWith('uib-col-')
+          );
+          if (manualClasses.length > 0) {
+            currentSelector = manualClasses.map(c => `.${c}`).join('');
+          }
+        }
+
         // Standard layout props
         if (node.props) {
           const rules = [];
@@ -272,14 +297,14 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           if (node.props.height) rules.push(`height: ${node.props.height} !important;`);
           
           if (rules.length > 0) {
-            css += `.uib-${node.id} { ${rules.join(' ')} }\n`;
+            css += `${currentSelector} { ${rules.join(' ')} }\n`;
           }
         }
 
         // Instance styles (Site Studio style)
         if (node.instanceStyles) {
           const isCol = node.props?.class?.split(' ').some(c => c.startsWith('uib-col-'));
-          css += generateStyleTreeRules(node.instanceStyles, `.uib-${node.id}`, isCol);
+          css += generateStyleTreeRules(node.instanceStyles, currentSelector, isCol);
         }
 
         if (node.children) css += generateRules(node.children);

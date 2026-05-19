@@ -149,6 +149,7 @@ export function PropertiesPanel({
   };
 
   const handleInstanceNodeAction = (action, ...args) => {
+    console.log('handleInstanceNodeAction', action, ...args);
     if (!instanceData) return;
     
     const updateAndPersist = (newData) => {
@@ -210,7 +211,117 @@ export function PropertiesPanel({
         setIsAddingNew(false);
         break;
       }
-      // Add drag/drop actions if needed, but let's keep it simple for now
+      case 'dragStart': {
+        const [e, path] = args;
+        setDraggedNodePath(path);
+        e.dataTransfer.effectAllowed = 'move';
+        break;
+      }
+      case 'dragOver': {
+        const [e, path, position] = args;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!draggedNodePath) return;
+        if (JSON.stringify(path) === JSON.stringify(draggedNodePath)) return;
+        setDropTargetInfo({ path, position });
+        break;
+      }
+      case 'drop': {
+        const [e, toPath, position] = args;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        if (!draggedNodePath) return;
+        
+        const newData = JSON.parse(JSON.stringify(instanceData));
+        let fromParent = newData;
+        for (let i = 1; i < draggedNodePath.length - 1; i++) {
+          fromParent = fromParent.children[draggedNodePath[i]];
+        }
+        const fromIndex = draggedNodePath[draggedNodePath.length - 1];
+        const [movedNode] = fromParent.children.splice(fromIndex, 1);
+
+        if (position === 'inside') {
+          let targetNode = newData;
+          for (let i = 1; i < toPath.length; i++) targetNode = targetNode.children[toPath[i]];
+          targetNode.children = targetNode.children || [];
+          targetNode.children.push(movedNode);
+        } else {
+          let toParent = newData;
+          for (let i = 1; i < toPath.length - 1; i++) toParent = toParent.children[toPath[i]];
+          let toIndex = toPath[toPath.length - 1];
+          if (draggedNodePath.length === toPath.length && JSON.stringify(draggedNodePath.slice(0, -1)) === JSON.stringify(toPath.slice(0, -1)) && fromIndex < toIndex) toIndex--;
+          if (position === 'after') toIndex++;
+          toParent.children.splice(toIndex, 0, movedNode);
+        }
+        
+        updateAndPersist(newData);
+        setDraggedNodePath(null);
+        setDropTargetInfo(null);
+        setSelectedInstancePath(['root']);
+        break;
+      }
+      case 'dragEnd': {
+        setDraggedNodePath(null);
+        setDropTargetInfo(null);
+        break;
+      }
+    }
+  };
+
+  const handlePasteCss = async () => {
+    try {
+      let text = '';
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        text = await navigator.clipboard.readText();
+      } else {
+        text = prompt('Clipboard API not available in this context (requires HTTPS or localhost). Please paste your CSS here:');
+      }
+      
+      if (!text) return;
+      
+      // Remove comments
+      let cleanedText = text.replace(/\/\*[\s\S]*?\*\//g, '');
+      
+      // Extract content inside { } if present
+      const match = cleanedText.match(/\{([\s\S]*)\}/);
+      if (match) {
+        cleanedText = match[1];
+      }
+      
+      const properties = {};
+      const rules = cleanedText.split(';');
+      rules.forEach(rule => {
+        const parts = rule.split(':');
+        if (parts.length >= 2) {
+          const prop = parts[0].trim().replace(/[\r\n]/g, '');
+          const value = parts.slice(1).join(':').trim().replace(/[\r\n]/g, ' ');
+          if (prop && value) {
+            properties[prop] = value;
+          }
+        }
+      });
+      
+      console.log('Parsed properties:', properties);
+      
+      if (Object.keys(properties).length === 0) {
+        alert('No valid CSS found! Please ensure it is in "property: value;" format.');
+        return;
+      }
+      
+      const newData = JSON.parse(JSON.stringify(instanceData));
+      let target = newData;
+      for (let i = 1; i < selectedInstancePath.length; i++) {
+        target = target.children[selectedInstancePath[i]];
+      }
+      
+      if (!target.custom_properties) target.custom_properties = {};
+      Object.assign(target.custom_properties, properties);
+      
+      setInstanceData(newData);
+      updateInstanceStyles(selectedNodeId, newData);
+      alert(`Pasted ${Object.keys(properties).length} properties!`);
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+      alert('Failed to read clipboard. Please allow clipboard access.');
     }
   };
 
@@ -365,8 +476,24 @@ export function PropertiesPanel({
 
                   {selectedInstanceNode && (
                     <div className="style-builder-mini-props" style={{ border: '1px solid var(--sb-border)', borderRadius: '4px', padding: '12px', background: '#fff' }}>
-                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--sb-text-main)' }}>
-                        Properties for: <code style={{ color: 'var(--sb-primary)' }}>{selectedInstanceNode.selector}</code>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--sb-text-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Properties for: <code style={{ color: 'var(--sb-primary)' }}>{selectedInstanceNode.selector}</code></span>
+                        <button 
+                          type="button" 
+                          style={{ 
+                            fontSize: '11px', 
+                            padding: '4px 8px',
+                            background: '#2563eb',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                          }}
+                          onClick={handlePasteCss}
+                        >
+                          📋 Paste CSS
+                        </button>
                       </h4>
                       <PropertyEditor 
                         selectedNode={selectedInstanceNode}
@@ -452,6 +579,53 @@ export function PropertiesPanel({
             {!isLayoutElement && (
               <AccordionSection title="Content & Data" defaultOpen={['img', 'text', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span'].includes(selectedNode.tag)}>
                 <div style={{ marginTop: '16px' }}>
+                  {(selectedNode.tag === 'img' || selectedNode.props?.isBgImage) && (
+                    <div className="form-group" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        id="bg-image-toggle"
+                        checked={selectedNode.props?.isBgImage || false}
+                        onChange={(e) => {
+                          const isBg = e.target.checked;
+                          const updates = {
+                            props: {
+                              ...selectedNode.props,
+                              isBgImage: isBg
+                            }
+                          };
+                          if (isBg) {
+                            updates.tag = 'div';
+                            updates.props.style = {
+                              ...selectedNode.props?.style,
+                              backgroundImage: `url(${selectedNode.content})`
+                            };
+                            updates.label = 'Bg Image Container';
+                            
+                            // Add background_image class
+                            const existingClasses = selectedNode.props?.class || '';
+                            updates.props.class = existingClasses ? `${existingClasses} background_image` : 'background_image';
+                          } else {
+                            updates.tag = 'img';
+                            const newStyle = { ...selectedNode.props?.style };
+                            delete newStyle.backgroundImage;
+                            delete newStyle.backgroundSize;
+                            delete newStyle.backgroundPosition;
+                            delete newStyle.minHeight;
+                            updates.props.style = newStyle;
+                            updates.label = 'Image';
+                            
+                            // Remove background_image class
+                            const existingClasses = selectedNode.props?.class || '';
+                            updates.props.class = existingClasses.replace('background_image', '').trim();
+                          }
+                          updateNodeField(selectedNode.id, updates);
+                        }}
+                        style={{ marginRight: '8px', cursor: 'pointer' }}
+                      />
+                      <label htmlFor="bg-image-toggle" style={{ marginBottom: 0, cursor: 'pointer' }}>Use as Background Image</label>
+                    </div>
+                  )}
+
                   {isPrimitive ? (
                     <>
 
@@ -471,6 +645,34 @@ export function PropertiesPanel({
                           />
                         )}
                       </div>
+
+                      {selectedNode.tag === 'a' && (
+                        <>
+                          <div className="form-group" style={{ marginTop: '16px' }}>
+                            <label>Link URL</label>
+                            <FieldEditor
+                              mode={selectedNode.props?.hrefMode || 'static'}
+                              value={selectedNode.props?.href || ''}
+                              onUpdate={(val, m) => {
+                                updateNodeProperty(selectedNode.id, 'href', val);
+                                updateNodeProperty(selectedNode.id, 'hrefMode', m);
+                              }}
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginTop: '16px', display: 'flex', alignItems: 'center' }}>
+                            <input 
+                              type="checkbox" 
+                              id="link-target-toggle"
+                              checked={selectedNode.props?.target === '_blank'}
+                              onChange={(e) => {
+                                updateNodeProperty(selectedNode.id, 'target', e.target.checked ? '_blank' : '');
+                              }}
+                              style={{ marginRight: '8px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="link-target-toggle" style={{ marginBottom: 0, cursor: 'pointer' }}>Open in new tab</label>
+                          </div>
+                        </>
+                      )}
                     </>
                   ) : (
                     <div className="component-fields">
@@ -512,7 +714,30 @@ export function PropertiesPanel({
 
             {/* 4. Styles & Classes */}
             <AccordionSection title="Styles & Classes">
-              <div className="form-group" style={{ marginTop: '16px' }}>
+              {(classesArray.includes('uib-container') || classesArray.includes('uib-full-width')) && (
+                <div className="form-group" style={{ marginTop: '16px', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="checkbox" 
+                    id="full-width-toggle"
+                    checked={classesArray.includes('uib-full-width')}
+                    onChange={(e) => {
+                      let updatedClasses = [...classesArray];
+                      if (e.target.checked) {
+                        updatedClasses = updatedClasses.filter(c => c !== 'uib-container');
+                        if (!updatedClasses.includes('uib-full-width')) updatedClasses.push('uib-full-width');
+                      } else {
+                        updatedClasses = updatedClasses.filter(c => c !== 'uib-full-width');
+                        if (!updatedClasses.includes('uib-container')) updatedClasses.push('uib-container');
+                      }
+                      updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
+                    }}
+                    style={{ marginRight: '8px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="full-width-toggle" style={{ marginBottom: 0, cursor: 'pointer' }}>Full Width Container</label>
+                </div>
+              )}
+
+              <div className="form-group" style={{ marginTop: (classesArray.includes('uib-container') || classesArray.includes('uib-full-width')) ? '12px' : '16px' }}>
                 <label>Apply Custom Style</label>
                 <select 
                   className="form-control"
@@ -575,19 +800,23 @@ export function PropertiesPanel({
                   className="form-control"
                   placeholder="Type class and press Enter..."
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && e.target.value.trim()) {
-                      const newClass = e.target.value.trim();
-                      const current = selectedNode.props?.class || '';
-                      const classes = current.split(/\s+/).filter(Boolean);
-                      const newClassesToAdd = newClass.split(/\s+/).filter(Boolean);
-                      
-                      let updatedClasses = [...classes];
-                      newClassesToAdd.forEach(c => {
-                        if (!updatedClasses.includes(c)) updatedClasses.push(c);
-                      });
-                      
-                      updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
-                      e.target.value = '';
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (e.target.value.trim()) {
+                        const newClass = e.target.value.trim();
+                        const current = selectedNode.props?.class || '';
+                        const classes = current.split(/\s+/).filter(Boolean);
+                        const newClassesToAdd = newClass.split(/\s+/).filter(Boolean);
+                        
+                        let updatedClasses = [...classes];
+                        newClassesToAdd.forEach(c => {
+                          const prefixed = c.startsWith('uib-') ? c : `uib-${c}`;
+                          if (!updatedClasses.includes(prefixed)) updatedClasses.push(prefixed);
+                        });
+                        
+                        updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
+                        e.target.value = '';
+                      }
                     }
                   }}
                 />

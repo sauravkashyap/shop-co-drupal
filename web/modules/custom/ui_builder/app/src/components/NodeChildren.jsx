@@ -71,6 +71,8 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
           );
         })}
         {isDraggingGlobal && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
+        {/* Empty drop area for rows to allow dropping columns */}
+        <div className={`ss-box-empty-drop-area ${isDraggingGlobal ? 'ss-box-empty-drop-area-visible' : ''}`} style={{ width: '100%' }} />
       </div>
     );
   }
@@ -102,7 +104,7 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
       {/* Final gap — drop after last child */}
       {isDraggingGlobal && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
       {/* Empty padding at the bottom of a container to allow dropping */}
-      <div className="ss-box-empty-drop-area" />
+      <div className={`ss-box-empty-drop-area ${isDraggingGlobal ? 'ss-box-empty-drop-area-visible' : ''}`} />
     </div>
   );
 }

@@ -710,7 +710,7 @@
 
 /* ─── Body Area (where children go) ─── */
 .ss-box-body {
-  padding: 0 12px 12px 12px;
+  padding: 12px;
   border-top: 1px solid #e8e8e8;
   background: #ffffff;
   display: flex;
@@ -1297,6 +1297,31 @@ body:has(#ui-builder-react-app) .form-item-id {
   display: none !important;
 }
 
+/* Hide Drupal node form sidebar (Published, Last saved, Author card) */
+body.using-ui-builder .layout-region.layout-region--secondary,
+body.using-ui-builder .entity-meta,
+body.using-ui-builder .gin-sidebar,
+body.using-ui-builder .gin-meta {
+  display: none !important;
+}
+
+/* Override Drupal's grid/flex layout to make main region full width */
+body.using-ui-builder .layout-form {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body.using-ui-builder .layout-region.layout-region--main {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body.using-ui-builder .layout-region.layout-region--footer {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 /* Hide revision, authoring, URL alias, comment settings, etc. */
 /* Removed rules hiding standard Drupal fields based on user request */
 
@@ -1386,7 +1411,18 @@ body:has(#ui-builder-react-app) .form-item-id {
 }
 
 .ss-drop-gap.ss-drop-gap-visible {
-  height: 6px;
+  height: 8px;
+  background: rgba(0, 115, 186, 0.05);
+  border: 1px dashed rgba(0, 115, 186, 0.2);
+  border-radius: 4px;
+  margin: 2px 0;
+}
+
+.ss-box-empty-drop-area.ss-box-empty-drop-area-visible {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px dashed rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  margin: 4px 0;
 }
 
 /* Active drop target — blue line indicator */
@@ -1432,4 +1468,12 @@ body:has(#ui-builder-react-app) .form-item-id {
 
 .is-dragging-mode .ss-box-topbar {
   cursor: default;
+}
+
+/* Background Image Helper */
+.background_image {
+  background-size: cover;
+  background-position: center;
+  min-height: 200px;
+  width: 100%;
 }

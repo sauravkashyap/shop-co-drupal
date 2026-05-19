@@ -147,3 +147,11 @@
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
 }
+
+/* Background Image Helper */
+.background_image {
+  background-size: cover;
+  background-position: center;
+  min-height: 200px;
+  width: 100%;
+}

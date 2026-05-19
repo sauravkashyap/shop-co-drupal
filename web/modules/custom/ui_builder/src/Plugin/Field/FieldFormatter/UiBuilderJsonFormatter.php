@@ -36,14 +36,11 @@ class UiBuilderJsonFormatter extends FormatterBase {
           $field_name = $this->fieldDefinition->getName();
           $uri = "public://ui_builder/uib-node-$node_id-$field_name.css";
           
-          // Fallback: Generate file if it doesn't exist
-          if (!file_exists($uri)) {
-            $css = \Drupal::service('ui_builder.css_compiler')->compileInstanceStyles($json_data);
-            if ($css) {
-              $directory = 'public://ui_builder';
-              \Drupal::service('file_system')->prepareDirectory($directory, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY | \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS);
-              \Drupal::service('file_system')->saveData($css, $uri, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
-            }
+          $css = \Drupal::service('ui_builder.css_compiler')->compileInstanceStyles($json_data);
+          if ($css) {
+            $directory = 'public://ui_builder';
+            \Drupal::service('file_system')->prepareDirectory($directory, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY | \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS);
+            \Drupal::service('file_system')->saveData($css, $uri, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
           }
 
           $elements[$delta] = [
@@ -200,17 +197,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
 
         foreach ($raw_classes as $cls) {
           $cls = trim($cls);
-          if (empty($cls)) continue;
-          // Prefix all classes with uib- to ensure they are namespaced (skip if already prefixed)
-          if (!str_starts_with($cls, 'uib-')) {
-            $cls = 'uib-' . $cls;
-          }
-          
-          // DYNAMIC CLEANUP: Only output the class if it exists as a Style entity,
-          // is a base structural class, or is a grid column class.
-          $is_valid = in_array($cls, $valid_style_ids) || str_starts_with($cls, 'uib-col-');
-          
-          if ($is_valid) {
+          if (!empty($cls)) {
             $prefixed_classes[] = $cls;
           }
         }
@@ -266,12 +253,66 @@ class UiBuilderJsonFormatter extends FormatterBase {
         $attributes['class'][] = $tag_map[strtolower($tag)];
       }
 
-      // Add unique instance classes only if they have unique styles.
-      if (!empty($component['id']) && $this->hasUniqueStyles($component)) {
+      // Check if there are any manual classes.
+      $has_manual_class = false;
+      if (!empty($component['props']['class'])) {
+        $classes = explode(' ', $component['props']['class']);
+        $structural_classes = [
+          'uib-container', 'uib-full-width', 'uib-row', 'uib-section', 'uib-article', 
+          'uib-main', 'uib-aside', 'uib-nav', 'uib-grid', 'uib-plain-div'
+        ];
+        $tag_classes = array_values($tag_map);
+        
+        foreach ($classes as $cls) {
+          $cls = trim($cls);
+          if (empty($cls)) continue;
+          if (in_array($cls, $structural_classes)) continue;
+          if (in_array($cls, $tag_classes)) continue;
+          if (str_starts_with($cls, 'uib-col-')) continue;
+          
+          $has_manual_class = true;
+          break;
+        }
+      }
+
+      // Add unique instance classes only if they have unique styles AND no manual class.
+      if (!$has_manual_class && !empty($component['id']) && $this->hasUniqueStyles($component)) {
         $node_id = $component['id'];
 
         if (!in_array('uib-' . $node_id, $attributes['class'])) {
           $attributes['class'][] = 'uib-' . $node_id;
+        }
+      }
+
+      // Add standard HTML attributes from props (href, target, placeholder, type, etc.)
+      if (!empty($component['props']) && is_array($component['props'])) {
+        foreach ($component['props'] as $prop_name => $prop_val) {
+          // Skip internal/special/layout properties
+          if (in_array($prop_name, ['class', 'style', 'side', 'collapsible', 'isBgImage'])) {
+            continue;
+          }
+          if (str_ends_with($prop_name, 'Mode')) {
+            continue;
+          }
+          
+          $mode_key = $prop_name . 'Mode';
+          $mode = $component['props'][$mode_key] ?? 'static';
+          
+          if (is_string($prop_val) && $mode === 'mapping' && !empty($prop_val)) {
+            $token_service = \Drupal::token();
+            $context = $entity ? [$entity->getEntityTypeId() => $entity] : [];
+            $token_string = $prop_val;
+            if (!str_starts_with($token_string, '[')) {
+              $token_string = '[' . $token_string . ']';
+            }
+            $resolved_val = $token_service->replace($token_string, $context, ['clear' => TRUE]);
+          } else {
+            $resolved_val = $prop_val;
+          }
+          
+          if ($resolved_val !== NULL && $resolved_val !== '') {
+            $attributes[$prop_name] = $resolved_val;
+          }
         }
       }
       
@@ -331,6 +372,15 @@ class UiBuilderJsonFormatter extends FormatterBase {
         $element['#attributes'] = $attributes;
       }
 
+      // Special handling for background images
+      if (!empty($component['props']['isBgImage'])) {
+        $img_content = $component['content'] ?? '';
+        if ($img_content) {
+          $element['#attributes']['style'] = "background-image: url('{$img_content}');";
+        }
+        $element['#attributes']['class'][] = 'background_image';
+      }
+
       // Special handling for <img> tags: content should be the 'src' attribute.
       if (strtolower($tag) === 'img') {
         $img_content = $component['content'] ?? '';
@@ -351,8 +401,8 @@ class UiBuilderJsonFormatter extends FormatterBase {
       elseif (!empty($component['children']) && is_array($component['children'])) {
         $element['children'] = $this->buildRenderArray($component['children'], $entity);
       }
-      // Handle text content
-      elseif (isset($component['content'])) {
+      // Handle text content (skip if it's a background image container)
+      elseif (isset($component['content']) && empty($component['props']['isBgImage'])) {
         $element['#value'] = $component['content'];
       }
 
@@ -445,12 +495,12 @@ class UiBuilderJsonFormatter extends FormatterBase {
     $rules = [];
     if (!empty($style_data['properties'])) {
       foreach ($style_data['properties'] as $prop => $val) {
-        if (!empty($val)) $rules[] = "$prop: $val !important;";
+        if (isset($val) && $val !== '') $rules[] = "$prop: $val !important;";
       }
     }
     if (!empty($style_data['custom_properties'])) {
       foreach ($style_data['custom_properties'] as $prop => $val) {
-        if (!empty($val)) $rules[] = "$prop: $val !important;";
+        if (isset($val) && $val !== '') $rules[] = "$prop: $val !important;";
       }
     }
 
@@ -477,8 +527,8 @@ class UiBuilderJsonFormatter extends FormatterBase {
     $tag = $node['tag'] ?? 'div';
     $is_container_or_div = (str_starts_with($label, 'Container') || str_starts_with($label, 'Plain Div') || $tag === 'div');
 
-    // Instance styles (Site Studio Style) - ONLY for Container and Plain Div
-    if ($is_container_or_div && !empty($node['instanceStyles']) && !empty($node['id'])) {
+    // Instance styles (Site Studio Style)
+    if (!empty($node['instanceStyles']) && !empty($node['id'])) {
       $css = $this->compileStyleTree($node['instanceStyles'], '.uib-' . $node['id']);
       if (!empty(trim($css))) return TRUE;
     }
