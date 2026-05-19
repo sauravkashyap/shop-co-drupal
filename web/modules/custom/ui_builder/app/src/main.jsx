@@ -100,4 +100,94 @@ document.addEventListener('DOMContentLoaded', () => {
     )
 
   }
+
+  // 3. Style Mode (Custom Style editor)
+  const styleMount = document.getElementById('ui-builder-style-mount');
+  if (styleMount) {
+    const dataInput = document.getElementById('ui-builder-style-data-input');
+    const labelInput = document.getElementById('edit-label');
+    const idInput = document.getElementById('edit-id');
+    
+    let styleData = null;
+    try {
+      if (dataInput && dataInput.value) {
+        styleData = JSON.parse(dataInput.value);
+      }
+    } catch (e) {
+      console.error("Failed to parse style JSON", e);
+    }
+    
+    // Fallback if data is empty or invalid
+    if (!styleData || typeof styleData !== 'object' || Array.isArray(styleData)) {
+      styleData = {
+        selector: '&',
+        properties: {},
+        custom_properties: {},
+        children: []
+      };
+    }
+    
+    const styleObj = {
+      id: idInput ? idInput.value : '',
+      label: labelInput ? labelInput.value : '',
+      data: styleData
+    };
+    
+    const handleSave = (updatedStyle) => {
+      if (dataInput) {
+        dataInput.value = JSON.stringify(updatedStyle.data, null, 2);
+      }
+      if (labelInput) {
+        labelInput.value = updatedStyle.label;
+      }
+      // Submit the parent form
+      const form = dataInput.closest('form');
+      if (form) {
+        const submitBtn = form.querySelector('#edit-submit, [data-drupal-selector="edit-submit"]');
+        if (submitBtn) {
+          submitBtn.click();
+        } else {
+          form.submit();
+        }
+      }
+    };
+
+    const handleBack = () => {
+      window.location.href = '/admin/ui-builder/styles';
+    };
+    
+    // Hide Drupal form fields that the React app replaces (label, machine_name, data textarea, submit)
+    // Walk up to the form and hide sibling form elements, keeping the mount wrapper visible
+    const drupalForm = styleMount.closest('form');
+    if (drupalForm) {
+      // Hide all .form-item, .js-form-item, and .form-actions direct children
+      // BUT keep the wrapper that contains our mount point
+      Array.from(drupalForm.children).forEach(child => {
+        // Skip if this element contains our mount point
+        if (child.contains(styleMount)) return;
+        // Hide form items and form actions
+        if (
+          child.classList.contains('form-item') ||
+          child.classList.contains('js-form-item') ||
+          child.classList.contains('form-actions') ||
+          child.classList.contains('js-form-wrapper') ||
+          child.classList.contains('form-wrapper')
+        ) {
+          child.style.display = 'none';
+        }
+      });
+    }
+
+    createRoot(styleMount).render(
+      <StrictMode>
+        <App 
+          mode="style"
+          initialStyle={styleObj}
+          onSaveStyle={handleSave}
+          onBackStyle={handleBack}
+        />
+      </StrictMode>
+    );
+  }
 });
+

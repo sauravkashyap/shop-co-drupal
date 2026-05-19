@@ -25,4 +25,4 @@ dynamic_styles:
   version: 1.0.0
   css:
     theme:
-      public://ui_builder/base_styles.css: { weight: 2000, preprocess: false }
+      public://ui_builder/base_styles.css: { weight: 1050, preprocess: false }

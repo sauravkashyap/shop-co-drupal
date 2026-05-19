@@ -59,6 +59,7 @@ export function StyleBuilder({ style, onSave, onBack }) {
   // Property editor states
   const [pendingProp, setPendingProp] = useState('');
   const [pendingValue, setPendingValue] = useState('');
+  const [activeDevice, setActiveDevice] = useState('desktop');
 
   const slugify = (text) => text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 
@@ -202,6 +203,33 @@ export function StyleBuilder({ style, onSave, onBack }) {
         setDropTargetInfo(null);
         break;
       }
+      case 'delete': {
+        const [e, path] = args;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        // Don't delete root
+        if (path.length === 1 && path[0] === 'root') return;
+        const node = findNodeByPath(data, path);
+        const hasChildren = node?.children && node.children.length > 0;
+        if (hasChildren) {
+          const confirmed = window.confirm(
+            `This selector has ${node.children.length} child element(s). Are you sure you want to delete it along with all its children?`
+          );
+          if (!confirmed) return;
+        }
+        setData(prev => {
+          const newTree = JSON.parse(JSON.stringify(prev));
+          let parent = newTree;
+          for (let i = 1; i < path.length - 1; i++) {
+            parent = parent.children[path[i]];
+          }
+          const index = path[path.length - 1];
+          parent.children.splice(index, 1);
+          return newTree;
+        });
+        // Reset selection to root after delete
+        setSelectedNodePath(['root']);
+        break;
+      }
     }
   };
 
@@ -232,7 +260,11 @@ export function StyleBuilder({ style, onSave, onBack }) {
       if (!target.custom_properties) target.custom_properties = {};
       target.custom_properties[pendingProp.trim()] = pendingValue.trim();
     }
-    onSave({ ...style, label, id: classId || style.id, old_id: style.id, data: finalData });
+    if (style.isInstance) {
+      onSave({ ...style, data: finalData });
+    } else {
+      onSave({ ...style, label, id: classId || style.id, old_id: style.id, data: finalData });
+    }
   };
 
   return (
@@ -240,15 +272,26 @@ export function StyleBuilder({ style, onSave, onBack }) {
       <div className="style-builder-sidebar" onClick={e => e.stopPropagation()}>
         <div className="style-builder-header">
           <div className="header-left">
-            <button type="button" className="back-btn" onClick={onBack}><span>←</span> Back to Layout</button>
+            <button type="button" className="back-btn" onClick={onBack}><span>←</span> {style.isInstance ? 'Back to Layout' : 'Back to Styles'}</button>
             <div className="style-info">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <input type="text" value={label} onChange={handleLabelChange} className="style-label-input" placeholder="Enter Style Label" />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b' }}>
-                  <span>Class:</span><span style={{ fontFamily: 'monospace' }}>.uib-</span>
-                  <input type="text" value={classId} onChange={e => setClassId(slugify(e.target.value))} style={{ border: 'none', background: 'transparent', color: '#64748b', fontFamily: 'monospace', outline: 'none', padding: 0, width: '150px' }} placeholder="class-name" />
+              {style.isInstance ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span className="style-label-static" style={{ fontWeight: 600, fontSize: '15px', color: 'var(--sb-text-main)' }}>
+                    Instance Styling: {label}
+                  </span>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>
+                    Scoped styling directly for this element instance
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <input type="text" value={label} onChange={handleLabelChange} className="style-label-input" placeholder="Enter Style Label" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748b' }}>
+                    <span>Class:</span><span style={{ fontFamily: 'monospace' }}>.uib-</span>
+                    <input type="text" value={classId} onChange={e => setClassId(slugify(e.target.value))} style={{ border: 'none', background: 'transparent', color: '#64748b', fontFamily: 'monospace', outline: 'none', padding: 0, width: '150px' }} placeholder="class-name" />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div className="header-actions">
@@ -281,7 +324,12 @@ export function StyleBuilder({ style, onSave, onBack }) {
 
           <div className="style-builder-properties">
             <div className="props-header">
-              <h2>{selectedNode.selector === '&' ? `Base class (.uib-${style.id})` : selectedNode.selector}</h2>
+              <h2>
+                {selectedNode.selector === '&' 
+                  ? (style.isInstance ? `Base selector (&)` : `Base class (.uib-${style.id})`) 
+                  : selectedNode.selector
+                }
+              </h2>
               <div className="props-header-path">Configuring properties for the selected selector</div>
             </div>
             <div className="props-content">
@@ -293,6 +341,8 @@ export function StyleBuilder({ style, onSave, onBack }) {
                 setPendingProp={setPendingProp}
                 pendingValue={pendingValue}
                 setPendingValue={setPendingValue}
+                activeDevice={activeDevice}
+                setActiveDevice={setActiveDevice}
               />
             </div>
           </div>

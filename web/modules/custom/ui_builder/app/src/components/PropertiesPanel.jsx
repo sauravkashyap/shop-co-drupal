@@ -66,6 +66,7 @@ export function PropertiesPanel({
   updateInstanceValue,
   updateInstanceStyles,
   onSaveStyle,
+  onEditInstanceStyle,
   onDeselect,
   customStyles = []
 }) {
@@ -444,70 +445,52 @@ export function PropertiesPanel({
 
         <div className="properties-content">
           <div className="animate-fade property-groups">
-            {/* Site Studio Instance Styling - Made highly visible and robust */}
+            {/* Site Studio Instance Styling - Opens full-screen Style Builder */}
             {selectedNode && (
               <AccordionSection title="INSTANCE STYLING (SITE STUDIO STYLE)" defaultOpen={true}>
-                <div style={{ marginTop: '16px' }} className="instance-style-editor">
-                  <p className="help-text" style={{ marginBottom: '12px' }}>
-                    Define styles scoped to this specific {selectedNode.label || selectedNode.tag} and its children.
+                <div style={{ marginTop: '16px', padding: '4px' }} className="instance-style-editor animate-fade">
+                  <p className="help-text" style={{ marginBottom: '16px', fontSize: '12px', color: '#64748b', lineHeight: '1.5' }}>
+                    Apply scoped styles, selectors, pseudo-elements, and responsive queries directly to this {selectedNode.label || selectedNode.tag}.
                   </p>
                   
-                  <div className="style-builder-mini-tree" style={{ border: '1px solid var(--sb-border)', borderRadius: '4px', marginBottom: '16px', background: '#fff' }}>
-                    <SelectorTree 
-                      data={instanceData}
-                      rootLabel={selectedNode.label || selectedNode.tag}
-                      selectedNodePath={selectedInstancePath}
-                      setSelectedNodePath={setSelectedInstancePath}
-                      editingNodePath={editingNodePath}
-                      setEditingNodePath={setEditingNodePath}
-                      editValue={editValue}
-                      setEditValue={setEditValue}
-                      isAddingNew={isAddingNew}
-                      setIsAddingNew={setIsAddingNew}
-                      collapsedPaths={collapsedPaths}
-                      setCollapsedPaths={setCollapsedPaths}
-                      draggedNodePath={draggedNodePath}
-                      setDraggedNodePath={setDraggedNodePath}
-                      dropTargetInfo={dropTargetInfo}
-                      setDropTargetInfo={setDropTargetInfo}
-                      onNodeAction={handleInstanceNodeAction}
-                    />
-                  </div>
-
-                  {selectedInstanceNode && (
-                    <div className="style-builder-mini-props" style={{ border: '1px solid var(--sb-border)', borderRadius: '4px', padding: '12px', background: '#fff' }}>
-                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--sb-text-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Properties for: <code style={{ color: 'var(--sb-primary)' }}>{selectedInstanceNode.selector}</code></span>
-                        <button 
-                          type="button" 
-                          style={{ 
-                            fontSize: '11px', 
-                            padding: '4px 8px',
-                            background: '#2563eb',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold'
-                          }}
-                          onClick={handlePasteCss}
-                        >
-                          📋 Paste CSS
-                        </button>
-                      </h4>
-                      <PropertyEditor 
-                        selectedNode={selectedInstanceNode}
-                        updateProperty={updateInstanceProperty}
-                        updateCustomProperty={updateInstanceCustomProperty}
-                        pendingProp={pendingProp}
-                        setPendingProp={setPendingProp}
-                        pendingValue={pendingValue}
-                        setPendingValue={setPendingValue}
-                        activeDevice={activeDevice}
-                        setActiveDevice={setActiveDevice}
-                      />
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    className="save-btn"
+                    style={{ 
+                      width: '100%', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center', 
+                      gap: '8px', 
+                      padding: '12px',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                      background: 'var(--sb-primary, #2563eb)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                    onClick={() => {
+                      if (onEditInstanceStyle) {
+                        onEditInstanceStyle({
+                          id: selectedNode.id,
+                          label: selectedNode.label || selectedNode.tag,
+                          data: selectedNode.instanceStyles || {
+                            selector: '&',
+                            properties: {},
+                            custom_properties: {},
+                            children: []
+                          },
+                          isInstance: true
+                        });
+                      }
+                    }}
+                  >
+                    🎨 Edit CSS in Style Builder
+                  </button>
                 </div>
               </AccordionSection>
             )}

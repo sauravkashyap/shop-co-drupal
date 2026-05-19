@@ -37,7 +37,7 @@ import { ActionBar } from './components/ActionBar';
 import { StyleBuilder } from './components/StyleBuilder';
 import { DragStateContext } from './contexts/DragStateContext';
 
-function App({ mode, initialLayout, initialSchema, availableComponents: initialComponents, onUpdate, onSavePage: externalSavePage }) {
+function App({ mode, initialLayout, initialSchema, availableComponents: initialComponents, onUpdate, onSavePage: externalSavePage, initialStyle, onSaveStyle, onBackStyle }) {
   const [layoutTree, setLayoutTree] = useState(() => {
     // ... (rest of initial state logic)
     const rawTree = initialLayout || [];
@@ -871,6 +871,18 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     }),
   };
 
+  if (mode === 'style') {
+    return (
+      <div className="ui-builder-style-editor-wrapper style-builder-standalone">
+        <StyleBuilder 
+          style={initialStyle}
+          onSave={onSaveStyle}
+          onBack={onBackStyle}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`ui-builder-container mode-${mode}`}>
       <ActionBar 
@@ -1003,6 +1015,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         updateInstanceValue={updateInstanceValue}
         updateInstanceStyles={updateInstanceStyles}
         onSaveStyle={handleSaveStyle}
+        onEditInstanceStyle={(style) => setCurrentStyle(style)}
         onDeselect={() => { 
           setPropertiesOpenId(null);
           setSelectedNodeId(null); 
@@ -1017,7 +1030,11 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         <StyleBuilder 
           style={currentStyle}
           onSave={(updatedStyle) => {
-            handleSaveStyle(updatedStyle);
+            if (updatedStyle.isInstance) {
+              updateInstanceStyles(updatedStyle.id, updatedStyle.data);
+            } else {
+              handleSaveStyle(updatedStyle);
+            }
             setCurrentStyle(null);
           }}
           onBack={() => setCurrentStyle(null)}

@@ -292,6 +292,36 @@
   opacity: 1;
 }
 
+/* ── Delete button (×) ── */
+.ss-sel-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  opacity: 0;
+  margin-left: -4px;
+}
+
+.ss-sel-card:hover .ss-sel-delete {
+  opacity: 0.7;
+}
+
+.ss-sel-delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  opacity: 1 !important;
+}
+
 /* ── Collapse/Expand toggle (−/+) ── */
 .ss-sel-collapse-toggle {
   display: flex;
@@ -551,3 +581,37 @@
   height: 40px;
   cursor: pointer;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Standalone Custom Style Editor Overrides
+   When the style builder renders inside a Drupal admin page
+   (e.g. /admin/config/ui-builder/styles/{id}/edit)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Make overlay non-modal: inline block, no backdrop */
+.style-builder-standalone .style-builder-overlay {
+  position: relative;
+  inset: auto;
+  background: transparent;
+  backdrop-filter: none;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: none;
+}
+
+/* Sidebar fills the mount container, not the viewport */
+.style-builder-standalone .style-builder-sidebar {
+  width: 100%;
+  max-width: 100%;
+  height: calc(100vh - 160px); /* Leave room for Drupal admin toolbars */
+  min-height: 500px;
+  box-shadow: none;
+  animation: none;
+  border: 1px solid var(--sb-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+

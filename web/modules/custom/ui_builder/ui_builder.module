@@ -186,7 +186,7 @@ function ui_builder_library_info_build() {
           $url => [
             'type' => 'external',
             'preprocess' => FALSE,
-            'weight' => 1001,
+            'weight' => 1200,
           ],
         ],
       ],

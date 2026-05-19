@@ -26,6 +26,7 @@ class UiBuilderStyleForm extends EntityForm {
       '#default_value' => $style->label(),
       '#description' => $this->t('The human-readable name of the style.'),
       '#required' => TRUE,
+      '#attributes' => ['id' => 'edit-label'],
     ];
 
     $form['id'] = [
@@ -35,13 +36,52 @@ class UiBuilderStyleForm extends EntityForm {
         'exists' => '\Drupal\ui_builder\Entity\UiBuilderStyle::load',
       ],
       '#disabled' => !$style->isNew(),
+      '#attributes' => ['id' => 'edit-id'],
     ];
 
-    // The 'data' field will be managed via the React Builder.
-    // For now, we just keep it in the entity.
+    $form['data'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Style Data'),
+      '#default_value' => json_encode($style->getData(), JSON_PRETTY_PRINT),
+      '#attributes' => [
+        'id' => 'ui-builder-style-data-input',
+        'style' => 'display: none;',
+      ],
+    ];
+
+    // React App Mount Point
+    $form['react_mount'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'ui-builder-style-mount',
+        'class' => ['style-builder-standalone'],
+      ],
+      '#attached' => [
+        'library' => [
+          'ui_builder/builder_app',
+        ],
+      ],
+      '#weight' => -10,
+    ];
     
     return $form;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function copyFormValuesToEntity(\Drupal\Core\Entity\EntityInterface $entity, array $form, FormStateInterface $form_state) {
+    parent::copyFormValuesToEntity($entity, $form, $form_state);
+    
+    $data_string = $form_state->getValue('data');
+    if (!empty($data_string)) {
+      $data = json_decode($data_string, TRUE);
+      if (is_array($data)) {
+        $entity->setData($data);
+      }
+    }
+  }
+
 
   /**
    * {@inheritdoc}

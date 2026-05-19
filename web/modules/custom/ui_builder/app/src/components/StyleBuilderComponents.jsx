@@ -400,6 +400,14 @@ export function SelectorTree({
               className="ss-sel-add"
               onClick={(e) => onNodeAction('add', e, path)}
             >⊕</button>
+            {!isRoot && (
+              <button 
+                type="button" 
+                className="ss-sel-delete"
+                onClick={(e) => onNodeAction('delete', e, path)}
+                title="Delete selector"
+              >×</button>
+            )}
           </div>
         </div>
 
