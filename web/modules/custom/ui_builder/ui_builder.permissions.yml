@@ -1,0 +1,4 @@
+administer ui builder components:
+  title: 'Administer UI Builder Components'
+  description: 'Create, edit, and delete UI Builder Components.'
+  restrict access: true

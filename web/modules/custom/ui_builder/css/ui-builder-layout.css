@@ -1,0 +1,110 @@
+/* Global Reset */
+*, ::before, ::after {
+  box-sizing: border-box;
+}
+
+/* 
+  UI BUILDER CORE LAYOUT
+  These are essential structural styles.
+  Visual design (colors, font-sizes, padding) is managed 
+  via the Drupal "Base Styles" configuration page.
+*/
+
+/* Shared Column Styles - applies to any column span class or the base column class */
+[class*="uib-col-"],
+.uib-column {
+  position: relative;
+  width: 100%;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+/* 12-Column Grid System */
+.uib-col-1  { flex: 0 0 8.333333%; max-width: 8.333333%; }
+.uib-col-2  { flex: 0 0 16.666667%; max-width: 16.666667%; }
+.uib-col-3  { flex: 0 0 25%; max-width: 25%; }
+.uib-col-4  { flex: 0 0 33.333333%; max-width: 33.333333%; }
+.uib-col-5  { flex: 0 0 41.666667%; max-width: 41.666667%; }
+.uib-col-6  { flex: 0 0 50%; max-width: 50%; }
+.uib-col-7  { flex: 0 0 58.333333%; max-width: 58.333333%; }
+.uib-col-8  { flex: 0 0 66.666667%; max-width: 66.666667%; }
+.uib-col-9  { flex: 0 0 75%; max-width: 75%; }
+.uib-col-10 { flex: 0 0 83.333333%; max-width: 83.333333%; }
+.uib-col-11 { flex: 0 0 91.666667%; max-width: 91.666667%; }
+.uib-col-12 { flex: 0 0 100%; max-width: 100%; }
+
+/* Tablet Columns (<= 1024px) */
+@media (max-width: 1024px) {
+  .uib-col-md-1  { flex: 0 0 8.333333% !important; max-width: 8.333333% !important; }
+  .uib-col-md-2  { flex: 0 0 16.666667% !important; max-width: 16.666667% !important; }
+  .uib-col-md-3  { flex: 0 0 25% !important; max-width: 25% !important; }
+  .uib-col-md-4  { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; }
+  .uib-col-md-5  { flex: 0 0 41.666667% !important; max-width: 41.666667% !important; }
+  .uib-col-md-6  { flex: 0 0 50% !important; max-width: 50% !important; }
+  .uib-col-md-7  { flex: 0 0 58.333333% !important; max-width: 58.333333% !important; }
+  .uib-col-md-8  { flex: 0 0 66.666667% !important; max-width: 66.666667% !important; }
+  .uib-col-md-9  { flex: 0 0 75% !important; max-width: 75% !important; }
+  .uib-col-md-10 { flex: 0 0 83.333333% !important; max-width: 83.333333% !important; }
+  .uib-col-md-11 { flex: 0 0 91.666667% !important; max-width: 91.666667% !important; }
+  .uib-col-md-12 { flex: 0 0 100% !important; max-width: 100% !important; }
+}
+
+/* Mobile Columns (<= 767px) */
+@media (max-width: 767px) {
+  .uib-col-sm-1  { flex: 0 0 8.333333% !important; max-width: 8.333333% !important; }
+  .uib-col-sm-2  { flex: 0 0 16.666667% !important; max-width: 16.666667% !important; }
+  .uib-col-sm-3  { flex: 0 0 25% !important; max-width: 25% !important; }
+  .uib-col-sm-4  { flex: 0 0 33.333333% !important; max-width: 33.333333% !important; }
+  .uib-col-sm-5  { flex: 0 0 41.666667% !important; max-width: 41.666667% !important; }
+  .uib-col-sm-6  { flex: 0 0 50% !important; max-width: 50% !important; }
+  .uib-col-sm-7  { flex: 0 0 58.333333% !important; max-width: 58.333333% !important; }
+  .uib-col-sm-8  { flex: 0 0 66.666667% !important; max-width: 66.666667% !important; }
+  .uib-col-sm-9  { flex: 0 0 75% !important; max-width: 75% !important; }
+  .uib-col-sm-10 { flex: 0 0 83.333333% !important; max-width: 83.333333% !important; }
+  .uib-col-sm-11 { flex: 0 0 91.666667% !important; max-width: 91.666667% !important; }
+  .uib-col-sm-12 { flex: 0 0 100% !important; max-width: 100% !important; }
+}
+
+/* Semantic Wrappers Reset */
+.uib-section,
+.uib-article,
+.uib-main,
+.uib-aside,
+.uib-nav {
+  display: block;
+}
+
+/* Aside & Main Column Logic */
+.uib-row > .uib-aside {
+  flex: 0 0 25%;
+  max-width: 25%;
+}
+
+.uib-row > .uib-aside.uib-aside-left {
+  order: 1;
+}
+
+.uib-row > .uib-aside.uib-aside-right {
+  order: 3;
+}
+
+.uib-row > .uib-main {
+  flex: 0 0 75%;
+  max-width: 75%;
+  order: 2;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 
+  Note: All other styles (Typography, Spacing, Colors) 
+  are injected dynamically from the Drupal Base Styles form.
+*/

@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Theme override for the UI Builder JSON field.
+ *
+ * This template strips ALL default Drupal wrappers (no .field, .field__item, etc.)
+ * to guarantee 100% pure, clean HTML output from the visual builder.
+ */
+#}
+{% for item in items %}
+  {{ item.content }}
+{% endfor %}
