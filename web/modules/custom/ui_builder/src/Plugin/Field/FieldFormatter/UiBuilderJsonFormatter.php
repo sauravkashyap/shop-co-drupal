@@ -29,18 +29,52 @@ class UiBuilderJsonFormatter extends FormatterBase {
       if (!empty($item->value)) {
         $json_data = json_decode($item->value, TRUE);
         if (json_last_error() === JSON_ERROR_NONE && is_array($json_data)) {
+          $render_array = $this->buildRenderArray($json_data, $item->getEntity());
+
+          $node = $item->getEntity();
+          $node_id = $node->id();
+          $field_name = $this->fieldDefinition->getName();
+          $uri = "public://ui_builder/uib-node-$node_id-$field_name.css";
+          
+          $css = \Drupal::service('ui_builder.css_compiler')->compileInstanceStyles($json_data);
+          if ($css) {
+            $directory = 'public://ui_builder';
+            \Drupal::service('file_system')->prepareDirectory($directory, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY | \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS);
+            \Drupal::service('file_system')->saveData($css, $uri, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
+          }
+
           $elements[$delta] = [
             '#type' => 'container',
             '#attributes' => [
               'class' => ['ui-builder-content'],
             ],
-            'content' => $this->buildRenderArray($json_data, $item->getEntity()),
+            'content' => $render_array,
             '#attached' => [
               'library' => [
                 'ui_builder/frontend_defaults',
+                'ui_builder/custom_styles',
+                'ui_builder/dynamic_styles',
               ],
             ],
           ];
+
+          // Attach file if it exists (or was just generated)
+          if (file_exists($uri)) {
+            $url = \Drupal::service('file_url_generator')->generateString($uri);
+            $url .= '?v=' . filemtime($uri);
+            
+            $elements[$delta]['#attached']['html_head'][] = [
+              [
+                '#type' => 'html_tag',
+                '#tag' => 'link',
+                '#attributes' => [
+                  'rel' => 'stylesheet',
+                  'href' => $url,
+                ],
+              ],
+              'ui_builder_dynamic_css_' . $delta,
+            ];
+          }
         }
         else {
           $elements[$delta] = ['#markup' => '<!-- Invalid UI Builder JSON -->'];
@@ -70,7 +104,6 @@ class UiBuilderJsonFormatter extends FormatterBase {
             // Map the values into the layout tree.
             $mapped_tree = $this->processTokens($layout_tree, $values, $entity);
             
-            // Build the mapped tree and attach libraries.
             $rendered_component = $this->buildRenderArray($mapped_tree, $entity);
             
             // Attach CSS/JS if they exist.
@@ -145,7 +178,30 @@ class UiBuilderJsonFormatter extends FormatterBase {
       // Add attributes from 'props'
       $attributes = [];
       if (!empty($component['props']['class'])) {
-        $attributes['class'] = explode(' ', $component['props']['class']);
+        $raw_classes = explode(' ', $component['props']['class']);
+        $prefixed_classes = [];
+        
+        // Cache valid style IDs for this request to optimize performance.
+        static $valid_style_ids = null;
+        if ($valid_style_ids === null) {
+          $valid_style_ids = \Drupal::entityQuery('ui_builder_style')->execute();
+          // Normalize IDs to include uib- prefix for comparison.
+          $valid_style_ids = array_map(fn($id) => str_starts_with($id, 'uib-') ? $id : 'uib-' . $id, $valid_style_ids);
+          // Add standard structural classes that should never be stripped.
+          $valid_style_ids = array_merge($valid_style_ids, [
+            'uib-container', 'uib-full-width', 'uib-row', 'uib-section', 'uib-article', 
+            'uib-main', 'uib-aside', 'uib-nav', 'uib-grid', 'uib-plain-div'
+          ]);
+          // Add wildcard column pattern support - anything starting with uib-col- is valid.
+        }
+
+        foreach ($raw_classes as $cls) {
+          $cls = trim($cls);
+          if (!empty($cls)) {
+            $prefixed_classes[] = $cls;
+          }
+        }
+        $attributes['class'] = $prefixed_classes;
       }
       else {
         $attributes['class'] = [];
@@ -179,17 +235,85 @@ class UiBuilderJsonFormatter extends FormatterBase {
         'code' => 'uib-code',
         'small' => 'uib-small',
         'table' => 'uib-table',
+        'thead' => 'uib-thead',
+        'tbody' => 'uib-tbody',
+        'tr' => 'uib-tr',
         'th' => 'uib-th',
         'td' => 'uib-td',
         'form' => 'uib-form',
         'label' => 'uib-label',
         'input' => 'uib-input',
         'select' => 'uib-select',
+        'option' => 'uib-option',
         'textarea' => 'uib-textarea',
         'svg' => 'uib-svg',
+        'video' => 'uib-video',
       ];
       if (isset($tag_map[strtolower($tag)])) {
         $attributes['class'][] = $tag_map[strtolower($tag)];
+      }
+
+      // Check if there are any manual classes.
+      $has_manual_class = false;
+      if (!empty($component['props']['class'])) {
+        $classes = explode(' ', $component['props']['class']);
+        $structural_classes = [
+          'uib-container', 'uib-full-width', 'uib-row', 'uib-section', 'uib-article', 
+          'uib-main', 'uib-aside', 'uib-nav', 'uib-grid', 'uib-plain-div'
+        ];
+        $tag_classes = array_values($tag_map);
+        
+        foreach ($classes as $cls) {
+          $cls = trim($cls);
+          if (empty($cls)) continue;
+          if (in_array($cls, $structural_classes)) continue;
+          if (in_array($cls, $tag_classes)) continue;
+          if (str_starts_with($cls, 'uib-col-')) continue;
+          
+          $has_manual_class = true;
+          break;
+        }
+      }
+
+      // Add unique instance classes only if they have unique styles AND no manual class.
+      if (!$has_manual_class && !empty($component['id']) && $this->hasUniqueStyles($component)) {
+        $node_id = $component['id'];
+
+        if (!in_array('uib-' . $node_id, $attributes['class'])) {
+          $attributes['class'][] = 'uib-' . $node_id;
+        }
+      }
+
+      // Add standard HTML attributes from props (href, target, placeholder, type, etc.)
+      if (!empty($component['props']) && is_array($component['props'])) {
+        foreach ($component['props'] as $prop_name => $prop_val) {
+          // Skip internal/special/layout properties
+          if (in_array($prop_name, ['class', 'style', 'side', 'collapsible', 'isBgImage'])) {
+            continue;
+          }
+          if (str_ends_with($prop_name, 'Mode')) {
+            continue;
+          }
+          
+          $mode_key = $prop_name . 'Mode';
+          $mode = $component['props'][$mode_key] ?? 'static';
+          
+          if (is_string($prop_val) && $mode === 'mapping' && !empty($prop_val)) {
+            $token_service = \Drupal::token();
+            $context = $entity ? [$entity->getEntityTypeId() => $entity] : [];
+            $token_string = $prop_val;
+            if (!str_starts_with($token_string, '[')) {
+              $token_string = '[' . $token_string . ']';
+            }
+            $resolved_val = $token_service->replace($token_string, $context, ['clear' => TRUE]);
+          } else {
+            $resolved_val = $prop_val;
+          }
+          
+          if ($resolved_val !== NULL && $resolved_val !== '') {
+            $attributes[$prop_name] = $resolved_val;
+          }
+        }
       }
       
       // Handle special Aside props
@@ -198,20 +322,63 @@ class UiBuilderJsonFormatter extends FormatterBase {
         $attributes['class'][] = 'uib-aside-' . $side;
         if (!empty($component['props']['collapsible'])) {
           $attributes['class'][] = 'uib-collapsible';
-        }
-      }
-      
-      // Add other attributes if any
-      if (!empty($component['props']) && is_array($component['props'])) {
-        foreach ($component['props'] as $key => $val) {
-          if ($key !== 'class' && is_scalar($val)) {
-            $attributes[$key] = $val;
+          $attributes['class'][] = 'is-open'; // Default to open
+          
+          // Generate a unique ID for targeting.
+          $aside_id = $attributes['id'] ?? ('uib-aside-' . uniqid());
+          $attributes['id'] = $aside_id;
+          
+          // Create the toggle button.
+          $toggle_button = [
+            '#type' => 'html_tag',
+            '#tag' => 'button',
+            '#attributes' => [
+              'class' => ['uib-aside-toggle'],
+              'data-aside-id' => $aside_id,
+              'aria-expanded' => 'true',
+              'aria-controls' => $aside_id,
+              'title' => t('Toggle Sidebar'),
+            ],
+            '#value' => \Drupal\Core\Render\Markup::create('<span class="uib-toggle-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="uib-toggle-label">' . t('Close sidebar') . '</span>'),
+          ];
+
+          // Build children or content.
+          $aside_content = [];
+          if (!empty($component['children']) && is_array($component['children'])) {
+            $aside_content = $this->buildRenderArray($component['children'], $entity);
           }
+          elseif (isset($component['content'])) {
+            $aside_content = ['#markup' => $component['content']];
+          }
+
+          // Wrap them in a container.
+          $wrapper = [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['uib-aside-wrapper', 'uib-aside-wrapper-' . $side]],
+            'aside' => [
+               '#type' => 'html_tag',
+               '#tag' => 'aside',
+               '#attributes' => $attributes,
+            ] + $aside_content,
+            'toggle' => $toggle_button,
+          ];
+          
+          $build[] = $wrapper;
+          continue; // Skip the default element construction
         }
       }
       
       if (!empty($attributes)) {
         $element['#attributes'] = $attributes;
+      }
+
+      // Special handling for background images
+      if (!empty($component['props']['isBgImage'])) {
+        $img_content = $component['content'] ?? '';
+        if ($img_content) {
+          $element['#attributes']['style'] = "background-image: url('{$img_content}');";
+        }
+        $element['#attributes']['class'][] = 'background_image';
       }
 
       // Special handling for <img> tags: content should be the 'src' attribute.
@@ -231,12 +398,11 @@ class UiBuilderJsonFormatter extends FormatterBase {
           $element['#attributes']['src'] = $img_content;
         }
       }
-      // Handle children
       elseif (!empty($component['children']) && is_array($component['children'])) {
         $element['children'] = $this->buildRenderArray($component['children'], $entity);
       }
-      // Handle text content
-      elseif (isset($component['content'])) {
+      // Handle text content (skip if it's a background image container)
+      elseif (isset($component['content']) && empty($component['props']['isBgImage'])) {
         $element['#value'] = $component['content'];
       }
 
@@ -314,29 +480,93 @@ class UiBuilderJsonFormatter extends FormatterBase {
   }
 
   /**
-   * Generates the CSS string for global base style overrides.
+   * Compiles the Site Studio-style style tree into CSS.
    */
-  protected function getBaseStylesCss() {
-    $config = \Drupal::config('ui_builder.base_styles');
-    $tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'button'];
-    $css = "/* UI Builder Global Base Styles - VERSION 1.0.2 */\n";
+  protected function compileStyleTree(array $style_data, $parent_selector) {
+    $css = '';
+    $current_selector = $style_data['selector'] ?? '&';
     
-    foreach ($tags as $tag) {
-      $tag_css = $config->get($tag . '_css');
-      if (!empty($tag_css)) {
-        $css .= "$tag { $tag_css }\n";
+    if (strpos($current_selector, '&') !== FALSE) {
+      $current_selector = str_replace('&', $parent_selector, $current_selector);
+    } else {
+      $current_selector = $parent_selector . ' ' . $current_selector;
+    }
+
+    $rules = [];
+    if (!empty($style_data['properties'])) {
+      foreach ($style_data['properties'] as $prop => $val) {
+        if (isset($val) && $val !== '') $rules[] = "$prop: $val !important;";
       }
-      
-      // Handle focus styles.
-      $focus_css = $config->get($tag . '_focus_css');
-      if (!empty($focus_css)) {
-        $css .= "{$tag}:focus-visible {\n";
-        $css .= "  {$focus_css}\n";
-        $css .= "}\n";
+    }
+    if (!empty($style_data['custom_properties'])) {
+      foreach ($style_data['custom_properties'] as $prop => $val) {
+        if (isset($val) && $val !== '') $rules[] = "$prop: $val !important;";
+      }
+    }
+
+    if (!empty($rules)) {
+      $css .= "$current_selector { " . implode(' ', $rules) . " }\n";
+    }
+
+    if (!empty($style_data['children'])) {
+      foreach ($style_data['children'] as $child) {
+        $css .= $this->compileStyleTree($child, $current_selector);
+      }
+    }
+
+    return $css;
+  }
+
+  /**
+   * Helper function to check if a node has unique styles.
+   */
+  protected function hasUniqueStyles(array $node) {
+    if (empty($node)) return FALSE;
+
+    $label = $node['label'] ?? '';
+    $tag = $node['tag'] ?? 'div';
+    $is_container_or_div = (str_starts_with($label, 'Container') || str_starts_with($label, 'Plain Div') || $tag === 'div');
+
+    // Instance styles (Site Studio Style)
+    if (!empty($node['instanceStyles']) && !empty($node['id'])) {
+      $css = $this->compileStyleTree($node['instanceStyles'], '.uib-' . $node['id']);
+      if (!empty(trim($css))) return TRUE;
+    }
+
+    if (empty($node['props'])) return FALSE;
+    $p = $node['props'];
+    
+    // If it's a column, we skip checking these props because they are handled by classes
+    $is_col = FALSE;
+    if (!empty($p['class'])) {
+      $classes = explode(' ', $p['class']);
+      foreach ($classes as $c) {
+        if (str_starts_with($c, 'uib-col-')) {
+          $is_col = TRUE;
+          break;
+        }
       }
     }
     
-    return $css;
+    if (!$is_col) {
+      if (!empty($p['flexDirection'])) return TRUE;
+      if (!empty($p['justifyContent'])) return TRUE;
+      if (!empty($p['alignItems'])) return TRUE;
+      if (!empty($p['alignSelf'])) return TRUE;
+      if (isset($p['flexGrow']) && $p['flexGrow'] != 0) return TRUE;
+      if (isset($p['flexShrink']) && $p['flexShrink'] != 1) return TRUE;
+      if (!empty($p['width'])) return TRUE;
+      if (!empty($p['height'])) return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Helper function to get the current entity from the field items.
+   */
+  protected function getEntity() {
+    return $this->fieldDefinition->getEntity();
   }
 
 }

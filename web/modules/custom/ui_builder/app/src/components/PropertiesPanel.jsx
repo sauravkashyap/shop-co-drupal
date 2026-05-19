@@ -2,8 +2,58 @@ import { useState, useEffect } from 'react';
 import { FieldEditor } from './FieldEditor';
 import { ImageEditor } from './ImageEditor';
 import { getCustomClassesOnly, mergeClasses } from '../utils/styleUtils';
+import { 
+  STANDARD_PROPS, 
+  PropertyEditor, 
+  SelectorTree 
+} from './StyleBuilderComponents';
+import './StyleBuilder.css'; // Reuse same styles
 
-export function PropertiesPanel({
+function AccordionSection({ title, children, defaultOpen = false }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <div className={`prop-group ${isOpen ? 'open' : ''}`}>
+      <div 
+        className="prop-group-header" 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          padding: '16px 20px', 
+          background: isOpen ? '#fdfdfd' : '#fff', 
+          cursor: 'pointer', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          fontWeight: '600', 
+          fontSize: '14px', 
+          color: 'var(--sb-text-main)', 
+          userSelect: 'none', 
+          borderBottom: isOpen ? '1px solid var(--sb-border)' : 'none'
+        }}
+      >
+        <span className="prop-group-title">{title}</span>
+        <div 
+          className="prop-group-icon"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'none', 
+            transition: 'transform 0.2s ease', 
+            color: 'var(--sb-text-muted)'
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+      {isOpen && (
+        <div className="prop-group-body" style={{ padding: '20px', background: '#fdfdfd' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+export function PropertiesPanel({ 
   mode,
   selectedNode,
   selectedNodeId,
@@ -14,18 +64,298 @@ export function PropertiesPanel({
   removeNode,
   updateNodeField,
   updateInstanceValue,
+  updateInstanceStyles,
   onSaveStyle,
   onDeselect,
   customStyles = []
 }) {
-  const [activeTab, setActiveTab] = useState('general');
+  // Instance Style State
+  const [instanceData, setInstanceData] = useState(null);
+  const [selectedInstancePath, setSelectedInstancePath] = useState(['root']);
+  const [editingNodePath, setEditingNodePath] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [collapsedPaths, setCollapsedPaths] = useState(new Set());
+  const [draggedNodePath, setDraggedNodePath] = useState(null);
+  const [dropTargetInfo, setDropTargetInfo] = useState(null);
+  const [activeDevice, setActiveDevice] = useState('desktop'); // desktop, tablet, mobile
+  const [pendingProp, setPendingProp] = useState('');
+  const [pendingValue, setPendingValue] = useState('');
+
+  // Global style editor state
   const [styleCode, setStyleCode] = useState('');
   const [styleLabel, setStyleLabel] = useState('');
 
-  // Switch to general tab when node changes
+  // SYNC INSTANCE STYLE STATE
   useEffect(() => {
-    if (selectedNode) setActiveTab('general');
+    if (selectedNode && selectedNode.instanceStyles) {
+      setInstanceData(JSON.parse(JSON.stringify(selectedNode.instanceStyles)));
+    } else {
+      setInstanceData({
+        selector: '&',
+        properties: {},
+        custom_properties: {},
+        children: []
+      });
+    }
+    setSelectedInstancePath(['root']);
   }, [selectedNodeId]);
+
+  const findInstanceNodeByPath = (tree, path) => {
+    if (!tree) return null;
+    if (path.length === 1 && path[0] === 'root') return tree;
+    let current = tree;
+    for (let i = 1; i < path.length; i++) {
+      if (!current.children || !current.children[path[i]]) return current;
+      current = current.children[path[i]];
+    }
+    return current;
+  };
+
+  const selectedInstanceNode = findInstanceNodeByPath(instanceData, selectedInstancePath);
+
+
+
+  const getColFromClass = (prefix) => {
+    const currentClasses = selectedNode.props?.class || '';
+    const classesArray = currentClasses.split(/\s+/).filter(Boolean);
+    const colClass = classesArray.find(c => c.startsWith(prefix));
+    if (colClass) {
+      return colClass.replace(prefix, '');
+    }
+    return '';
+  };
+
+  const handleColWidthChange = (colValue, prefix = '') => {
+    const currentClasses = selectedNode.props?.class || '';
+    let classesArray = currentClasses.split(/\s+/).filter(Boolean);
+    
+    let classPrefix = 'uib-col-';
+    if (prefix === 'tablet:') classPrefix = 'uib-col-md-';
+    if (prefix === 'mobile:') classPrefix = 'uib-col-sm-';
+    
+    classesArray = classesArray.filter(c => !c.startsWith(classPrefix));
+    
+    if (colValue) {
+      classesArray.push(`${classPrefix}${colValue}`);
+    }
+    
+    updateNodeField(selectedNode.id, { 
+      props: { 
+        ...selectedNode.props, 
+        class: classesArray.join(' ') 
+      } 
+    });
+  };
+
+  const handleInstanceNodeAction = (action, ...args) => {
+    console.log('handleInstanceNodeAction', action, ...args);
+    if (!instanceData) return;
+    
+    const updateAndPersist = (newData) => {
+      setInstanceData(newData);
+      updateInstanceStyles(selectedNodeId, newData);
+    };
+
+    switch (action) {
+      case 'add': {
+        const [e, path] = args;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        setIsAddingNew(true);
+        setEditValue(':hover');
+        setEditingNodePath([...path, 'new']);
+        break;
+      }
+      case 'rename': {
+        const [e, path] = args;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        if (path.length === 1 && path[0] === 'root') return;
+        const node = findInstanceNodeByPath(instanceData, path);
+        setIsAddingNew(false);
+        setEditValue(node.selector);
+        setEditingNodePath(path);
+        setSelectedInstancePath(path);
+        break;
+      }
+      case 'finishEdit': {
+        const trimmed = editValue.trim();
+        if (!trimmed) {
+          setEditingNodePath(null);
+          setIsAddingNew(false);
+          return;
+        }
+        const newData = JSON.parse(JSON.stringify(instanceData));
+        if (isAddingNew) {
+          const parentPath = editingNodePath.slice(0, -1);
+          let current = newData;
+          if (parentPath[0] !== 'root' || parentPath.length > 1) {
+            for (let i = 1; i < parentPath.length; i++) {
+              current = current.children[parentPath[i]];
+            }
+          }
+          current.children = current.children || [];
+          const newIndex = current.children.length;
+          current.children.push({ selector: trimmed, properties: {}, children: [] });
+          setSelectedInstancePath([...parentPath, newIndex]);
+        } else {
+          let current = newData;
+          if (editingNodePath.length > 1) {
+            for (let i = 1; i < editingNodePath.length; i++) {
+              current = current.children[editingNodePath[i]];
+            }
+          }
+          current.selector = trimmed;
+        }
+        updateAndPersist(newData);
+        setEditingNodePath(null);
+        setIsAddingNew(false);
+        break;
+      }
+      case 'dragStart': {
+        const [e, path] = args;
+        setDraggedNodePath(path);
+        e.dataTransfer.effectAllowed = 'move';
+        break;
+      }
+      case 'dragOver': {
+        const [e, path, position] = args;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!draggedNodePath) return;
+        if (JSON.stringify(path) === JSON.stringify(draggedNodePath)) return;
+        setDropTargetInfo({ path, position });
+        break;
+      }
+      case 'drop': {
+        const [e, toPath, position] = args;
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        if (!draggedNodePath) return;
+        
+        const newData = JSON.parse(JSON.stringify(instanceData));
+        let fromParent = newData;
+        for (let i = 1; i < draggedNodePath.length - 1; i++) {
+          fromParent = fromParent.children[draggedNodePath[i]];
+        }
+        const fromIndex = draggedNodePath[draggedNodePath.length - 1];
+        const [movedNode] = fromParent.children.splice(fromIndex, 1);
+
+        if (position === 'inside') {
+          let targetNode = newData;
+          for (let i = 1; i < toPath.length; i++) targetNode = targetNode.children[toPath[i]];
+          targetNode.children = targetNode.children || [];
+          targetNode.children.push(movedNode);
+        } else {
+          let toParent = newData;
+          for (let i = 1; i < toPath.length - 1; i++) toParent = toParent.children[toPath[i]];
+          let toIndex = toPath[toPath.length - 1];
+          if (draggedNodePath.length === toPath.length && JSON.stringify(draggedNodePath.slice(0, -1)) === JSON.stringify(toPath.slice(0, -1)) && fromIndex < toIndex) toIndex--;
+          if (position === 'after') toIndex++;
+          toParent.children.splice(toIndex, 0, movedNode);
+        }
+        
+        updateAndPersist(newData);
+        setDraggedNodePath(null);
+        setDropTargetInfo(null);
+        setSelectedInstancePath(['root']);
+        break;
+      }
+      case 'dragEnd': {
+        setDraggedNodePath(null);
+        setDropTargetInfo(null);
+        break;
+      }
+    }
+  };
+
+  const handlePasteCss = async () => {
+    try {
+      let text = '';
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        text = await navigator.clipboard.readText();
+      } else {
+        text = prompt('Clipboard API not available in this context (requires HTTPS or localhost). Please paste your CSS here:');
+      }
+      
+      if (!text) return;
+      
+      // Remove comments
+      let cleanedText = text.replace(/\/\*[\s\S]*?\*\//g, '');
+      
+      // Extract content inside { } if present
+      const match = cleanedText.match(/\{([\s\S]*)\}/);
+      if (match) {
+        cleanedText = match[1];
+      }
+      
+      const properties = {};
+      const rules = cleanedText.split(';');
+      rules.forEach(rule => {
+        const parts = rule.split(':');
+        if (parts.length >= 2) {
+          const prop = parts[0].trim().replace(/[\r\n]/g, '');
+          const value = parts.slice(1).join(':').trim().replace(/[\r\n]/g, ' ');
+          if (prop && value) {
+            properties[prop] = value;
+          }
+        }
+      });
+      
+      console.log('Parsed properties:', properties);
+      
+      if (Object.keys(properties).length === 0) {
+        alert('No valid CSS found! Please ensure it is in "property: value;" format.');
+        return;
+      }
+      
+      const newData = JSON.parse(JSON.stringify(instanceData));
+      let target = newData;
+      for (let i = 1; i < selectedInstancePath.length; i++) {
+        target = target.children[selectedInstancePath[i]];
+      }
+      
+      if (!target.custom_properties) target.custom_properties = {};
+      Object.assign(target.custom_properties, properties);
+      
+      setInstanceData(newData);
+      updateInstanceStyles(selectedNodeId, newData);
+      alert(`Pasted ${Object.keys(properties).length} properties!`);
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+      alert('Failed to read clipboard. Please allow clipboard access.');
+    }
+  };
+
+  const updateInstanceProperty = (prop, value) => {
+    const newData = JSON.parse(JSON.stringify(instanceData));
+    let target = newData;
+    for (let i = 1; i < selectedInstancePath.length; i++) {
+      target = target.children[selectedInstancePath[i]];
+    }
+    if (!target.properties) target.properties = {};
+    if (value) target.properties[prop] = value; else delete target.properties[prop];
+    setInstanceData(newData);
+    updateInstanceStyles(selectedNodeId, newData);
+  };
+
+  const updateInstanceCustomProperty = (prop, value, oldProp = null) => {
+    const newData = JSON.parse(JSON.stringify(instanceData));
+    let target = newData;
+    for (let i = 1; i < selectedInstancePath.length; i++) {
+      target = target.children[selectedInstancePath[i]];
+    }
+    if (!target.custom_properties) target.custom_properties = {};
+    if (oldProp && oldProp !== prop) delete target.custom_properties[oldProp];
+    if (value) target.custom_properties[prop] = value; else delete target.custom_properties[prop];
+    setInstanceData(newData);
+    updateInstanceStyles(selectedNodeId, newData);
+  };
+  // SYNC STYLE EDITOR STATE
+  useEffect(() => {
+    if (selectedStyle) {
+      setStyleCode(selectedStyle.css_content || '');
+      setStyleLabel(selectedStyle.label || '');
+    }
+  }, [selectedStyle]);
 
   // Sync style editor state
   useEffect(() => {
@@ -97,6 +427,11 @@ export function PropertiesPanel({
 
   // NODE EDITOR
   const isPrimitive = !!selectedNode.tag;
+  const currentClasses = selectedNode.props?.class || '';
+  const classesArray = currentClasses.split(/\s+/).filter(Boolean);
+  const isColumn = classesArray.includes('column') || selectedNode.label === 'Column';
+  const label = selectedNode.label || '';
+  const isLayoutElement = label.startsWith('Container') || label.startsWith('Plain Div') || label.startsWith('Row') || label.startsWith('Column');
 
   return (
     <>
@@ -107,32 +442,79 @@ export function PropertiesPanel({
           <button type="button" className="properties-close-btn" onClick={onDeselect} title="Close">✕</button>
         </div>
 
-        <div className="properties-tabs">
-          <button 
-            className={`prop-tab-btn ${activeTab === 'general' ? 'active' : ''}`}
-            onClick={() => setActiveTab('general')}
-          >
-            General
-          </button>
-          <button 
-            className={`prop-tab-btn ${activeTab === 'styles' ? 'active' : ''}`}
-            onClick={() => setActiveTab('styles')}
-          >
-            Styles
-          </button>
-          <button 
-            className={`prop-tab-btn ${activeTab === 'content' ? 'active' : ''}`}
-            onClick={() => setActiveTab('content')}
-          >
-            Content
-          </button>
-        </div>
-
         <div className="properties-content">
-          {activeTab === 'general' && (
-            <div className="animate-fade">
-              <div className="form-section-title">Identity</div>
-              <div className="form-group">
+          <div className="animate-fade property-groups">
+            {/* Site Studio Instance Styling - Made highly visible and robust */}
+            {selectedNode && (
+              <AccordionSection title="INSTANCE STYLING (SITE STUDIO STYLE)" defaultOpen={true}>
+                <div style={{ marginTop: '16px' }} className="instance-style-editor">
+                  <p className="help-text" style={{ marginBottom: '12px' }}>
+                    Define styles scoped to this specific {selectedNode.label || selectedNode.tag} and its children.
+                  </p>
+                  
+                  <div className="style-builder-mini-tree" style={{ border: '1px solid var(--sb-border)', borderRadius: '4px', marginBottom: '16px', background: '#fff' }}>
+                    <SelectorTree 
+                      data={instanceData}
+                      rootLabel={selectedNode.label || selectedNode.tag}
+                      selectedNodePath={selectedInstancePath}
+                      setSelectedNodePath={setSelectedInstancePath}
+                      editingNodePath={editingNodePath}
+                      setEditingNodePath={setEditingNodePath}
+                      editValue={editValue}
+                      setEditValue={setEditValue}
+                      isAddingNew={isAddingNew}
+                      setIsAddingNew={setIsAddingNew}
+                      collapsedPaths={collapsedPaths}
+                      setCollapsedPaths={setCollapsedPaths}
+                      draggedNodePath={draggedNodePath}
+                      setDraggedNodePath={setDraggedNodePath}
+                      dropTargetInfo={dropTargetInfo}
+                      setDropTargetInfo={setDropTargetInfo}
+                      onNodeAction={handleInstanceNodeAction}
+                    />
+                  </div>
+
+                  {selectedInstanceNode && (
+                    <div className="style-builder-mini-props" style={{ border: '1px solid var(--sb-border)', borderRadius: '4px', padding: '12px', background: '#fff' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--sb-text-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Properties for: <code style={{ color: 'var(--sb-primary)' }}>{selectedInstanceNode.selector}</code></span>
+                        <button 
+                          type="button" 
+                          style={{ 
+                            fontSize: '11px', 
+                            padding: '4px 8px',
+                            background: '#2563eb',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                          }}
+                          onClick={handlePasteCss}
+                        >
+                          📋 Paste CSS
+                        </button>
+                      </h4>
+                      <PropertyEditor 
+                        selectedNode={selectedInstanceNode}
+                        updateProperty={updateInstanceProperty}
+                        updateCustomProperty={updateInstanceCustomProperty}
+                        pendingProp={pendingProp}
+                        setPendingProp={setPendingProp}
+                        pendingValue={pendingValue}
+                        setPendingValue={setPendingValue}
+                        activeDevice={activeDevice}
+                        setActiveDevice={setActiveDevice}
+                      />
+                    </div>
+                  )}
+                </div>
+              </AccordionSection>
+            )}
+
+            {/* 1. Identity */}
+            <AccordionSection title="General Settings" defaultOpen={true}>
+              <div className="form-group" style={{ marginTop: '16px' }}>
                 <label>Label</label>
                 <input 
                   type="text" 
@@ -143,104 +525,220 @@ export function PropertiesPanel({
                 />
               </div>
 
-              {selectedNode.tag === 'aside' && (
-                <div className="animate-fade" style={{ marginTop: '24px' }}>
-                  <div className="form-section-title">Aside Settings</div>
-                  <div className="form-group">
-                    <label>Position</label>
-                    <select 
-                      className="form-control"
-                      value={selectedNode.props?.side || 'left'}
-                      onChange={e => updateNodeProperty(selectedNode.id, 'side', e.target.value)}
-                    >
-                      <option value="left">Left (Sidebar First)</option>
-                      <option value="right">Right (Sidebar Second)</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedNode.props?.collapsible || false}
-                        onChange={e => updateNodeProperty(selectedNode.id, 'collapsible', e.target.checked)}
-                      />
-                      <span style={{ fontSize: '13px', fontWeight: '500' }}>Enable Collapse Feature</span>
-                    </label>
-                    <p className="help-text">Allows the sidebar to be toggled on mobile devices.</p>
+              {isColumn && (
+                <div style={{ marginTop: '16px', borderTop: '1px solid #333', paddingTop: '16px' }}>
+                  <label style={{ marginBottom: '8px', display: 'block' }}>Grid Columns</label>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#aaa' }}>Desktop</label>
+                      <select 
+                        className="form-control"
+                        value={getColFromClass('uib-col-') || '12'}
+                        onChange={(e) => handleColWidthChange(e.target.value, '')}
+                      >
+                        {[...Array(12)].map((_, i) => (
+                          <option key={i+1} value={i+1}>{i+1}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#aaa' }}>Tablet</label>
+                      <select 
+                        className="form-control"
+                        value={getColFromClass('uib-col-md-') || ''}
+                        onChange={(e) => handleColWidthChange(e.target.value, 'tablet:')}
+                      >
+                        <option value="">Auto</option>
+                        {[...Array(12)].map((_, i) => (
+                          <option key={i+1} value={i+1}>{i+1}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label style={{ fontSize: '12px', color: '#aaa' }}>Mobile</label>
+                      <select 
+                        className="form-control"
+                        value={getColFromClass('uib-col-sm-') || ''}
+                        onChange={(e) => handleColWidthChange(e.target.value, 'mobile:')}
+                      >
+                        <option value="">Auto</option>
+                        {[...Array(12)].map((_, i) => (
+                          <option key={i+1} value={i+1}>{i+1}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}
+            </AccordionSection>
 
-              <div className="form-section-title" style={{ marginTop: '24px' }}>Custom Classes</div>
-              <div className="form-group">
-                <label>Applied Classes</label>
-                <div className="active-styles-list">
-                  {(() => {
-                    const current = selectedNode.props?.class || '';
-                    const classes = current.split(/\s+/).filter(Boolean);
-                    if (classes.length === 0) return <p className="help-text">No custom classes applied.</p>;
-                    return classes.map(cls => (
-                      <div key={cls} className="style-tag">
-                        <span className="style-tag-label">{cls}</span>
-                        <button 
-                          type="button"
-                          className="style-tag-remove"
-                          onClick={() => {
-                            const filtered = classes.filter(c => c !== cls).join(' ');
-                            updateNodeProperty(selectedNode.id, 'class', filtered);
-                          }}
-                        >✕</button>
+            {/* 2. Content & Data */}
+            {!isLayoutElement && (
+              <AccordionSection title="Content & Data" defaultOpen={['img', 'text', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span'].includes(selectedNode.tag)}>
+                <div style={{ marginTop: '16px' }}>
+                  {(selectedNode.tag === 'img' || selectedNode.props?.isBgImage) && (
+                    <div className="form-group" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        id="bg-image-toggle"
+                        checked={selectedNode.props?.isBgImage || false}
+                        onChange={(e) => {
+                          const isBg = e.target.checked;
+                          const updates = {
+                            props: {
+                              ...selectedNode.props,
+                              isBgImage: isBg
+                            }
+                          };
+                          if (isBg) {
+                            updates.tag = 'div';
+                            updates.props.style = {
+                              ...selectedNode.props?.style,
+                              backgroundImage: `url(${selectedNode.content})`
+                            };
+                            updates.label = 'Bg Image Container';
+                            
+                            // Add background_image class
+                            const existingClasses = selectedNode.props?.class || '';
+                            updates.props.class = existingClasses ? `${existingClasses} background_image` : 'background_image';
+                          } else {
+                            updates.tag = 'img';
+                            const newStyle = { ...selectedNode.props?.style };
+                            delete newStyle.backgroundImage;
+                            delete newStyle.backgroundSize;
+                            delete newStyle.backgroundPosition;
+                            delete newStyle.minHeight;
+                            updates.props.style = newStyle;
+                            updates.label = 'Image';
+                            
+                            // Remove background_image class
+                            const existingClasses = selectedNode.props?.class || '';
+                            updates.props.class = existingClasses.replace('background_image', '').trim();
+                          }
+                          updateNodeField(selectedNode.id, updates);
+                        }}
+                        style={{ marginRight: '8px', cursor: 'pointer' }}
+                      />
+                      <label htmlFor="bg-image-toggle" style={{ marginBottom: 0, cursor: 'pointer' }}>Use as Background Image</label>
+                    </div>
+                  )}
+
+                  {isPrimitive ? (
+                    <>
+
+                      <div className="form-group">
+                        <label>{selectedNode.tag === 'img' ? 'Image Source' : 'Text Content'}</label>
+                        {selectedNode.tag === 'img' ? (
+                          <ImageEditor
+                            mode={selectedNode.fieldMode || 'static'}
+                            value={selectedNode.content || ''}
+                            onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
+                          />
+                        ) : (
+                          <FieldEditor
+                            mode={selectedNode.fieldMode || 'static'}
+                            value={selectedNode.content || ''}
+                            onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
+                          />
+                        )}
                       </div>
-                    ));
-                  })()}
-                </div>
-              </div>
 
-              <div className="form-group">
-                <label>Add Extra Class</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter class name and press Enter..."
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && e.target.value.trim()) {
-                        const newClass = e.target.value.trim();
-                        const current = selectedNode.props?.class || '';
-                        const classes = current.split(/\s+/).filter(Boolean);
-                        // Add multiple classes if separated by space
-                        const newClassesToAdd = newClass.split(/\s+/).filter(Boolean);
-                        
-                        let updatedClasses = [...classes];
-                        newClassesToAdd.forEach(c => {
-                          if (!updatedClasses.includes(c)) updatedClasses.push(c);
+                      {selectedNode.tag === 'a' && (
+                        <>
+                          <div className="form-group" style={{ marginTop: '16px' }}>
+                            <label>Link URL</label>
+                            <FieldEditor
+                              mode={selectedNode.props?.hrefMode || 'static'}
+                              value={selectedNode.props?.href || ''}
+                              onUpdate={(val, m) => {
+                                updateNodeProperty(selectedNode.id, 'href', val);
+                                updateNodeProperty(selectedNode.id, 'hrefMode', m);
+                              }}
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginTop: '16px', display: 'flex', alignItems: 'center' }}>
+                            <input 
+                              type="checkbox" 
+                              id="link-target-toggle"
+                              checked={selectedNode.props?.target === '_blank'}
+                              onChange={(e) => {
+                                updateNodeProperty(selectedNode.id, 'target', e.target.checked ? '_blank' : '');
+                              }}
+                              style={{ marginRight: '8px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="link-target-toggle" style={{ marginBottom: 0, cursor: 'pointer' }}>Open in new tab</label>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <div className="component-fields">
+                      {(() => {
+                        const schema = selectedComponent?.form_schema || {};
+                        const entries = typeof schema === 'object' && !Array.isArray(schema) ? Object.entries(schema) : [];
+                        if (entries.length === 0) return <p className="no-items-hint">No editable fields.</p>;
+                        return entries.map(([key, fieldSchema]) => {
+                          const data = selectedNode.values?.[key] || { mode: 'static', value: '' };
+                          const entry = typeof data === 'object' ? data : { mode: 'static', value: data };
+                          return (
+                            <div className="form-group" key={key}>
+                              <label>{fieldSchema.title || key}</label>
+                              {fieldSchema.type === 'image' ? (
+                                <ImageEditor
+                                  mode={entry.mode}
+                                  value={entry.value}
+                                  onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
+                                />
+                              ) : (
+                                <FieldEditor
+                                  mode={entry.mode}
+                                  value={entry.value}
+                                  onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
+                                />
+                              )}
+                            </div>
+                          );
                         });
-                        
-                        updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
-                        e.target.value = '';
-                      }
-                    }}
-                  />
+                      })()}
+                    </div>
+                  )}
                 </div>
-                <p className="help-text" style={{ marginTop: '4px' }}>Type a class name and press Enter. You can paste multiple classes separated by spaces.</p>
-              </div>
+              </AccordionSection>
+            )}
 
-              <div className="form-group" style={{ marginTop: '32px' }}>
-                <button 
-                  className="delete-element-btn"
-                  onClick={() => { removeNode(selectedNode.id); onDeselect(); }}
-                >
-                  Delete {isPrimitive ? 'Element' : 'Instance'}
-                </button>
-              </div>
-            </div>
-          )}
+            
 
-          {activeTab === 'styles' && (
-            <div className="animate-fade">
-              <div className="form-section-title">Global Styles</div>
-              <div className="form-group">
-                <label>Apply Global Style</label>
+
+            {/* 4. Styles & Classes */}
+            <AccordionSection title="Styles & Classes">
+              {(classesArray.includes('uib-container') || classesArray.includes('uib-full-width')) && (
+                <div className="form-group" style={{ marginTop: '16px', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="checkbox" 
+                    id="full-width-toggle"
+                    checked={classesArray.includes('uib-full-width')}
+                    onChange={(e) => {
+                      let updatedClasses = [...classesArray];
+                      if (e.target.checked) {
+                        updatedClasses = updatedClasses.filter(c => c !== 'uib-container');
+                        if (!updatedClasses.includes('uib-full-width')) updatedClasses.push('uib-full-width');
+                      } else {
+                        updatedClasses = updatedClasses.filter(c => c !== 'uib-full-width');
+                        if (!updatedClasses.includes('uib-container')) updatedClasses.push('uib-container');
+                      }
+                      updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
+                    }}
+                    style={{ marginRight: '8px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="full-width-toggle" style={{ marginBottom: 0, cursor: 'pointer' }}>Full Width Container</label>
+                </div>
+              )}
+
+              <div className="form-group" style={{ marginTop: (classesArray.includes('uib-container') || classesArray.includes('uib-full-width')) ? '12px' : '16px' }}>
+                <label>Apply Custom Style</label>
                 <select 
                   className="form-control"
                   onChange={(e) => {
@@ -248,96 +746,104 @@ export function PropertiesPanel({
                     const current = selectedNode.props?.class || '';
                     const classes = current.split(/\s+/).filter(Boolean);
                     if (!classes.includes(e.target.value)) {
-                      classes.push(e.target.value);
-                      updateNodeProperty(selectedNode.id, 'class', classes.join(' '));
+                      const updated = [...classes, e.target.value].join(' ');
+                      updateNodeProperty(selectedNode.id, 'class', updated);
                     }
                     e.target.value = '';
                   }}
                 >
-                  <option value="">Select style to apply...</option>
-                  {customStyles.map(s => (
-                    <option key={s.id} value={s.id}>{s.label || s.id}</option>
-                  ))}
+                  <option value="">-- Select a style --</option>
+                  {customStyles.map(s => {
+                    const classId = s.id.startsWith('uib-') ? s.id : 'uib-' + s.id;
+                    return <option key={s.id} value={classId}>{s.label || s.id}</option>;
+                  })}
                 </select>
               </div>
-              
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                style={{ width: '100%', marginTop: '12px' }}
-                onClick={() => resetToDefaultProps(selectedNode.id)}
-              >
-                Reset to Defaults
-              </button>
-            </div>
-          )}
 
-          {activeTab === 'content' && (
-            <div className="animate-fade">
-              <div className="form-section-title">Data Binding</div>
-              {isPrimitive ? (
-                <>
-                  <div className="form-group">
-                    <label>Field Identifier</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. hero_title"
-                      value={selectedNode.fieldLabel || ''}
-                      onChange={e => updateNodeField(selectedNode.id, { fieldLabel: e.target.value })}
-                    />
-                    <p className="help-text" style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>This ID connects this element to Drupal content fields.</p>
-                  </div>
-                  <div className="form-group">
-                    <label>{selectedNode.tag === 'img' ? 'Image Source' : 'Text Content'}</label>
-                    {selectedNode.tag === 'img' ? (
-                      <ImageEditor
-                        mode={selectedNode.fieldMode || 'static'}
-                        value={selectedNode.content || ''}
-                        onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
-                      />
-                    ) : (
-                      <FieldEditor
-                        mode={selectedNode.fieldMode || 'static'}
-                        value={selectedNode.content || ''}
-                        onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="component-fields">
+              <div className="form-group" style={{ marginTop: '12px' }}>
+                <label>Applied Classes</label>
+                <div className="active-styles-list">
                   {(() => {
-                    const schema = selectedComponent?.form_schema || {};
-                    const entries = typeof schema === 'object' && !Array.isArray(schema) ? Object.entries(schema) : [];
-                    if (entries.length === 0) return <p className="no-items-hint">No editable fields.</p>;
-                    return entries.map(([key, fieldSchema]) => {
-                      const data = selectedNode.values?.[key] || { mode: 'static', value: '' };
-                      const entry = typeof data === 'object' ? data : { mode: 'static', value: data };
+                    const current = selectedNode.props?.class || '';
+                    const classes = current.split(/\s+/).filter(Boolean);
+                    if (classes.length === 0) return <p className="help-text">No classes applied.</p>;
+                    return classes.map(cls => {
+                      const isProtected = 
+                        (selectedNode.label === 'Container' && (cls === 'container' || cls === 'uib-full-width')) || 
+                        (selectedNode.label === 'Row' && cls === 'row') || 
+                        (selectedNode.label === 'Column' && cls === 'column');
+
                       return (
-                        <div className="form-group" key={key}>
-                          <label>{fieldSchema.title || key}</label>
-                          {fieldSchema.type === 'image' ? (
-                            <ImageEditor
-                              mode={entry.mode}
-                              value={entry.value}
-                              onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
-                            />
-                          ) : (
-                            <FieldEditor
-                              mode={entry.mode}
-                              value={entry.value}
-                              onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
-                            />
+                        <div key={cls} className={`style-tag ${isProtected ? 'is-protected' : ''}`}>
+                          <span className="style-tag-label">{cls}</span>
+                          {!isProtected && (
+                            <button 
+                              type="button"
+                              className="style-tag-remove"
+                              onClick={() => {
+                                const filtered = classes.filter(c => c !== cls).join(' ');
+                                updateNodeProperty(selectedNode.id, 'class', filtered);
+                              }}
+                            >✕</button>
                           )}
                         </div>
                       );
                     });
                   })()}
                 </div>
-              )}
+              </div>
+
+              <div className="form-group">
+                <label>Add Extra Class Manually</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Type class and press Enter..."
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (e.target.value.trim()) {
+                        const newClass = e.target.value.trim();
+                        const current = selectedNode.props?.class || '';
+                        const classes = current.split(/\s+/).filter(Boolean);
+                        const newClassesToAdd = newClass.split(/\s+/).filter(Boolean);
+                        
+                        let updatedClasses = [...classes];
+                        newClassesToAdd.forEach(c => {
+                          const prefixed = c.startsWith('uib-') ? c : `uib-${c}`;
+                          if (!updatedClasses.includes(prefixed)) updatedClasses.push(prefixed);
+                        });
+                        
+                        updateNodeProperty(selectedNode.id, 'class', updatedClasses.join(' '));
+                        e.target.value = '';
+                      }
+                    }
+                  }}
+                />
+              </div>
+
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                style={{ width: '100%', marginTop: '16px' }}
+                onClick={() => resetToDefaultProps(selectedNode.id)}
+              >
+                Reset all to Defaults
+              </button>
+            </AccordionSection>
+
+            {/* 5. Actions */}
+            <div className="form-group" style={{ marginTop: '32px', padding: '0 20px 20px 20px' }}>
+              <button 
+                type="button"
+                className="delete-element-btn"
+                style={{ width: '100%' }}
+                onClick={() => { removeNode(selectedNode.id); onDeselect(); }}
+              >
+                Delete {isPrimitive ? 'Element' : 'Instance'}
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </aside>
     </>

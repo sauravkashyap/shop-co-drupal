@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import { NodeChildren } from './NodeChildren';
 import { CONTAINER_TAGS } from '../constants/elements';
+import { useDragState } from '../contexts/DragStateContext';
+import { hasUniqueStyles } from '../utils/treeUtils';
 
 // Returns the icon and background color for the element box
 function getElementBranding(tag, label, isInstance) {
   if (isInstance) return { icon: '🧩', color: '#a855f7' };
   
   const l = label || tag || '';
-  if (l.startsWith('Container') || l.startsWith('Section') || l.startsWith('Row') || l === 'Column' || tag === 'div' || tag === 'main' || tag === 'aside' || tag === 'article' || tag === 'nav') {
+  if (l.startsWith('Container') || l.startsWith('Plain Div') || l.startsWith('Section') || l.startsWith('Row') || l.startsWith('Column') || tag === 'div' || tag === 'main' || tag === 'aside' || tag === 'article' || tag === 'nav') {
     if (tag === 'aside') return { icon: '◧', color: '#fbbf24' };
     if (tag === 'article') return { icon: '📄', color: '#d97706' };
     if (tag === 'section') return { icon: '📑', color: '#f5a623' };
@@ -51,7 +54,6 @@ export function NodeCard({
   availableComponents, 
   isOverlay, 
   isDragging, 
-  isOver, 
   attributes, 
   listeners, 
   setNodeRef, 
@@ -59,6 +61,13 @@ export function NodeCard({
   depth = 0,
   isInherited = false
 }) {
+  const { isDraggingGlobal } = useDragState();
+  // Make the container body a droppable zone for "drop inside as last child"
+  const isContainer = CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0) || !!node.component_id;
+  const { setNodeRef: setDropInsideRef, isOver: isOverInside } = useDroppable({ 
+    id: `inside::${node.id}`,
+    disabled: !isContainer || isDragging,
+  });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
@@ -86,21 +95,32 @@ export function NodeCard({
 
 
   const isSelected = selectedId === node.id;
-  const isContainer = CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0) || !!node.component_id;
   const isRow = node.label === 'Row for columns' || (node.label && node.label.startsWith('Row'));
   const isColumn = node.label === 'Column';
-  const showDropOver = isOver && isContainer && !isDragging;
+  const showDropOver = isOverInside && isContainer && !isDragging && isDraggingGlobal;
   const isInstance = !!node.component_id;
 
   let displayName = isInstance
     ? (node.label || 'Component')
     : node.label || (node.tag ? node.tag.charAt(0).toUpperCase() + node.tag.slice(1) : 'Element');
 
-  // Friendly mapping for common tags if they have generic labels
-  if (!isInstance) {
-    if (node.tag === 'tr' && displayName === 'Row') displayName = 'Table Row';
-    if (node.tag === 'td' && displayName === 'Cell') displayName = 'Table Cell';
-    if (node.tag === 'th' && displayName === 'Header Cell') displayName = 'Table Header';
+  // Add layout info to display name for Rows and Columns
+  if (isColumn) {
+    let span = '12';
+    const customWidth = node.instanceStyles?.custom_properties?.['max-width'];
+    if (customWidth) {
+      const pct = parseFloat(customWidth.replace('%', ''));
+      span = Math.round((pct / 100) * 12).toString();
+    } else {
+      const colClass = (node.props?.class || '').split(/\s+/).find(c => c.startsWith('uib-col-')) || 'uib-col-12';
+      span = colClass.replace('uib-col-', '');
+    }
+    displayName = `${displayName} (${span}/12)`;
+  } else if (isRow) {
+    const dir = node.props?.flexDirection;
+    if (dir && dir !== 'row') {
+      displayName = `${displayName} (${dir.charAt(0).toUpperCase() + dir.slice(1)})`;
+    }
   }
 
   const branding = getElementBranding(node.tag, displayName, isInstance);
@@ -108,7 +128,7 @@ export function NodeCard({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, touchAction: 'none' }}
       className={`
         ss-box-el
         ${isSelected ? 'ss-box-selected' : ''}
@@ -120,10 +140,13 @@ export function NodeCard({
         ${node.tag === 'aside' && node.props?.collapsible ? 'uib-collapsible' : ''}
         ${pendingParentId === node.id ? 'ss-box-is-targeted' : ''}
       `}
-      onClick={e => { e.stopPropagation(); onSelect(node.id); }}
+      onClick={e => { 
+        e.stopPropagation(); 
+        onSelect(node.id); 
+      }}
       onDoubleClick={e => { e.stopPropagation(); if (onOpenProperties) onOpenProperties(node.id); }}
     >
-      {/* Top Bar */}
+      {/* Top Bar — drag handle */}
       <div 
         className="ss-box-topbar"
         {...attributes}
@@ -137,16 +160,18 @@ export function NodeCard({
 
         <span className="ss-box-spacer" />
 
-        {isContainer && (
+        {(isContainer || node.content) && (
           <>
-            <button
-              type="button"
-              className="ss-box-action ss-box-targeted-add"
-              onClick={e => { e.stopPropagation(); onStartTargetedAdd(node.id); }}
-              title="Add element inside..."
-            >
-              +
-            </button>
+            {isContainer && (
+              <button
+                type="button"
+                className="ss-box-action ss-box-targeted-add"
+                onClick={e => { e.stopPropagation(); onStartTargetedAdd(node.id); }}
+                title="Add element inside..."
+              >
+                +
+              </button>
+            )}
             <button
               type="button"
               className="ss-box-action ss-box-collapse-btn"
@@ -170,45 +195,45 @@ export function NodeCard({
           
           {showMenu && (
             <div className="ss-box-dropdown">
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onOpenProperties) onOpenProperties(node.id); }}>Edit Settings</button>
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDuplicate) onDuplicate(node.id); }}>Duplicate</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onOpenProperties) onOpenProperties(node.id); }}>Edit Settings</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDuplicate) onDuplicate(node.id); }}>Duplicate</button>
               
               {/* Quick Add Shortcuts */}
                {node.tag === 'table' && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'thead'); }}>+ Add Table Head (thead)</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tbody'); }}>+ Add Table Body (tbody)</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'thead'); }}>+ Add Table Head (thead)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tbody'); }}>+ Add Table Body (tbody)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
                 </>
               )}
               {['thead', 'tbody'].includes(node.tag) && (
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
               )}
               {node.tag === 'tr' && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'td'); }}>+ Add Cell (td)</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'th'); }}>+ Add Cell (th)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'td'); }}>+ Add Cell (td)</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'th'); }}>+ Add Cell (th)</button>
                 </>
               )}
               {node.tag === 'form' && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'input'); }}>+ Add Input</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'label'); }}>+ Add Label</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'select'); }}>+ Add Select</button>
-                  <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'textarea'); }}>+ Add Textarea</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'input'); }}>+ Add Input</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'label'); }}>+ Add Label</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'select'); }}>+ Add Select</button>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'textarea'); }}>+ Add Textarea</button>
                 </>
               )}
               {['ul', 'ol'].includes(node.tag) && (
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'li'); }}>+ Add Item</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'li'); }}>+ Add Item</button>
               )}
               {node.tag === 'select' && (
-                <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'option'); }}>+ Add Option</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'option'); }}>+ Add Option</button>
               )}
 
               <div className="ss-box-dropdown-divider"></div>
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onSaveAsComponent) onSaveAsComponent(node.id); }}>Save to Library</button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onSaveAsComponent) onSaveAsComponent(node.id); }}>Save to Library</button>
               <div className="ss-box-dropdown-divider"></div>
-              <button className="ss-box-dropdown-danger" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDelete) onDelete(node.id); }}>Delete</button>
+              <button type="button" className="ss-box-dropdown-danger" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDelete) onDelete(node.id); }}>Delete</button>
             </div>
           )}
         </div>
@@ -216,7 +241,16 @@ export function NodeCard({
 
       {/* Body / Children */}
       {!isCollapsed && isContainer && (
-        <div className={`ss-box-body ${isRow ? 'ss-box-row-body' : ''}`}>
+        <div 
+          ref={setDropInsideRef} 
+          className={`ss-box-body ${isRow ? 'ss-box-row-body' : ''} ${showDropOver ? 'ss-box-drop-inside-active' : ''}`}
+          style={node.props?.isBgImage ? { 
+            backgroundImage: `url(${node.content})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            minHeight: '100px'
+          } : {}}
+        >
           <NodeChildren
             parentNode={node}
             mode={mode}
@@ -237,10 +271,20 @@ export function NodeCard({
         </div>
       )}
 
-      {/* Text Content */}
+      {/* Text or Image Content */}
       {!isCollapsed && !isContainer && node.content && (
         <div className="ss-box-text-content">
-          {node.content}
+          {node.tag === 'img' ? (
+            <div className="ss-box-image-preview">
+              <img 
+                src={node.content} 
+                alt="Preview" 
+                style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', display: 'block', margin: '0 auto' }} 
+              />
+            </div>
+          ) : (
+            node.content
+          )}
         </div>
       )}
     </div>

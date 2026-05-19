@@ -710,16 +710,15 @@
 
 /* ─── Body Area (where children go) ─── */
 .ss-box-body {
-  padding: 0 12px 12px 12px;
+  padding: 12px;
   border-top: 1px solid #e8e8e8;
   background: #ffffff;
   display: flex;
   flex-direction: column;
 }
 
-/* For Row elements specifically */
 .ss-box-row-body {
-  padding: 12px;
+  padding: 4px;
 }
 
 .ss-box-children-wrap {
@@ -736,16 +735,36 @@
 /* ─── Columns wrapper (side-by-side flex layout) ─── */
 .ss-box-columns-wrap {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap; /* Ensure columns wrap when span exceeds 12 */
   width: 100%;
+  /* Neutralize negative margins from .uib-row in the builder */
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .ss-box-col-slot {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 60px;
+  min-height: 24px;
+  box-sizing: border-box;
+  /* Neutralize theme column padding in the builder for a tighter look */
+  padding-left: 4px !important;
+  padding-right: 4px !important;
 }
+
+/* 12-Column Grid System for Editor Preview */
+.uib-col-1  { flex: 0 0 8.333333%; max-width: 8.333333%; }
+.uib-col-2  { flex: 0 0 16.666667%; max-width: 16.666667%; }
+.uib-col-3  { flex: 0 0 25%; max-width: 25%; }
+.uib-col-4  { flex: 0 0 33.333333%; max-width: 33.333333%; }
+.uib-col-5  { flex: 0 0 41.666667%; max-width: 41.666667%; }
+.uib-col-6  { flex: 0 0 50%; max-width: 50%; }
+.uib-col-7  { flex: 0 0 58.333333%; max-width: 58.333333%; }
+.uib-col-8  { flex: 0 0 66.666667%; max-width: 66.666667%; }
+.uib-col-9  { flex: 0 0 75%; max-width: 75%; }
+.uib-col-10 { flex: 0 0 83.333333%; max-width: 83.333333%; }
+.uib-col-11 { flex: 0 0 91.666667%; max-width: 91.666667%; }
+.uib-col-12 { flex: 0 0 100%; max-width: 100%; }
 
 /* ─── Text Content Area ─── */
 .ss-box-text-content {
@@ -769,7 +788,7 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.15);
-  z-index: 199;
+  z-index: 400;
   animation: fadeInBackdrop 0.2s ease;
 }
 
@@ -780,16 +799,16 @@
 
 .ui-builder-properties {
   position: fixed;
-  top: 0;
+  top: 80px; /* Offset to clear Drupal admin toolbar */
   right: 0;
   bottom: 0;
-  width: 340px;
+  width: 700px;
   background: var(--bg-panel) !important;
   border-left: 1px solid #cbd5e1 !important;
   display: flex;
   flex-direction: column;
   color: var(--text-main);
-  z-index: 200;
+  z-index: 401;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   animation: slideInRight 0.2s ease;
 }
@@ -919,6 +938,10 @@
   box-sizing: border-box;
 }
 
+select.form-control {
+  padding-right: 24px !important;
+}
+
 .form-control:focus {
   outline: none;
   border-color: var(--primary) !important;
@@ -1037,6 +1060,17 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 .style-tag-label { margin-right: 6px; }
+
+.style-tag.is-protected {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  cursor: help;
+}
+
+.style-tag.is-protected .style-tag-label {
+  margin-right: 0;
+}
 
 .style-tag-remove {
   background: none;
@@ -1263,6 +1297,31 @@ body:has(#ui-builder-react-app) .form-item-id {
   display: none !important;
 }
 
+/* Hide Drupal node form sidebar (Published, Last saved, Author card) */
+body.using-ui-builder .layout-region.layout-region--secondary,
+body.using-ui-builder .entity-meta,
+body.using-ui-builder .gin-sidebar,
+body.using-ui-builder .gin-meta {
+  display: none !important;
+}
+
+/* Override Drupal's grid/flex layout to make main region full width */
+body.using-ui-builder .layout-form {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body.using-ui-builder .layout-region.layout-region--main {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body.using-ui-builder .layout-region.layout-region--footer {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 /* Hide revision, authoring, URL alias, comment settings, etc. */
 /* Removed rules hiding standard Drupal fields based on user request */
 
@@ -1333,4 +1392,88 @@ body:has(#ui-builder-react-app) .form-item-id {
 
 .ss-box-dropdown .ss-box-dropdown-danger:hover {
   background: #fdf0f0;
+}
+
+/* ═══════════════════════════════════════════════
+   DRAG & DROP — Gap indicators & drop zones
+   ═══════════════════════════════════════════════ */
+
+.ss-drop-slot {
+  position: relative;
+}
+
+/* Thin gap between nodes — only visible during drag */
+.ss-drop-gap {
+  height: 0;
+  transition: height 0.15s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.ss-drop-gap.ss-drop-gap-visible {
+  height: 8px;
+  background: rgba(0, 115, 186, 0.05);
+  border: 1px dashed rgba(0, 115, 186, 0.2);
+  border-radius: 4px;
+  margin: 2px 0;
+}
+
+.ss-box-empty-drop-area.ss-box-empty-drop-area-visible {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px dashed rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+/* Active drop target — blue line indicator */
+.ss-drop-gap.ss-drop-gap-active {
+  height: 4px;
+  background: #0073ba;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0, 115, 186, 0.5);
+  margin: 2px 0;
+}
+
+/* Container body highlight when hovering for "drop inside" */
+.ss-box-drop-inside-active {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 2px dashed #10b981 !important;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+/* Root drop zone hint */
+.canvas-extract-hint {
+  text-align: center;
+  padding: 16px;
+  color: #94a3b8;
+  font-size: 13px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 6px;
+  margin: 8px 0;
+  background: rgba(241, 245, 249, 0.5);
+  transition: all 0.15s ease;
+}
+
+.root-over .canvas-extract-hint {
+  border-color: #0073ba;
+  color: #0073ba;
+  background: rgba(0, 115, 186, 0.05);
+}
+
+/* During drag mode, add subtle pointer cursor everywhere */
+.is-dragging-mode .ss-box-el {
+  cursor: default;
+}
+
+.is-dragging-mode .ss-box-topbar {
+  cursor: default;
+}
+
+/* Background Image Helper */
+.background_image {
+  background-size: cover;
+  background-position: center;
+  min-height: 200px;
+  width: 100%;
 }

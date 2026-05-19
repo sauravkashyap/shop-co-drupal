@@ -91,6 +91,8 @@ function ui_builder_form_node_form_alter(array &$form, \Drupal\Core\Form\FormSta
     'field_tags',
     'field_image',
     'field_metatag',
+    'field_width',
+    'field_height',
   ];
   foreach ($fields_to_hide as $field_name) {
     if (isset($form[$field_name])) {
@@ -98,32 +100,49 @@ function ui_builder_form_node_form_alter(array &$form, \Drupal\Core\Form\FormSta
     }
   }
 
-  // Hide sidebar/advanced sections.
-  /* Removed based on user request to keep native sidebar cards */
-  // $sections_to_hide = [
-  //   'revision_information',
-  //   'path',
-  //   'author',
-  //   'options',
-  //   'comment',
-  //   'menu',
-  // ];
-  // foreach ($sections_to_hide as $section) {
-  //   if (isset($form[$section])) {
-  //     $form[$section]['#access'] = FALSE;
-  //   }
-  // }
+  // Hide sidebar/advanced sections to remove "Revision log message" etc.
+  $sections_to_hide = [
+    'revision_information',
+    'revision_log',
+    'revision',
+    'path',
+    'author',
+    'options',
+    'comment',
+    'menu',
+  ];
+  foreach ($sections_to_hide as $section) {
+    if (isset($form[$section])) {
+      $form[$section]['#access'] = FALSE;
+    }
+  }
+
+  // Inject CSS to hide specific elements by placeholder if they slip through.
+  $form['#attached']['html_head'][] = [
+    [
+      '#tag' => 'style',
+      '#value' => '
+        input[placeholder="e.g. 100% or 200px"],
+        input[placeholder="e.g. auto or 150px"],
+        .field--name-revision-log,
+        #edit-revision-log-wrapper {
+          display: none !important;
+        }
+      ',
+    ],
+    'ui_builder_cleanup_styles',
+  ];
 
   // Hide Drupal's form actions — the React builder handles saving.
   //   $form['actions']['#access'] = FALSE;
   // }
 }
 
-/**
- * Implements hook_page_attachments().
- */
 function ui_builder_page_attachments(array &$attachments) {
-  // Only attach styles on frontend routes (non-admin).
+  // Always attach custom styles if they exist.
+  $attachments['#attached']['library'][] = 'ui_builder/custom_styles';
+
+  // Only attach layout defaults on frontend routes (non-admin).
   if (!\Drupal::service('router.admin_context')->isAdminRoute()) {
     $attachments['#attached']['library'][] = 'ui_builder/frontend_defaults';
   }
@@ -144,3 +163,75 @@ function ui_builder_library_info_alter(&$libraries, $extension) {
   }
 }
 
+/**
+ * Implements hook_library_info_build().
+ *
+ * Dynamically registers the custom_styles library pointing to the compiled
+ * CSS file in public://. Static .libraries.yml cannot use stream wrappers
+ * like public://, so we must resolve the real path here.
+ */
+function ui_builder_library_info_build() {
+  $libraries = [];
+
+  $uri = 'public://ui_builder/uib-styles.css';
+  if (file_exists($uri)) {
+    // generateString() returns a root-relative URL like
+    // /sites/default/files/ui_builder/uib-styles.css
+    $url = \Drupal::service('file_url_generator')->generateString($uri);
+    $url .= '?v=' . filemtime($uri);
+
+    $libraries['custom_styles'] = [
+      'css' => [
+        'theme' => [
+          $url => [
+            'type' => 'external',
+            'preprocess' => FALSE,
+            'weight' => 1001,
+          ],
+        ],
+      ],
+    ];
+  }
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function ui_builder_node_insert(\Drupal\node\NodeInterface $node) {
+  ui_builder_save_instance_styles($node);
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function ui_builder_node_update(\Drupal\node\NodeInterface $node) {
+  ui_builder_save_instance_styles($node);
+}
+
+/**
+ * Helper to save instance styles to a file.
+ */
+function ui_builder_save_instance_styles(\Drupal\node\NodeInterface $node) {
+  foreach ($node->getFieldDefinitions() as $field_name => $definition) {
+    if ($definition->getType() === 'ui_builder_json') {
+      $items = $node->get($field_name);
+      foreach ($items as $item) {
+        if (empty($item->value)) continue;
+        
+        $json_data = json_decode($item->value, TRUE);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($json_data)) {
+          $css = \Drupal::service('ui_builder.css_compiler')->compileInstanceStyles($json_data);
+          if ($css) {
+            $directory = 'public://ui_builder';
+            \Drupal::service('file_system')->prepareDirectory($directory, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY | \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS);
+            
+            $filename = $directory . '/uib-node-' . $node->id() . '-' . $field_name . '.css';
+            \Drupal::service('file_system')->saveData($css, $filename, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
+          }
+        }
+      }
+    }
+  }
+}

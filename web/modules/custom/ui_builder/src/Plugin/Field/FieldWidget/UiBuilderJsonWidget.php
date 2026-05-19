@@ -42,6 +42,22 @@ class UiBuilderJsonWidget extends WidgetBase {
     $element['#attached']['drupalSettings']['ui_builder']['composer'] = [
       'available_components' => $component_data,
     ];
+    
+    $base_config = \Drupal::config('ui_builder.base_styles');
+    $breakpoints = [
+      'tablet' => $base_config->get('tablet_breakpoint') ?: '1024px',
+      'mobile' => $base_config->get('mobile_breakpoint') ?: '767px',
+    ];
+    
+    $custom_breakpoints = $base_config->get('custom_breakpoints') ?: [];
+    foreach ($custom_breakpoints as $item) {
+      if (!empty($item['key']) && !empty($item['value'])) {
+        $breakpoints[$item['key']] = $item['value'];
+      }
+    }
+    
+    $element['#attached']['drupalSettings']['ui_builder']['breakpoints'] = $breakpoints;
+    
     $element['#attached']['drupalSettings']['ui_builder']['csrf_token'] = \Drupal::csrfToken()->get('rest');
 
     // Wrap the entire widget for CSS targeting and position it right after title.

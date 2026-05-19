@@ -1,45 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import { MediaLibraryModal } from './MediaLibraryModal';
 
 export function ImageEditor({ mode, value, onUpdate }) {
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setIsUploading(true);
-      const formData = new FormData();
-      formData.append('files[image]', file);
-
-      try {
-        const csrfToken = window.drupalSettings?.ui_builder?.csrf_token;
-        const headers = {};
-        if (csrfToken) {
-          headers['X-CSRF-Token'] = csrfToken;
-        }
-
-        const response = await fetch('/ui-builder/upload', {
-          method: 'POST',
-          body: formData,
-          headers: headers,
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          onUpdate(data.url, 'static');
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          alert('Upload failed: ' + (errorData.error || 'Server error ' + response.status));
-        }
-      } catch (err) {
-        console.error('Error uploading file:', err);
-        alert('Error connecting to upload server. Check console for details.');
-      } finally {
-        setIsUploading(false);
-      }
-    }
-  };
-
   const images = Array.isArray(value) ? value : (value ? [value] : []);
 
   return (
@@ -73,13 +37,21 @@ export function ImageEditor({ mode, value, onUpdate }) {
               )}
             </div>
             
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="image/*" />
-            <button type="button" className="upload-btn" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-              {isUploading ? <><span className="spinner"></span>Uploading...</> : (images.length > 0 ? 'Change / Add Image' : 'Upload Image')}
+            <button type="button" className="upload-btn" onClick={() => setIsModalOpen(true)}>
+              {images.length > 0 ? 'Change / Add Image' : 'Select / Upload Image'}
             </button>
           </div>
         )}
       </div>
+
+      <MediaLibraryModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSelect={(url) => {
+          onUpdate(url, 'static');
+          setIsModalOpen(false);
+        }} 
+      />
     </div>
   );
 }

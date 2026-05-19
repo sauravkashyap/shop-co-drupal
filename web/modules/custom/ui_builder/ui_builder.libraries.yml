@@ -11,6 +11,18 @@ builder_app:
 
 frontend_defaults:
   version: 1.0.2
+  js:
+    js/aside-toggle.js: {}
   css:
     theme:
       css/ui-builder-layout.css: { weight: 1000 }
+      css/ui-builder-base.css: { weight: 1100 }
+  dependencies:
+    - core/once
+    - core/drupal
+
+dynamic_styles:
+  version: 1.0.0
+  css:
+    theme:
+      public://ui_builder/base_styles.css: { weight: 2000, preprocess: false }

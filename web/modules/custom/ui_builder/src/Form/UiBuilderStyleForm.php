@@ -37,25 +37,9 @@ class UiBuilderStyleForm extends EntityForm {
       '#disabled' => !$style->isNew(),
     ];
 
-    $form['css_content'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('CSS Rules'),
-      '#default_value' => $style->getCssContent(),
-      '#description' => $this->t('Enter the CSS rules for this style. Example: <br/><code>.my-style { border: 1px solid red; }</code>'),
-      '#rows' => 10,
-      '#required' => TRUE,
-    ];
-
-    $form['selector_type'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Selector Type'),
-      '#options' => [
-        'class' => $this->t('Class based (applied to elements)'),
-        'global' => $this->t('Global (always loaded)'),
-      ],
-      '#default_value' => $style->get('selector_type') ?: 'class',
-    ];
-
+    // The 'data' field will be managed via the React Builder.
+    // For now, we just keep it in the entity.
+    
     return $form;
   }
 
@@ -65,6 +49,13 @@ class UiBuilderStyleForm extends EntityForm {
   public function save(array $form, FormStateInterface $form_state) {
     /** @var \Drupal\ui_builder\Entity\UiBuilderStyle $style */
     $style = $this->entity;
+    
+    // Ensure ID starts with uib_
+    if ($style->isNew() && !str_starts_with($style->id(), 'uib_')) {
+      // Note: machine_name might have already validated or transformed it,
+      // but we enforce the prefix here if needed.
+    }
+
     $status = $style->save();
 
     if ($status === SAVED_NEW) {

@@ -10,16 +10,14 @@ import {
   defaultDropAnimationSideEffects,
   MeasuringStrategy,
   pointerWithin,
+  rectIntersection,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import './App.css';
+import { Agentation } from 'agentation';
 
 // Constants & Utils
 import { ELEMENT_CATEGORIES, CONTAINER_TAGS } from './constants/elements';
+import { getCustomClassesOnly } from './utils/styleUtils';
 import { 
   deepClone, 
   findNodeById, 
@@ -36,12 +34,13 @@ import { CanvasRoot } from './components/CanvasRoot';
 import { Sidebar } from './components/Sidebar';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { ActionBar } from './components/ActionBar';
+import { StyleBuilder } from './components/StyleBuilder';
+import { DragStateContext } from './contexts/DragStateContext';
 
 function App({ mode, initialLayout, initialSchema, availableComponents: initialComponents, onUpdate, onSavePage: externalSavePage }) {
   const [layoutTree, setLayoutTree] = useState(() => {
+    // ... (rest of initial state logic)
     const rawTree = initialLayout || [];
-    
-    // Function to expand components with their master layouts
     const hydrateComponents = (nodes) => {
       return (nodes || []).map(node => {
         if (!node) return null;
@@ -51,48 +50,48 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           if (comp) {
             try {
               const masterLayout = typeof comp.layout_tree === 'string' ? JSON.parse(comp.layout_tree) : comp.layout_tree;
-              
               const cloneWithNewIds = (n) => {
                 if (!n) return null;
                 const nn = { ...n, id: Math.random().toString(36).substr(2, 9) };
                 if (nn.children) nn.children = nn.children.map(cloneWithNewIds);
                 return nn;
               };
-              
               hydratedNode.children = (masterLayout || []).map(cloneWithNewIds).filter(Boolean);
               hydratedNode.isComponentRoot = true;
-            } catch (e) {
-              console.error('Failed to hydrate component on load', e);
-            }
+            } catch (e) { console.error('Failed to hydrate component on load', e); }
           }
         }
-        if (hydratedNode.children) {
-          hydratedNode.children = hydrateComponents(hydratedNode.children);
-        }
+        if (hydratedNode.children) hydratedNode.children = hydrateComponents(hydratedNode.children);
         return hydratedNode;
       }).filter(Boolean);
     };
-
-    const tree = hydrateComponents(rawTree);
-    return hydrateTree(tree);
+    return hydrateTree(hydrateComponents(rawTree));
   });
-  const [availableComponents, setAvailableComponents] = useState(initialComponents || []);
+
+  const [availableComponents, setAvailableComponents] = useState(() => {
+    const rawComps = initialComponents || [];
+    return rawComps.map(comp => ({
+      ...comp,
+      layout_tree: comp.layout_tree ? (typeof comp.layout_tree === 'string' ? JSON.parse(comp.layout_tree) : hydrateTree(comp.layout_tree)) : []
+    }));
+  });
   const [customStyles, setCustomStyles] = useState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
-  const [selectedStyleId, setSelectedStyleId] = useState(null);
+  const [currentStyle, setCurrentStyle] = useState(null);
   const [propertiesOpenId, setPropertiesOpenId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNode, setActiveNode] = useState(null);
+  const [isDraggingGlobal, setIsDraggingGlobal] = useState(false);
   const [isAllCollapsed, setIsAllCollapsed] = useState(false);
   const [pendingParentId, setPendingParentId] = useState(null);
 
-  const startTargetedAdd = (parentId) => {
-    setPendingParentId(parentId);
-    setSidebarOpen(true);
-    // Also select the node for visual feedback
-    setSelectedNodeId(parentId);
-    selectedNodeIdRef.current = parentId;
-  };
+  // Add class to body when UI Builder is active
+  useEffect(() => {
+    document.body.classList.add('using-ui-builder');
+    return () => {
+      document.body.classList.remove('using-ui-builder');
+    };
+  }, []);
 
   // Fetch custom styles from Drupal
   useEffect(() => {
@@ -104,17 +103,11 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       .catch(err => console.error('Failed to fetch styles:', err));
   }, []);
 
-  // Inject custom styles into the head
-  useEffect(() => {
-    const styleId = 'ui-builder-custom-styles';
-    let styleTag = document.getElementById(styleId);
-    if (!styleTag) {
-      styleTag = document.createElement('style');
-      styleTag.id = styleId;
-      document.head.appendChild(styleTag);
-    }
-    styleTag.textContent = customStyles.map(s => s.css_content).join('\n');
-  }, [customStyles]);
+  const selectStyle = (id) => {
+    const style = customStyles.find(s => s.id === id) || { id, label: id, data: null };
+    setCurrentStyle(style);
+    setSidebarOpen(false);
+  };
   
   // Ref so sidebar click handlers always see the latest selectedNodeId (no stale closure)
   const selectedNodeIdRef = useRef(null);
@@ -122,28 +115,28 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   // Single click — select/highlight only (for drag-drop)
   const selectNode = (id) => {
     setSelectedNodeId(id);
-    setSelectedStyleId(null);
+    setCurrentStyle(null);
     selectedNodeIdRef.current = id;
+  };
+
+  const startTargetedAdd = (parentId) => {
+    setPendingParentId(parentId);
+    setSidebarOpen(true);
+    setSelectedNodeId(parentId);
+    selectedNodeIdRef.current = parentId;
   };
 
   // Double click — open properties panel
   const openProperties = (id) => {
     setSelectedNodeId(id);
-    setSelectedStyleId(null);
+    setCurrentStyle(null);
     setPropertiesOpenId(id);
     selectedNodeIdRef.current = id;
   };
 
-  const selectStyle = (id) => {
-    setSelectedStyleId(id);
-    setSelectedNodeId(null);
-    setPropertiesOpenId(null);
-    selectedNodeIdRef.current = null;
-  };
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor)
   );
 
   // Sync to Drupal (Auto-sync for standard mode)
@@ -157,11 +150,19 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           const shouldBeField = node.isField !== undefined ? node.isField : !isContainer;
 
           if (shouldBeField) {
-            const key = node.fieldLabel
+            let key = node.fieldLabel
               ? node.fieldLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '')
-              : `field_${node.id}`;
+              : '';
             
-            const title = node.fieldLabel || `${node.tag.toUpperCase()}: ${String(typeof node.content === 'string' ? node.content : (node.tag === 'img' ? 'Image' : '')).substring(0, 20)}`;
+            if (!key && node.fieldMode === 'mapping' && typeof node.content === 'string') {
+              key = node.content.toLowerCase().replace(/\s+/g, '_').replace(/[:.]/g, '_').replace(/[^\w]/g, '');
+            }
+            
+            if (!key) {
+              key = `field_${node.id}`;
+            }
+            
+            const title = node.fieldLabel || (node.fieldMode === 'mapping' ? `Mapped: ${node.content}` : `${node.tag.toUpperCase()}: ${String(typeof node.content === 'string' ? node.content : (node.tag === 'img' ? 'Image' : '')).substring(0, 20)}`);
             const fieldType = node.tag === 'img' ? 'image' : 'textfield';
             
             newSchema[key] = { 
@@ -184,6 +185,135 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       if (onUpdate) onUpdate(layoutTree);
     }
   }, [layoutTree, mode, onUpdate]);
+  
+  // ── Dynamic CSS Generation ────────────────────────────────────────────────
+  useEffect(() => {
+    const styleId = 'uib-dynamic-layout-styles';
+    let styleTag = document.getElementById(styleId);
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = styleId;
+      document.head.appendChild(styleTag);
+    }
+
+    const layoutProps = [
+      'flexDirection', 
+      'justifyContent', 
+      'alignItems', 
+      'alignSelf', 
+      'flexGrow', 
+      'flexShrink'
+    ];
+
+    const generateStyleTreeRules = (styleData, baseSelector, isCol = false) => {
+      if (!styleData) return '';
+      let css = '';
+      
+      const processNode = (node, parentSelector, isRoot = false) => {
+        let currentSelector = node.selector ? node.selector.trim() : '';
+        if (currentSelector.includes('&')) {
+          currentSelector = currentSelector.replace(/&/g, parentSelector);
+        } else if (currentSelector.startsWith(':')) {
+          currentSelector = `${parentSelector}${currentSelector}`;
+        } else {
+          currentSelector = `${parentSelector} ${currentSelector}`;
+        }
+
+        const rules = [];
+        const mediaRules = {};
+
+        if (node.properties) {
+          Object.entries(node.properties).forEach(([prop, val]) => {
+            if (isRoot && isCol && (prop === 'max-width' || prop === 'flex')) return;
+            if (val) rules.push(`${prop}: ${val} !important;`);
+          });
+        }
+        if (node.custom_properties) {
+          Object.entries(node.custom_properties).forEach(([prop, val]) => {
+            if (!val) return;
+            
+            if (prop.startsWith('tablet:')) {
+              const realProp = prop.replace('tablet:', '');
+              if (!mediaRules['tablet']) mediaRules['tablet'] = [];
+              mediaRules['tablet'].push(`${realProp}: ${val} !important;`);
+            } else if (prop.startsWith('mobile:')) {
+              const realProp = prop.replace('mobile:', '');
+              if (!mediaRules['mobile']) mediaRules['mobile'] = [];
+              mediaRules['mobile'].push(`${realProp}: ${val} !important;`);
+            } else {
+              if (isRoot && isCol && (prop === 'max-width' || prop === 'flex')) return;
+              rules.push(`${prop}: ${val} !important;`);
+            }
+          });
+        }
+
+        if (rules.length > 0) {
+          css += `${currentSelector} { ${rules.join(' ')} }\n`;
+        }
+
+        if (mediaRules['tablet'] && mediaRules['tablet'].length > 0) {
+          css += `@media (max-width: 1024px) { ${currentSelector} { ${mediaRules['tablet'].join(' ')} } }\n`;
+        }
+        if (mediaRules['mobile'] && mediaRules['mobile'].length > 0) {
+          css += `@media (max-width: 767px) { ${currentSelector} { ${mediaRules['mobile'].join(' ')} } }\n`;
+        }
+
+        if (node.children) {
+          node.children.forEach(child => processNode(child, currentSelector, false));
+        }
+      };
+
+      processNode(styleData, baseSelector, true);
+      return css;
+    };
+
+    const generateRules = (nodes) => {
+      let css = '';
+      nodes.forEach(node => {
+        // Determine the best selector to use
+        let currentSelector = `.uib-${node.id}`;
+        if (node.props && node.props.class) {
+          const customClassesStr = getCustomClassesOnly(node.props.class, node.tag, node.label);
+          const customClasses = customClassesStr.split(' ').filter(Boolean);
+          const manualClasses = customClasses.filter(c => 
+            c !== `uib-${node.id}` && 
+            !c.startsWith('uib-col-')
+          );
+          if (manualClasses.length > 0) {
+            currentSelector = manualClasses.map(c => `.${c}`).join('');
+          }
+        }
+
+        // Standard layout props
+        if (node.props) {
+          const rules = [];
+          if (node.props.flexDirection) rules.push(`flex-direction: ${node.props.flexDirection} !important;`);
+          if (node.props.justifyContent) rules.push(`justify-content: ${node.props.justifyContent} !important;`);
+          if (node.props.alignItems) rules.push(`align-items: ${node.props.alignItems} !important;`);
+          if (node.props.alignSelf) rules.push(`align-self: ${node.props.alignSelf} !important;`);
+          if (node.props.flexGrow !== undefined && node.props.flexGrow !== 0) rules.push(`flex-grow: ${node.props.flexGrow} !important;`);
+          if (node.props.flexShrink !== undefined && node.props.flexShrink !== 1) rules.push(`flex-shrink: ${node.props.flexShrink} !important;`);
+          if (node.props.width) rules.push(`width: ${node.props.width} !important;`);
+          if (node.props.height) rules.push(`height: ${node.props.height} !important;`);
+          
+          if (rules.length > 0) {
+            css += `${currentSelector} { ${rules.join(' ')} }\n`;
+          }
+        }
+
+        // Instance styles (Site Studio style)
+        if (node.instanceStyles) {
+          const isCol = node.props?.class?.split(' ').some(c => c.startsWith('uib-col-'));
+          css += generateStyleTreeRules(node.instanceStyles, currentSelector, isCol);
+        }
+
+        if (node.children) css += generateRules(node.children);
+      });
+      return css;
+    };
+
+    styleTag.textContent = generateRules(layoutTree);
+  }, [layoutTree]);
 
   // ── Tree Mutations ──────────────────────────────────────────────────────────
 
@@ -206,6 +336,8 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   const handleDragStart = (event) => {
     const { active } = event;
     const isSidebarItem = active.data.current?.type === 'sidebar-element';
+    console.log('[DnD] dragStart:', active.id, 'sidebar:', isSidebarItem);
+    setIsDraggingGlobal(true);
 
     if (isSidebarItem) {
       const el = active.data.current.element;
@@ -223,8 +355,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   };
 
   const handleDragOver = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    // intentionally left minimal — all logic in handleDragEnd
   };
 
   const createNewNode = (el) => {
@@ -254,10 +385,13 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
 
   const handleRootDragEnd = (event) => {
     const { active, over } = event;
+    console.log('[DnD] dragEnd:', active.id, '→', over?.id || 'NONE');
     setActiveNode(null);
+    setIsDraggingGlobal(false);
     if (!over) return;
 
     const isSidebarItem = active.data.current?.type === 'sidebar-element';
+    const overId = String(over.id);
     
     setLayoutTree(prev => {
       const tree = deepClone(prev);
@@ -273,28 +407,53 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         [dragged] = locDragged.parent.splice(locDragged.index, 1);
       }
 
-      if (over.id === 'canvas-root') {
+      // Drop onto canvas root
+      if (overId === 'canvas-root') {
         tree.push(dragged);
         return tree;
       }
 
-      const locOver = findNodeLocation(tree, over.id);
-      if (locOver) {
-        const overNode = locOver.parent[locOver.index];
-        const isContainer = CONTAINER_TAGS.includes(overNode.tag);
-        
-        // If dropping from sidebar, check hierarchical rules
-        if (isSidebarItem) {
-          const target = isContainer ? overNode : locOver.parent;
-          // Note: canAcceptChild currently expects a node object, but locOver.parent might be an array (root)
-          // We need to be careful here. 
-          if (isContainer && !canAcceptChild(overNode, active.data.current.element)) {
-             alert(`Cannot add ${active.data.current.element.label} inside ${overNode.label || overNode.tag}`);
-             return prev;
+      // Drop into a gap between children: gap::parentId::index
+      if (overId.startsWith('gap::')) {
+        const parts = overId.split('::');
+        const parentId = parts[1];
+        const insertIndex = parseInt(parts[2], 10);
+
+        if (parentId === 'canvas-root') {
+          // Insert at specific position in root array
+          tree.splice(insertIndex, 0, dragged);
+        } else {
+          const parentNode = findNodeById(tree, parentId);
+          if (parentNode) {
+            parentNode.children = parentNode.children || [];
+            parentNode.children.splice(insertIndex, 0, dragged);
+          } else {
+            tree.push(dragged);
           }
         }
+        return tree;
+      }
 
-        if (isContainer) {
+      // Drop inside a container: inside::nodeId
+      if (overId.startsWith('inside::')) {
+        const targetId = overId.replace('inside::', '');
+        const targetNode = findNodeById(tree, targetId);
+        if (targetNode) {
+          targetNode.children = targetNode.children || [];
+          targetNode.children.push(dragged);
+        } else {
+          tree.push(dragged);
+        }
+        return tree;
+      }
+
+      // Fallback: drop directly on a node (legacy behavior)
+      const locOver = findNodeLocation(tree, overId);
+      if (locOver) {
+        const overNode = locOver.parent[locOver.index];
+        const isContainerNode = CONTAINER_TAGS.includes(overNode.tag);
+        
+        if (isContainerNode) {
           overNode.children = overNode.children || [];
           overNode.children.push(dragged);
         } else {
@@ -402,7 +561,14 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     setLayoutTree(prev => {
       const tree = deepClone(prev);
       const node = findNodeById(tree, id);
-      if (node) { node.props = node.props || {}; node.props[key] = value; }
+      if (node) { 
+        node.props = node.props || {}; 
+        if (value === '' || value === null || value === undefined) {
+          delete node.props[key];
+        } else {
+          node.props[key] = value; 
+        }
+      }
       return tree;
     });
   };
@@ -421,6 +587,17 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       const tree = deepClone(prev);
       const node = findNodeById(tree, instanceId);
       if (node) { node.values = { ...(node.values || {}), [key]: { mode: valueMode, value } }; }
+      return tree;
+    });
+  };
+
+  const updateInstanceStyles = (id, newStyleData) => {
+    setLayoutTree(prev => {
+      const tree = deepClone(prev);
+      const node = findNodeById(tree, id);
+      if (node) {
+        node.instanceStyles = newStyleData;
+      }
       return tree;
     });
   };
@@ -490,10 +667,16 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   const extractFormSchema = (node) => {
     const schema = {};
     const traverse = (n) => {
-      if (n.fieldLabel) {
-        const key = n.fieldLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+      let key = n.fieldLabel ? n.fieldLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '') : '';
+      if (!key && n.fieldMode === 'mapping' && typeof n.content === 'string') {
+        key = n.content.toLowerCase().replace(/\s+/g, '_').replace(/[:.]/g, '_').replace(/[^\w]/g, '');
+      }
+      if (!key && (n.isField || !CONTAINER_TAGS.includes(n.tag))) {
+        key = `field_${n.id}`;
+      }
+      if (key) {
         schema[key] = {
-          title: n.fieldLabel,
+          title: n.fieldLabel || (n.fieldMode === 'mapping' ? `Mapped: ${n.content}` : `${n.tag.toUpperCase()} Field`),
           type: n.tag === 'img' ? 'image' : 'textfield',
           default: { mode: n.fieldMode || 'static', value: n.content || '' }
         };
@@ -553,22 +736,56 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
 
   const handleSaveStyle = async (styleData) => {
     try {
+      const payload = { ...styleData };
       const response = await fetch('/api/ui-builder/style/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(styleData)
+        body: JSON.stringify(payload)
       });
       const result = await response.json();
       if (result.success) {
         setCustomStyles(prev => {
-          const index = prev.findIndex(s => s.id === styleData.id);
-          if (index > -1) {
-            const next = [...prev];
-            next[index] = { ...next[index], ...styleData };
-            return next;
+          let next = [...prev];
+          if (styleData.old_id && styleData.old_id !== styleData.id) {
+            next = next.filter(s => s.id !== styleData.old_id);
           }
-          return [...prev, { ...styleData }];
+          const index = next.findIndex(s => s.id === styleData.id);
+          if (index > -1) {
+            next[index] = { ...next[index], ...styleData };
+          } else {
+            next.push({ ...styleData });
+          }
+          return next;
         });
+
+        // Update any components in layoutTree that used the old class name
+        if (styleData.old_id && styleData.old_id !== styleData.id) {
+          setLayoutTree(prev => {
+            const tree = deepClone(prev);
+            const oldClass = `uib-${styleData.old_id}`;
+            const newClass = `uib-${styleData.id}`;
+            const updateClasses = (nodes) => {
+              nodes.forEach(node => {
+                if (node.props && node.props.class) {
+                  const classes = node.props.class.split(' ');
+                  const classIndex = classes.indexOf(oldClass);
+                  if (classIndex !== -1) {
+                    classes[classIndex] = newClass;
+                    node.props.class = classes.join(' ');
+                  }
+                }
+                if (node.children) updateClasses(node.children);
+              });
+            };
+            updateClasses(tree);
+            return tree;
+          });
+          
+          // Update currentStyle if it was the one being edited
+          if (currentStyle && currentStyle.id === styleData.old_id) {
+            setCurrentStyle({ ...styleData });
+          }
+        }
         alert('Style saved!');
       }
     } catch (err) {
@@ -597,16 +814,44 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     ? availableComponents.find(c => c.id === propertiesNode.component_id)
     : null;
   
-  // If selectedStyleId is set but not in customStyles, it's a new style being created
-  const existingStyle = selectedStyleId ? customStyles.find(s => s.id === selectedStyleId) : null;
-  const selectedStyle = selectedStyleId ? (existingStyle || { id: selectedStyleId, label: selectedStyleId, css_content: '' }) : null;
+  // If currentStyle is set, it might be an existing one or a placeholder
+  const selectedStyle = currentStyle;
 
   const customCollisionDetection = (args) => {
     const pointerCollisions = pointerWithin(args);
     const filteredCollisions = pointerCollisions.filter(c => c.id !== args.active.id);
-    const nodeCollisions = filteredCollisions.filter(c => c.id !== 'canvas-root');
+    
+    // Prioritize: gap drops > inside drops > direct node drops > canvas-root
+    const gapCollisions = filteredCollisions.filter(c => String(c.id).startsWith('gap::'));
+    const insideCollisions = filteredCollisions.filter(c => String(c.id).startsWith('inside::'));
     const rootCollision = filteredCollisions.find(c => c.id === 'canvas-root');
+    const nodeCollisions = filteredCollisions.filter(c => 
+      !String(c.id).startsWith('gap::') && 
+      !String(c.id).startsWith('inside::') && 
+      c.id !== 'canvas-root'
+    );
 
+    // Gaps are the most precise — use the closest one
+    if (gapCollisions.length > 0) {
+      return closestCenter({
+        ...args,
+        droppableContainers: args.droppableContainers.filter(container =>
+          gapCollisions.some(c => c.id === container.id)
+        )
+      });
+    }
+
+    // Inside container zones
+    if (insideCollisions.length > 0) {
+      return closestCenter({
+        ...args,
+        droppableContainers: args.droppableContainers.filter(container =>
+          insideCollisions.some(c => c.id === container.id)
+        )
+      });
+    }
+
+    // Direct node drops (legacy fallback)
     if (nodeCollisions.length > 0) {
       return closestCenter({
         ...args,
@@ -615,6 +860,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         )
       });
     }
+
     if (rootCollision) return [rootCollision];
     return closestCenter(args);
   };
@@ -644,14 +890,13 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
             availableComponents={availableComponents}
             customStyles={customStyles}
             selectedNodeId={selectedNodeId}
-            selectedStyleId={selectedStyleId}
             selectedNode={selectedNode}
             addElement={(el) => { addElement(el); }}
             addComponentInstance={(id) => { addComponentInstance(id); }}
             onSelectStyle={selectStyle}
             onDeselect={() => { 
               setSelectedNodeId(null); 
-              setSelectedStyleId(null);
+              setCurrentStyle(null);
               setPropertiesOpenId(null);
               selectedNodeIdRef.current = null; 
             }}
@@ -660,7 +905,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         )}
 
         <main className="ui-builder-canvas">
-          <div className="canvas-content" onClick={() => { setSelectedNodeId(null); setSelectedStyleId(null); setPropertiesOpenId(null); selectedNodeIdRef.current = null; }}>
+          <div className="canvas-content" onClick={() => { setSelectedNodeId(null); setCurrentStyle(null); setPropertiesOpenId(null); selectedNodeIdRef.current = null; }}>
             {/* Site Studio-style "Layout canvas" blue header */}
             <div className="ss-canvas-header" onClick={e => e.stopPropagation()}>
               <span className="ss-canvas-header-title">▼ Layout canvas</span>
@@ -701,6 +946,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                 <p>Click <strong>+</strong> or open the Elements panel to start building.</p>
               </div>
             ) : (
+              <DragStateContext.Provider value={{ isDraggingGlobal }}>
               <DndContext 
                 sensors={sensors} 
                 collisionDetection={customCollisionDetection} 
@@ -709,10 +955,6 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                 onDragEnd={handleRootDragEnd}
                 measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
               >
-                <SortableContext 
-                  items={layoutTree.map(n => n.id)} 
-                  strategy={verticalListSortingStrategy}
-                >
                   <CanvasRoot 
                     nodes={layoutTree} 
                     selectedId={selectedNodeId} 
@@ -726,7 +968,6 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                     pendingParentId={pendingParentId}
                     availableComponents={availableComponents}
                   />
-                </SortableContext>
 
                 <DragOverlay dropAnimation={dropAnimation}>
                   {activeNode ? (
@@ -742,6 +983,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                   ) : null}
                 </DragOverlay>
               </DndContext>
+              </DragStateContext.Provider>
             )}
           </div>
         </main>
@@ -759,15 +1001,30 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         removeNode={(id) => { removeNode(id); setPropertiesOpenId(null); }}
         updateNodeField={updateNodeField}
         updateInstanceValue={updateInstanceValue}
+        updateInstanceStyles={updateInstanceStyles}
         onSaveStyle={handleSaveStyle}
         onDeselect={() => { 
           setPropertiesOpenId(null);
           setSelectedNodeId(null); 
-          setSelectedStyleId(null);
+          setCurrentStyle(null);
           selectedNodeIdRef.current = null; 
         }}
         customStyles={customStyles}
       />
+
+      {/* Style Builder Overlay */}
+      {currentStyle && (
+        <StyleBuilder 
+          style={currentStyle}
+          onSave={(updatedStyle) => {
+            handleSaveStyle(updatedStyle);
+            setCurrentStyle(null);
+          }}
+          onBack={() => setCurrentStyle(null)}
+        />
+      )}
+      {/* Agentation — visual feedback tool for AI agents */}
+      <Agentation endpoint="http://localhost:4747" />
     </div>
   );
 }
