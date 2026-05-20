@@ -603,16 +603,6 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   };
 
   const removeNode = (id) => {
-    const node = findNodeById(layoutTree, id);
-    const hasChildren = node?.children && node.children.length > 0;
-    
-    if (hasChildren) {
-      const confirmed = window.confirm(
-        `This element has ${node.children.length} child element(s). Are you sure you want to delete it along with all its children?`
-      );
-      if (!confirmed) return;
-    }
-
     setLayoutTree(prev => deleteNodeById(prev, id));
     setSelectedNodeId(null);
     selectedNodeIdRef.current = null;

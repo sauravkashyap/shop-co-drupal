@@ -147,7 +147,6 @@ function PropertyInput({ value, defaultValue, onChange, placeholder, style, onBl
 }
 
 export function CustomCssEditor({ customProperties, onChange, newProp, setNewProp, newValue, setNewValue, activeDevice = 'desktop', setActiveDevice }) {
-  const [customPrefix, setCustomPrefix] = React.useState('@media (min-width: 1200px)');
 
   const breakpoints = window.drupalSettings?.ui_builder?.breakpoints || { tablet: '1024px', mobile: '767px' };
   const breakpointKeys = Object.keys(breakpoints);
@@ -155,9 +154,7 @@ export function CustomCssEditor({ customProperties, onChange, newProp, setNewPro
   const handleAdd = () => {
     if (newProp.trim() && newValue.trim()) {
       let finalProp = newProp.trim();
-      if (activeDevice === 'custom') {
-        finalProp = `${customPrefix.trim()}:${finalProp}`;
-      } else if (activeDevice !== 'desktop') {
+      if (activeDevice !== 'desktop') {
         finalProp = `${activeDevice}:${finalProp}`;
       }
       onChange(finalProp, newValue.trim());
@@ -171,9 +168,7 @@ export function CustomCssEditor({ customProperties, onChange, newProp, setNewPro
   // Filter properties based on active device
   const filteredProps = customProps.filter(prop => {
     if (activeDevice === 'desktop') {
-      return !breakpointKeys.some(key => prop.startsWith(`${key}:`)) && !prop.startsWith('@media');
-    } else if (activeDevice === 'custom') {
-      return prop.startsWith('@media');
+      return !breakpointKeys.some(key => prop.startsWith(`${key}:`));
     } else {
       return prop.startsWith(`${activeDevice}:`);
     }
@@ -200,43 +195,21 @@ export function CustomCssEditor({ customProperties, onChange, newProp, setNewPro
             {key.charAt(0).toUpperCase() + key.slice(1)}
           </button>
         ))}
-        <button 
-          type="button"
-          onClick={() => setActiveDevice('custom')}
-          style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', background: activeDevice === 'custom' ? '#e6f7ff' : 'none', border: 'none', cursor: 'pointer', color: activeDevice === 'custom' ? '#0050b3' : 'var(--text-muted)' }}
-        >
-          ⚙️ Custom
-        </button>
       </div>
 
       {filteredProps.length > 0 && (
         <div className="custom-css-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
           {filteredProps.map(prop => {
-            const isCustomMedia = prop.startsWith('@media');
-            const displayProp = isCustomMedia 
-              ? prop.substring(prop.lastIndexOf(':') + 1) 
-              : (prop.includes(':') ? prop.split(':').pop() : prop);
-            const displayPrefix = isCustomMedia ? prop.substring(0, prop.lastIndexOf(':')) : '';
-
+            const displayProp = prop.includes(':') ? prop.split(':').pop() : prop;
             return (
               <div key={prop} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {activeDevice === 'custom' && (
-                  <input 
-                    type="text" 
-                    value={displayPrefix} 
-                    disabled
-                    style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px', background: '#f5f5f5', color: '#888' }}
-                  />
-                )}
                 <PropertyInput 
                   defaultValue={displayProp} 
                   onBlur={(e) => {
                     const newPropName = e.target.value.trim();
                     if (newPropName && newPropName !== displayProp) {
                       let finalNewProp = newPropName;
-                      if (activeDevice === 'custom') {
-                        finalNewProp = `${displayPrefix}:${newPropName}`;
-                      } else if (activeDevice !== 'desktop') {
+                      if (activeDevice !== 'desktop') {
                         finalNewProp = `${activeDevice}:${newPropName}`;
                       }
                       
@@ -265,17 +238,8 @@ export function CustomCssEditor({ customProperties, onChange, newProp, setNewPro
         </div>
       )}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#fdfdfd', padding: '12px', borderRadius: '6px', border: '1px dashed var(--sb-border)' }}>
-        {activeDevice === 'custom' && (
-          <input 
-            type="text" 
-            placeholder="Prefix (e.g. @media (min-width: 1200px))" 
-            value={customPrefix} 
-            onChange={e => setCustomPrefix(e.target.value)}
-            style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
-          />
-        )}
         <PropertyInput 
-          placeholder={activeDevice === 'custom' ? `Property` : `Property for ${activeDevice}`} 
+          placeholder={`Property for ${activeDevice}`} 
           value={newProp} 
           onChange={e => setNewProp(e.target.value)}
           style={{ flex: 1, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}

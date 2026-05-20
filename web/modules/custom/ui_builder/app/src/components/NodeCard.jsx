@@ -231,6 +231,8 @@ export function NodeCard({
               )}
 
               <div className="ss-box-dropdown-divider"></div>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onSaveAsComponent) onSaveAsComponent(node.id); }}>Save to Library</button>
+              <div className="ss-box-dropdown-divider"></div>
               <button type="button" className="ss-box-dropdown-danger" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDelete) onDelete(node.id); }}>Delete</button>
             </div>
           )}
