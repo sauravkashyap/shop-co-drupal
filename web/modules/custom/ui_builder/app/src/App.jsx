@@ -41,6 +41,33 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   const [layoutTree, setLayoutTree] = useState(() => {
     // ... (rest of initial state logic)
     const rawTree = initialLayout || [];
+    
+    // In architect mode, we should restore node.content from schema defaults
+    // so the builder canvas shows the preview text/images instead of {{ field_xyz }}
+    const restoreSchemaValues = (nodes) => {
+      return (nodes || []).map(node => {
+        let restoredNode = { ...node };
+        
+        // If it's a field mapped to a schema key, restore it
+        if (typeof restoredNode.content === 'string' && restoredNode.content.startsWith('{{') && restoredNode.content.endsWith('}}')) {
+          const key = restoredNode.content.replace(/[{}]/g, '').trim();
+          if (initialSchema && initialSchema[key] && initialSchema[key].default) {
+            restoredNode.content = initialSchema[key].default.value || '';
+            restoredNode.fieldMode = initialSchema[key].default.mode || 'static';
+            restoredNode.fieldLabel = initialSchema[key].title || '';
+            restoredNode.isField = true;
+          }
+        }
+        
+        if (restoredNode.children) {
+          restoredNode.children = restoreSchemaValues(restoredNode.children);
+        }
+        return restoredNode;
+      });
+    };
+
+    const treeToHydrate = mode === 'architect' && initialSchema ? restoreSchemaValues(rawTree) : rawTree;
+
     const hydrateComponents = (nodes) => {
       return (nodes || []).map(node => {
         if (!node) return null;
@@ -65,7 +92,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
         return hydratedNode;
       }).filter(Boolean);
     };
-    return hydrateTree(hydrateComponents(rawTree));
+    return hydrateTree(hydrateComponents(treeToHydrate));
   });
 
   const [availableComponents, setAvailableComponents] = useState(() => {
