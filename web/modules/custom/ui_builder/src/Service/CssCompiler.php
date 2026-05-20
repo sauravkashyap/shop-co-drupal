@@ -97,6 +97,8 @@ class CssCompiler {
         $base_props = [];
         $grouped_props = [];
 
+        $custom_media_props = [];
+
         foreach ($node['custom_properties'] as $prop => $value) {
           if (!isset($value) || $value === '') continue;
 
@@ -106,6 +108,14 @@ class CssCompiler {
               $grouped_props[$key][substr($prop, strlen($key) + 1)] = $value;
               $matched = true;
               break;
+            }
+          }
+
+          if (!$matched && str_starts_with($prop, '@media')) {
+            $parts = explode(':', $prop, 2);
+            if (count($parts) === 2) {
+              $custom_media_props[$parts[0]][$parts[1]] = $value;
+              $matched = true;
             }
           }
 
@@ -123,6 +133,15 @@ class CssCompiler {
         foreach ($grouped_props as $key => $props) {
           $width = $breakpoints[$key] ?? '0px';
           $css .= "  @media (max-width: $width) {\n";
+          foreach ($props as $prop => $value) {
+            $css .= "    " . $prop . ": " . $value . ";\n";
+          }
+          $css .= "  }\n";
+        }
+
+        // Output Custom Media props
+        foreach ($custom_media_props as $media_query => $props) {
+          $css .= "  $media_query {\n";
           foreach ($props as $prop => $value) {
             $css .= "    " . $prop . ": " . $value . ";\n";
           }
@@ -300,6 +319,7 @@ class CssCompiler {
 
     $base_rules = [];
     $grouped_rules = [];
+    $custom_media_rules = [];
 
     if (!empty($style_data['properties'])) {
       foreach ($style_data['properties'] as $prop => $val) {
@@ -321,6 +341,14 @@ class CssCompiler {
           }
         }
 
+        if (!$matched && str_starts_with($prop, '@media')) {
+          $parts = explode(':', $prop, 2);
+          if (count($parts) === 2) {
+            $custom_media_rules[$parts[0]][] = $parts[1] . ": $val !important;";
+            $matched = true;
+          }
+        }
+
         if (!$matched) {
           if ($is_col && ($prop === 'max-width' || $prop === 'flex')) continue;
           $base_rules[] = "$prop: $val !important;";
@@ -335,6 +363,12 @@ class CssCompiler {
     foreach ($grouped_rules as $key => $rules) {
       $width = $breakpoints[$key] ?? '0px';
       $css .= "@media (max-width: $width) {\n";
+      $css .= "  $current_selector { " . implode(' ', $rules) . " }\n";
+      $css .= "}\n";
+    }
+
+    foreach ($custom_media_rules as $media_query => $rules) {
+      $css .= "$media_query {\n";
       $css .= "  $current_selector { " . implode(' ', $rules) . " }\n";
       $css .= "}\n";
     }
