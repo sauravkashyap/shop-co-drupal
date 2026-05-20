@@ -50,6 +50,19 @@ class UiBuilderStyleForm extends EntityForm {
     ];
 
     // React App Mount Point
+    $base_config = \Drupal::config('ui_builder.base_styles');
+    $breakpoints = [
+      'tablet' => $base_config->get('tablet_breakpoint') ?: '1024px',
+      'mobile' => $base_config->get('mobile_breakpoint') ?: '767px',
+    ];
+    
+    $custom_breakpoints = $base_config->get('custom_breakpoints') ?: [];
+    foreach ($custom_breakpoints as $item) {
+      if (!empty($item['key']) && !empty($item['value'])) {
+        $breakpoints[$item['key']] = $item['value'];
+      }
+    }
+
     $form['react_mount'] = [
       '#type' => 'container',
       '#attributes' => [
@@ -59,6 +72,11 @@ class UiBuilderStyleForm extends EntityForm {
       '#attached' => [
         'library' => [
           'ui_builder/builder_app',
+        ],
+        'drupalSettings' => [
+          'ui_builder' => [
+            'breakpoints' => $breakpoints,
+          ],
         ],
       ],
       '#weight' => -10,
