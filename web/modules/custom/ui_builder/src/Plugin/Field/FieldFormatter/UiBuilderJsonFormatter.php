@@ -101,6 +101,24 @@ class UiBuilderJsonFormatter extends FormatterBase {
           
           if (is_array($layout_tree)) {
             $values = $component['values'] ?? [];
+
+            // Merge default values from the component's schema.
+            $form_schema_json = $config_entity->getFormSchema();
+            if ($form_schema_json) {
+              $form_schema = json_decode($form_schema_json, TRUE);
+              if (is_array($form_schema)) {
+                foreach ($form_schema as $field) {
+                  $name = $field['name'] ?? null;
+                  if ($name && !isset($values[$name])) {
+                    $values[$name] = [
+                      'mode' => $field['defaultMode'] ?? 'static',
+                      'value' => $field['defaultValue'] ?? '',
+                    ];
+                  }
+                }
+              }
+            }
+
             // Map the values into the layout tree.
             $mapped_tree = $this->processTokens($layout_tree, $values, $entity);
             
