@@ -1220,6 +1220,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 .image-placeholder {
+  grid-column: 1 / -1;
   height: 60px;
   display: flex;
   align-items: center;
