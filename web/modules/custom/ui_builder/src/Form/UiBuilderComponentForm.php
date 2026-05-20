@@ -29,12 +29,18 @@ class UiBuilderComponentForm extends EntityForm {
       '#required' => TRUE,
     ];
 
+    $id_default = $component->id();
+    if ($id_default && strpos($id_default, 'uib_') === 0) {
+      $id_default = substr($id_default, 4);
+    }
+
     $form['id'] = [
       '#type' => 'machine_name',
-      '#default_value' => $component->id(),
+      '#default_value' => $id_default,
       '#machine_name' => [
-        'exists' => '\Drupal\ui_builder\Entity\UiBuilderComponent::load',
+        'exists' => '\Drupal\ui_builder\Form\UiBuilderComponentForm::exists',
       ],
+      '#field_prefix' => 'uib_',
       '#disabled' => !$component->isNew(),
     ];
 
@@ -47,7 +53,7 @@ class UiBuilderComponentForm extends EntityForm {
           'ui_builder/builder_app',
         ],
       ],
-      '#weight' => -10,
+      '#weight' => 5,
     ];
 
     // Technical details container (hidden by default)
@@ -97,6 +103,28 @@ class UiBuilderComponentForm extends EntityForm {
     ];
 
     return $form;
+  }
+
+  /**
+   * Checks if a component machine name exists.
+   */
+  public static function exists($id) {
+    return (bool) \Drupal\ui_builder\Entity\UiBuilderComponent::load('uib_' . $id);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildEntity(array $form, FormStateInterface $form_state) {
+    $entity = parent::buildEntity($form, $form_state);
+    
+    // Ensure the ID has the uib_ prefix.
+    $id = $entity->id();
+    if ($id && strpos($id, 'uib_') !== 0) {
+      $entity->set('id', 'uib_' . $id);
+    }
+    
+    return $entity;
   }
 
   /**
