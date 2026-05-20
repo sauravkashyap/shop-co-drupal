@@ -613,12 +613,24 @@ export function PropertiesPanel({
                     <>
 
                       <div className="form-group">
-                        <label>{selectedNode.tag === 'img' ? 'Image Source' : 'Text Content'}</label>
-                        {selectedNode.tag === 'img' ? (
+                        <label>{selectedNode.tag === 'img' || selectedNode.props?.class?.includes('background_image') ? 'Image Source' : 'Text Content'}</label>
+                        {selectedNode.tag === 'img' || selectedNode.props?.class?.includes('background_image') ? (
                           <ImageEditor
                             mode={selectedNode.fieldMode || 'static'}
                             value={selectedNode.content || ''}
-                            onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
+                            onUpdate={(val, m) => {
+                              const updates = { content: val, fieldMode: m };
+                              if (selectedNode.tag !== 'img' && selectedNode.props?.class?.includes('background_image')) {
+                                updates.props = {
+                                  ...selectedNode.props,
+                                  style: {
+                                    ...selectedNode.props?.style,
+                                    backgroundImage: val ? `url('${val}')` : ''
+                                  }
+                                };
+                              }
+                              updateNodeField(selectedNode.id, updates);
+                            }}
                           />
                         ) : (
                           <FieldEditor
