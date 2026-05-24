@@ -482,6 +482,10 @@ class UiBuilderJsonFormatter extends FormatterBase {
             } else {
               $final_value = $value_data['value'];
             }
+            
+            if (!empty($value_data['isBgImage'])) {
+              $data['props']['isBgImage'] = true;
+            }
           } else {
             $final_value = is_scalar($value_data) ? $value_data : '';
           }

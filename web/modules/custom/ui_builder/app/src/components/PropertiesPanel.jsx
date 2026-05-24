@@ -670,11 +670,25 @@ export function PropertiesPanel({
                             <div className="form-group" key={key}>
                               <label>{fieldSchema.title || key}</label>
                               {fieldSchema.type === 'image' ? (
-                                <ImageEditor
-                                  mode={entry.mode}
-                                  value={entry.value}
-                                  onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
-                                />
+                                <>
+                                  <ImageEditor
+                                    mode={entry.mode}
+                                    value={entry.value}
+                                    onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
+                                  />
+                                  <div className="form-group" style={{ marginTop: '16px', display: 'flex', alignItems: 'center' }}>
+                                    <input 
+                                      type="checkbox" 
+                                      id={`bg-toggle-${key}`}
+                                      checked={entry.isBgImage || false}
+                                      onChange={(e) => {
+                                        updateInstanceValue(selectedNode.id, key, entry.value, entry.mode, { isBgImage: e.target.checked });
+                                      }}
+                                      style={{ marginRight: '8px', cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor={`bg-toggle-${key}`} style={{ marginBottom: 0, cursor: 'pointer' }}>Use as Background Image</label>
+                                  </div>
+                                </>
                               ) : (
                                 <FieldEditor
                                   mode={entry.mode}

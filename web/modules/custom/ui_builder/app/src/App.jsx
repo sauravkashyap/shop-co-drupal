@@ -688,12 +688,12 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     });
   };
 
-  const updateInstanceValue = (instanceId, key, value, valueMode = 'static') => {
+  const updateInstanceValue = (instanceId, key, value, valueMode = 'static', extra = {}) => {
     setLayoutTree(prev => {
       const tree = deepClone(prev);
       const node = findNodeById(tree, instanceId);
       if (node) {
-        node.values = { ...(node.values || {}), [key]: { mode: valueMode, value } };
+        node.values = { ...(node.values || {}), [key]: { ...(node.values?.[key] || {}), mode: valueMode, value, ...extra } };
         applyComponentValues(node.children, node.values);
       }
       return tree;
