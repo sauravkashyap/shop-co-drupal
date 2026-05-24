@@ -427,7 +427,7 @@ export function PropertiesPanel({
   }
 
   // NODE EDITOR
-  const isPrimitive = !!selectedNode.tag;
+  const isPrimitive = !selectedNode.component_id && !!selectedNode.tag;
   const currentClasses = selectedNode.props?.class || '';
   const classesArray = currentClasses.split(/\s+/).filter(Boolean);
   const isColumn = classesArray.includes('column') || selectedNode.label === 'Column';

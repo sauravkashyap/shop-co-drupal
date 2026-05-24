@@ -50,7 +50,7 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
 
           return (
             <div key={child.id} className={`ss-box-col-slot ${colSpanClass} ${childUniqueClass}`}>
-              {isDraggingGlobal && <DropGap parentId={parentNode.id} index={i} isActive={isDraggingGlobal} />}
+              {isDraggingGlobal && !isInherited && <DropGap parentId={parentNode.id} index={i} isActive={isDraggingGlobal} />}
               <SortableNode
                 node={child}
                 mode={mode}
@@ -70,9 +70,9 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
             </div>
           );
         })}
-        {isDraggingGlobal && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
+        {isDraggingGlobal && !isInherited && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
         {/* Empty drop area for rows to allow dropping columns */}
-        <div className={`ss-box-empty-drop-area ${isDraggingGlobal ? 'ss-box-empty-drop-area-visible' : ''}`} style={{ width: '100%' }} />
+        {!isInherited && <div className={`ss-box-empty-drop-area ${isDraggingGlobal ? 'ss-box-empty-drop-area-visible' : ''}`} style={{ width: '100%' }} />}
       </div>
     );
   }
@@ -82,7 +82,7 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
     <div className="ss-box-children-wrap">
       {children.map((child, i) => (
         <div key={child.id} className="ss-drop-slot">
-          {isDraggingGlobal && <DropGap parentId={parentNode.id} index={i} isActive={isDraggingGlobal} />}
+          {isDraggingGlobal && !isInherited && <DropGap parentId={parentNode.id} index={i} isActive={isDraggingGlobal} />}
           <SortableNode
             node={child}
             mode={mode}
@@ -102,9 +102,9 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
         </div>
       ))}
       {/* Final gap — drop after last child */}
-      {isDraggingGlobal && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
+      {isDraggingGlobal && !isInherited && <DropGap parentId={parentNode.id} index={children.length} isActive={isDraggingGlobal} />}
       {/* Empty padding at the bottom of a container to allow dropping */}
-      <div className={`ss-box-empty-drop-area ${isDraggingGlobal ? 'ss-box-empty-drop-area-visible' : ''}`} />
+      {!isInherited && <div className={`ss-box-empty-drop-area ${isDraggingGlobal ? 'ss-box-empty-drop-area-visible' : ''}`} />}
     </div>
   );
 }

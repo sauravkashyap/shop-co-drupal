@@ -3,7 +3,6 @@ import { useDroppable } from '@dnd-kit/core';
 import { NodeChildren } from './NodeChildren';
 import { CONTAINER_TAGS } from '../constants/elements';
 import { useDragState } from '../contexts/DragStateContext';
-import { hasUniqueStyles } from '../utils/treeUtils';
 
 // Returns the icon and background color for the element box
 function getElementBranding(tag, label, isInstance) {
@@ -62,11 +61,12 @@ export function NodeCard({
   isInherited = false
 }) {
   const { isDraggingGlobal } = useDragState();
+  const isInstance = !!node.component_id;
   // Make the container body a droppable zone for "drop inside as last child"
-  const isContainer = CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0) || !!node.component_id;
+  const isContainer = CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0);
   const { setNodeRef: setDropInsideRef, isOver: isOverInside } = useDroppable({ 
     id: `inside::${node.id}`,
-    disabled: !isContainer || isDragging,
+    disabled: !isContainer || isDragging || isInherited || isInstance,
   });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -98,7 +98,6 @@ export function NodeCard({
   const isRow = node.label === 'Row for columns' || (node.label && node.label.startsWith('Row'));
   const isColumn = node.label === 'Column';
   const showDropOver = isOverInside && isContainer && !isDragging && isDraggingGlobal;
-  const isInstance = !!node.component_id;
 
   let displayName = isInstance
     ? (node.label || 'Component')
@@ -106,7 +105,7 @@ export function NodeCard({
 
   // Add layout info to display name for Rows and Columns
   if (isColumn) {
-    let span = '12';
+    let span;
     const customWidth = node.instanceStyles?.custom_properties?.['max-width'];
     if (customWidth) {
       const pct = parseFloat(customWidth.replace('%', ''));
@@ -162,7 +161,7 @@ export function NodeCard({
 
         {(isContainer || node.content) && (
           <>
-            {isContainer && (
+            {isContainer && !isInherited && !isInstance && (
               <button
                 type="button"
                 className="ss-box-action ss-box-targeted-add"
@@ -183,58 +182,60 @@ export function NodeCard({
           </>
         )}
 
-        <div className="ss-box-menu-container" ref={menuRef} onClick={e => e.stopPropagation()}>
-          <button
-            type="button"
-            className="ss-box-action ss-box-options-btn"
-            onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            title="Options"
-          >
-            •••
-          </button>
-          
-          {showMenu && (
-            <div className="ss-box-dropdown">
-              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onOpenProperties) onOpenProperties(node.id); }}>Edit Settings</button>
-              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDuplicate) onDuplicate(node.id); }}>Duplicate</button>
-              
-              {/* Quick Add Shortcuts */}
-               {node.tag === 'table' && (
-                <>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'thead'); }}>+ Add Table Head (thead)</button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tbody'); }}>+ Add Table Body (tbody)</button>
+        {!isInherited && (
+          <div className="ss-box-menu-container" ref={menuRef} onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              className="ss-box-action ss-box-options-btn"
+              onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
+              title="Options"
+            >
+              •••
+            </button>
+            
+            {showMenu && (
+              <div className="ss-box-dropdown">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onOpenProperties) onOpenProperties(node.id); }}>Edit Settings</button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDuplicate) onDuplicate(node.id); }}>Duplicate</button>
+                
+                {/* Quick Add Shortcuts */}
+                 {node.tag === 'table' && (
+                  <>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'thead'); }}>+ Add Table Head (thead)</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tbody'); }}>+ Add Table Body (tbody)</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
+                  </>
+                )}
+                {['thead', 'tbody'].includes(node.tag) && (
                   <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
-                </>
-              )}
-              {['thead', 'tbody'].includes(node.tag) && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'tr'); }}>+ Add Row (tr)</button>
-              )}
-              {node.tag === 'tr' && (
-                <>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'td'); }}>+ Add Cell (td)</button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'th'); }}>+ Add Cell (th)</button>
-                </>
-              )}
-              {node.tag === 'form' && (
-                <>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'input'); }}>+ Add Input</button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'label'); }}>+ Add Label</button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'select'); }}>+ Add Select</button>
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'textarea'); }}>+ Add Textarea</button>
-                </>
-              )}
-              {['ul', 'ol'].includes(node.tag) && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'li'); }}>+ Add Item</button>
-              )}
-              {node.tag === 'select' && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'option'); }}>+ Add Option</button>
-              )}
+                )}
+                {node.tag === 'tr' && (
+                  <>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'td'); }}>+ Add Cell (td)</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'th'); }}>+ Add Cell (th)</button>
+                  </>
+                )}
+                {node.tag === 'form' && (
+                  <>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'input'); }}>+ Add Input</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'label'); }}>+ Add Label</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'select'); }}>+ Add Select</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'textarea'); }}>+ Add Textarea</button>
+                  </>
+                )}
+                {['ul', 'ol'].includes(node.tag) && (
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'li'); }}>+ Add Item</button>
+                )}
+                {node.tag === 'select' && (
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onQuickAdd) onQuickAdd(node.id, 'option'); }}>+ Add Option</button>
+                )}
 
-              <div className="ss-box-dropdown-divider"></div>
-              <button type="button" className="ss-box-dropdown-danger" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDelete) onDelete(node.id); }}>Delete</button>
-            </div>
-          )}
-        </div>
+                <div className="ss-box-dropdown-divider"></div>
+                <button type="button" className="ss-box-dropdown-danger" onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (onDelete) onDelete(node.id); }}>Delete</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Body / Children */}

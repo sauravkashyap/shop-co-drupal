@@ -24,7 +24,9 @@ import {
   findNodeLocation, 
   hydrateTree, 
   deleteNodeById, 
-  canAcceptChild 
+  canAcceptChild,
+  findComponentRootForNode,
+  applyComponentValues
 } from './utils/treeUtils';
 
 // Components
@@ -50,14 +52,53 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           if (comp) {
             try {
               const masterLayout = typeof comp.layout_tree === 'string' ? JSON.parse(comp.layout_tree) : comp.layout_tree;
-              const cloneWithNewIds = (n) => {
-                if (!n) return null;
-                const nn = { ...n, id: Math.random().toString(36).substr(2, 9) };
-                if (nn.children) nn.children = nn.children.map(cloneWithNewIds);
-                return nn;
-              };
-              hydratedNode.children = (masterLayout || []).map(cloneWithNewIds).filter(Boolean);
+
+              // Detect a single-leaf component: master layout is exactly one non-container,
+              // childless element. In this case the instance node itself IS that element —
+              // inflating master layout as children would create a duplicate wrapper.
+              const masterRoot = masterLayout && masterLayout[0];
+              const isSingleLeaf =
+                masterLayout &&
+                masterLayout.length === 1 &&
+                masterRoot &&
+                !CONTAINER_TAGS.includes(masterRoot.tag || masterRoot.type || '') &&
+                !(masterRoot.children && masterRoot.children.length > 0);
+
               hydratedNode.isComponentRoot = true;
+
+              if (!hydratedNode.values) {
+                hydratedNode.values = {};
+                const schema = typeof comp.form_schema === 'string' ? JSON.parse(comp.form_schema) : comp.form_schema;
+                if (schema && typeof schema === 'object') {
+                  Object.entries(schema).forEach(([fieldKey, fieldDef]) => {
+                    if (fieldDef && fieldDef.default) {
+                      hydratedNode.values[fieldKey] = { ...fieldDef.default };
+                    }
+                  });
+                }
+              }
+
+              if (isSingleLeaf) {
+                // The instance node already IS the leaf element.
+                // Re-apply any override values directly to the node's own content/props.
+                applyComponentValues([hydratedNode], hydratedNode.values);
+              } else {
+                const cloneWithNewIds = (n) => {
+                  if (!n) return null;
+                  const nn = {
+                    ...n,
+                    tag: n.tag || n.type,
+                    id: Math.random().toString(36).substr(2, 9),
+                    originalId: n.originalId || n.id,
+                    originalContent: n.originalContent !== undefined ? n.originalContent : n.content,
+                    originalProps: n.originalProps || (n.props ? { ...n.props } : {})
+                  };
+                  if (nn.children) nn.children = nn.children.map(cloneWithNewIds);
+                  return nn;
+                };
+                hydratedNode.children = (masterLayout || []).map(cloneWithNewIds).filter(Boolean);
+                applyComponentValues(hydratedNode.children, hydratedNode.values);
+              }
             } catch (e) { console.error('Failed to hydrate component on load', e); }
           }
         }
@@ -114,9 +155,11 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   
   // Single click — select/highlight only (for drag-drop)
   const selectNode = (id) => {
-    setSelectedNodeId(id);
+    const compRoot = findComponentRootForNode(layoutTree, id);
+    const targetId = compRoot ? compRoot.id : id;
+    setSelectedNodeId(targetId);
     setCurrentStyle(null);
-    selectedNodeIdRef.current = id;
+    selectedNodeIdRef.current = targetId;
   };
 
   const startTargetedAdd = (parentId) => {
@@ -128,10 +171,12 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
 
   // Double click — open properties panel
   const openProperties = (id) => {
-    setSelectedNodeId(id);
+    const compRoot = findComponentRootForNode(layoutTree, id);
+    const targetId = compRoot ? compRoot.id : id;
+    setSelectedNodeId(targetId);
     setCurrentStyle(null);
-    setPropertiesOpenId(id);
-    selectedNodeIdRef.current = id;
+    setPropertiesOpenId(targetId);
+    selectedNodeIdRef.current = targetId;
   };
 
   const sensors = useSensors(
@@ -508,14 +553,75 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           ...n,
           tag: n.tag || n.type,
           id: Math.random().toString(36).substr(2, 9),
+          originalId: n.originalId || n.id,
+          originalContent: n.originalContent !== undefined ? n.originalContent : n.content,
+          originalProps: n.originalProps || (n.props ? { ...n.props } : {}),
           children: cloneWithNewIds(n.children)
         };
       }).filter(Boolean);
     };
 
-    const nodesToAdd = cloneWithNewIds(masterLayout).map(n => ({
+    const initialValues = {};
+    const schema = typeof comp.form_schema === 'string' ? JSON.parse(comp.form_schema) : comp.form_schema;
+    if (schema && typeof schema === 'object') {
+      Object.entries(schema).forEach(([fieldKey, fieldDef]) => {
+        if (fieldDef && fieldDef.default) {
+          initialValues[fieldKey] = { ...fieldDef.default };
+        }
+      });
+    }
+
+    const clonedChildren = cloneWithNewIds(masterLayout);
+
+    // Detect single-leaf component (matches the hydration path detection).
+    const masterRoot = masterLayout && masterLayout[0];
+    const isSingleLeaf =
+      masterLayout &&
+      masterLayout.length === 1 &&
+      masterRoot &&
+      !CONTAINER_TAGS.includes(masterRoot.tag || masterRoot.type || '') &&
+      !(masterRoot.children && masterRoot.children.length > 0);
+
+    if (isSingleLeaf) {
+      // For a single-leaf component the cloned element itself is the instance root.
+      // Stamp component_id on it and apply values directly to the node.
+      const singleNode = {
+        ...clonedChildren[0],
+        component_id: compId,
+        isComponentRoot: true,
+        values: initialValues
+      };
+      applyComponentValues([singleNode], initialValues);
+      const nodesToAdd = [singleNode];
+      if (nodesToAdd.length === 0) return;
+
+      setLayoutTree(prev => {
+        const tree = deepClone(prev);
+        const targetId = pendingParentId || selectedNodeIdRef.current;
+        if (targetId) {
+          const target = findNodeById(tree, targetId);
+          const targetIsContainer = CONTAINER_TAGS.includes(target?.tag) || (target?.children && target?.children.length > 0);
+          if (targetIsContainer) {
+            target.children = target.children || [];
+            target.children.push(...nodesToAdd);
+            setPendingParentId(null);
+            return tree;
+          }
+        }
+        setPendingParentId(null);
+        return [...tree, ...nodesToAdd];
+      });
+      return;
+    }
+
+    // Multi-element / container component: apply values to children.
+    applyComponentValues(clonedChildren, initialValues);
+
+    const nodesToAdd = clonedChildren.map(n => ({
       ...n,
-      component_id: compId
+      component_id: compId,
+      isComponentRoot: true,
+      values: initialValues
     }));
     if (nodesToAdd.length === 0) return;
 
@@ -586,7 +692,10 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     setLayoutTree(prev => {
       const tree = deepClone(prev);
       const node = findNodeById(tree, instanceId);
-      if (node) { node.values = { ...(node.values || {}), [key]: { mode: valueMode, value } }; }
+      if (node) {
+        node.values = { ...(node.values || {}), [key]: { mode: valueMode, value } };
+        applyComponentValues(node.children, node.values);
+      }
       return tree;
     });
   };

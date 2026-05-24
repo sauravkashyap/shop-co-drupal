@@ -101,6 +101,37 @@ class UiBuilderJsonFormatter extends FormatterBase {
           
           if (is_array($layout_tree)) {
             $values = $component['values'] ?? [];
+
+            // Merge form_schema defaults for any keys not explicitly set at
+            // the node level. This ensures components render their built-in
+            // default content when the editor has not overridden a field.
+            $form_schema_raw = $config_entity->getFormSchema();
+            if ($form_schema_raw) {
+              $form_schema = is_string($form_schema_raw)
+                ? json_decode($form_schema_raw, TRUE)
+                : $form_schema_raw;
+              if (is_array($form_schema)) {
+                foreach ($form_schema as $field_key => $field_def) {
+                  if (!isset($values[$field_key]) && isset($field_def['default'])) {
+                    $values[$field_key] = $field_def['default'];
+                  }
+                }
+              }
+            }
+
+            // Pass instance-level properties to the layout tree root
+            if (isset($layout_tree[0])) {
+              if (isset($component['props']['class'])) {
+                $layout_tree[0]['props']['class'] = trim(($layout_tree[0]['props']['class'] ?? '') . ' ' . $component['props']['class']);
+              }
+              if (isset($component['props']['isBgImage'])) {
+                $layout_tree[0]['props']['isBgImage'] = $component['props']['isBgImage'];
+              }
+              if (!empty($component['id'])) {
+                 $layout_tree[0]['props']['class'] = trim(($layout_tree[0]['props']['class'] ?? '') . ' uib-' . $component['id']);
+              }
+            }
+
             // Map the values into the layout tree.
             $mapped_tree = $this->processTokens($layout_tree, $values, $entity);
             
@@ -144,8 +175,11 @@ class UiBuilderJsonFormatter extends FormatterBase {
       // Repair logic: Convert legacy 'div' tags back to semantic tags based on label.
       $tag = $component['tag'] ?? 'div';
       $label = $component['label'] ?? '';
-      
-      if ($tag === 'div' || empty($tag)) {
+
+      // Background-image containers must always remain a div — skip label repair.
+      $is_bg_image = !empty($component['props']['isBgImage']);
+
+      if (!$is_bg_image && ($tag === 'div' || empty($tag))) {
         if (strpos($label, 'Heading 1') !== FALSE) $tag = 'h1';
         elseif (strpos($label, 'Heading 2') !== FALSE) $tag = 'h2';
         elseif (strpos($label, 'Heading 3') !== FALSE) $tag = 'h3';
@@ -372,17 +406,25 @@ class UiBuilderJsonFormatter extends FormatterBase {
         $element['#attributes'] = $attributes;
       }
 
-      // Special handling for background images
-      if (!empty($component['props']['isBgImage'])) {
-        $img_content = $component['content'] ?? '';
-        if ($img_content) {
-          $element['#attributes']['style'] = "background-image: url('{$img_content}');";
+      // Special handling for background images.
+      // When isBgImage is set, always render a <div> with background-image CSS —
+      // even if the stored tag is still 'img' (legacy data). This ensures the
+      // frontend is always correct regardless of editor migration state.
+      if ($is_bg_image) {
+        // Force div tag on the element (handles legacy nodes where tag='img').
+        $element['#tag'] = 'div';
+        $img_url = $component['content'] ?? '';
+        if ($img_url) {
+          $element['#attributes']['style'] = "background-image: url('{$img_url}');";
         }
         $element['#attributes']['class'][] = 'background_image';
+        // Render any child nodes inside the background div.
+        if (!empty($component['children']) && is_array($component['children'])) {
+          $element['children'] = $this->buildRenderArray($component['children'], $entity);
+        }
       }
-
-      // Special handling for <img> tags: content should be the 'src' attribute.
-      if (strtolower($tag) === 'img') {
+      // Special handling for plain <img> tags: content is the 'src' attribute.
+      elseif (strtolower($tag) === 'img') {
         $img_content = $component['content'] ?? '';
         if (is_array($img_content)) {
           // Handle multiple images by rendering them all.

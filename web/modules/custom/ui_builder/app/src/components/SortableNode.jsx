@@ -6,9 +6,11 @@ export function SortableNode({ node, mode, selectedId, onSelect, onOpenPropertie
     attributes, 
     listeners, 
     setNodeRef, 
-    transform, 
     isDragging 
-  } = useDraggable({ id: node.id });
+  } = useDraggable({ 
+    id: node.id,
+    disabled: isInherited
+  });
 
   const style = {
     opacity: isDragging ? 0.3 : 1,

@@ -97,3 +97,76 @@ export function hasUniqueStyles(node) {
   
   return false;
 }
+
+export function findComponentRootForNode(nodes, targetId, currentComponentRoot = null) {
+  for (const node of nodes) {
+    const nextComponentRoot = node.component_id ? node : currentComponentRoot;
+    if (node.id === targetId) {
+      return nextComponentRoot;
+    }
+    if (node.children) {
+      const found = findComponentRootForNode(node.children, targetId, nextComponentRoot);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+export function applyComponentValues(nodes, values) {
+  if (!nodes || !Array.isArray(nodes)) return;
+
+  nodes.forEach(node => {
+    if (node.originalContent === undefined) {
+      node.originalContent = node.content !== undefined ? node.content : '';
+    }
+    if (node.originalProps === undefined) {
+      node.originalProps = node.props ? { ...node.props } : {};
+    }
+    if (node.originalId === undefined) {
+      node.originalId = node.id;
+    }
+
+    let key = null;
+    if (node.fieldLabel) {
+      key = node.fieldLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+    } else if (node.originalId) {
+      key = 'field_' + node.originalId;
+    }
+
+    if (key && values && values[key] !== undefined) {
+      const valData = values[key];
+      let finalVal;
+      if (valData && typeof valData === 'object' && 'value' in valData) {
+        finalVal = valData.value;
+      } else {
+        finalVal = valData !== null && valData !== undefined ? String(valData) : '';
+      }
+      node.content = finalVal;
+    } else {
+      node.content = node.originalContent;
+    }
+
+    if (node.props) {
+      for (const propName of Object.keys(node.originalProps)) {
+        const propVal = node.originalProps[propName];
+        if (typeof propVal === 'string') {
+          let resolvedVal = propVal;
+          if (values) {
+            for (const [valKey, valData] of Object.entries(values)) {
+              const finalVal = (valData && typeof valData === 'object' && 'value' in valData) ? valData.value : String(valData || '');
+              resolvedVal = resolvedVal.replace(new RegExp(`\\{\\{\\s*${valKey}\\s*\\}\\}`, 'g'), finalVal);
+            }
+          }
+          node.props[propName] = resolvedVal;
+        } else {
+          node.props[propName] = propVal;
+        }
+      }
+    }
+
+    if (node.children && Array.isArray(node.children)) {
+      applyComponentValues(node.children, values);
+    }
+  });
+}
+
