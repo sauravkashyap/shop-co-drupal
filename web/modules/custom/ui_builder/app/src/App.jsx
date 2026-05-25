@@ -26,7 +26,8 @@ import {
   deleteNodeById, 
   canAcceptChild,
   findComponentRootForNode,
-  applyComponentValues
+  applyComponentValues,
+  cleanLegacySchema
 } from './utils/treeUtils';
 
 // Components
@@ -113,7 +114,8 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     const rawComps = initialComponents || [];
     return rawComps.map(comp => ({
       ...comp,
-      layout_tree: comp.layout_tree ? (typeof comp.layout_tree === 'string' ? JSON.parse(comp.layout_tree) : hydrateTree(comp.layout_tree)) : []
+      layout_tree: comp.layout_tree ? (typeof comp.layout_tree === 'string' ? JSON.parse(comp.layout_tree) : hydrateTree(comp.layout_tree)) : [],
+      form_schema: cleanLegacySchema(comp.form_schema)
     }));
   });
   const [customStyles, setCustomStyles] = useState([]);
@@ -207,7 +209,10 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
               key = `field_${node.id}`;
             }
             
-            const title = node.fieldLabel || (node.fieldMode === 'mapping' ? `Mapped: ${node.content}` : `${node.tag.toUpperCase()}: ${String(typeof node.content === 'string' ? node.content : (node.tag === 'img' ? 'Image' : '')).substring(0, 20)}`);
+            let previewContent = typeof node.content === 'string' ? node.content.trim() : (node.tag === 'img' ? 'Image' : '');
+            if (/^\{\{\s*field_/i.test(previewContent)) previewContent = '';
+            const defaultTitle = previewContent ? `${node.tag.toUpperCase()}: ${previewContent.substring(0, 20)}` : `${node.tag.toUpperCase()} Field`;
+            const title = node.fieldLabel || (node.fieldMode === 'mapping' ? `Mapped: ${node.content}` : defaultTitle);
             const fieldType = node.tag === 'img' ? 'image' : 'textfield';
             
             newSchema[key] = { 
@@ -1003,7 +1008,18 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   }
 
   return (
-    <div className={`ui-builder-container mode-${mode}`}>
+    <div 
+      className={`ui-builder-container mode-${mode}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && e.target.tagName.toLowerCase() === 'input') {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+            e.nativeEvent.stopImmediatePropagation();
+          }
+        }
+      }}
+    >
       <ActionBar 
         mode={mode} 
         onSavePage={handleSavePage}

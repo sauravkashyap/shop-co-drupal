@@ -432,10 +432,18 @@ export function PropertiesPanel({
   const classesArray = currentClasses.split(/\s+/).filter(Boolean);
   const isColumn = classesArray.includes('column') || selectedNode.label === 'Column';
   const label = selectedNode.label || '';
-  const isLayoutElement = label.startsWith('Container') || label.startsWith('Plain Div') || label.startsWith('Row') || label.startsWith('Column');
+  const isLayoutElement = isPrimitive && ['div', 'section', 'article', 'main', 'aside', 'nav'].includes(selectedNode.tag) && !selectedNode.props?.isBgImage;
 
   return (
-    <>
+    <div onKeyDown={(e) => {
+      if (e.key === 'Enter' && e.target.tagName.toLowerCase() === 'input') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+          e.nativeEvent.stopImmediatePropagation();
+        }
+      }
+    }}>
       <div className="properties-backdrop" onClick={onDeselect} />
       <aside className="ui-builder-properties" onClick={e => e.stopPropagation()}>
         <div className="properties-header">
@@ -666,9 +674,24 @@ export function PropertiesPanel({
                         return entries.map(([key, fieldSchema]) => {
                           const data = selectedNode.values?.[key] || { mode: 'static', value: '' };
                           const entry = typeof data === 'object' ? data : { mode: 'static', value: data };
+                          
+                          // Clean up legacy titles that might have "IMG: {{ FIELD_XYZ }}" baked into them
+                          let displayTitle = fieldSchema.title || key;
+                          if (typeof displayTitle === 'string') {
+                            // Try to strip anything from the first '{' to the last '}'
+                            let firstBrace = displayTitle.indexOf('{');
+                            let lastBrace = displayTitle.lastIndexOf('}');
+                            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                              displayTitle = displayTitle.substring(0, firstBrace) + displayTitle.substring(lastBrace + 1);
+                            }
+                            
+                            displayTitle = displayTitle.replace(/\{\s*\{[\s\S]*?\}\s*\}/g, '').replace(/:\s*$/, '').trim();
+                            if (!displayTitle) displayTitle = `${key} Field`;
+                          }
+
                           return (
                             <div className="form-group" key={key}>
-                              <label>{fieldSchema.title || key}</label>
+                              <label>{displayTitle}</label>
                               {fieldSchema.type === 'image' ? (
                                 <>
                                   <ImageEditor
@@ -843,6 +866,6 @@ export function PropertiesPanel({
           </div>
         </div>
       </aside>
-    </>
+    </div>
   );
 }

@@ -9,7 +9,22 @@ export function FieldEditor({ mode, value, onUpdate }) {
         {mode === 'mapping' ? (
           <div className="input-with-prefix">
             <span className="prefix">[</span>
-            <input type="text" className="mapping-source-input" value={value || ''} placeholder="e.g. node:title" onChange={e => onUpdate(e.target.value, 'mapping')} />
+            <input 
+              type="text" 
+              className="mapping-source-input" 
+              value={value || ''} 
+              placeholder="e.g. node:title" 
+              onChange={e => onUpdate(e.target.value, 'mapping')} 
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+                    e.nativeEvent.stopImmediatePropagation();
+                  }
+                }
+              }}
+            />
             <span className="prefix">]</span>
           </div>
         ) : (

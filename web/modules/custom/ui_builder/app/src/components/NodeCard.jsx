@@ -243,12 +243,12 @@ export function NodeCard({
         <div 
           ref={setDropInsideRef} 
           className={`ss-box-body ${isRow ? 'ss-box-row-body' : ''} ${showDropOver ? 'ss-box-drop-inside-active' : ''}`}
-          style={node.props?.isBgImage ? { 
+          style={(node.props?.isBgImage && node.content && !(typeof node.content === 'string' && /^\{\{\s*field_/.test(node.content.trim()))) ? { 
             backgroundImage: `url(${node.content})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             minHeight: '100px'
-          } : {}}
+          } : (node.props?.isBgImage ? { minHeight: '100px', backgroundColor: '#f3f4f6', border: '1px dashed #cbd5e1' } : {})}
         >
           <NodeChildren
             parentNode={node}
@@ -271,21 +271,26 @@ export function NodeCard({
       )}
 
       {/* Text or Image Content */}
-      {!isCollapsed && !isContainer && node.content && (
-        <div className="ss-box-text-content">
-          {node.tag === 'img' ? (
-            <div className="ss-box-image-preview">
-              <img 
-                src={node.content} 
-                alt="Preview" 
-                style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', display: 'block', margin: '0 auto' }} 
-              />
-            </div>
-          ) : (
-            node.content
-          )}
-        </div>
-      )}
+      {(() => {
+        const isAutoAssignedField = (str) => typeof str === 'string' && /^\{\{\s*field_/i.test(str.trim());
+        const displayContent = isAutoAssignedField(node.content) ? '' : node.content;
+
+        return !isCollapsed && !isContainer && displayContent && (
+          <div className="ss-box-text-content">
+            {node.tag === 'img' ? (
+              <div className="ss-box-image-preview">
+                <img 
+                  src={displayContent} 
+                  alt="Preview" 
+                  style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', display: 'block', margin: '0 auto' }} 
+                />
+              </div>
+            ) : (
+              displayContent
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

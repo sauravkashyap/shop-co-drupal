@@ -26,12 +26,53 @@ export function findNodeLocation(nodes, id) {
   return null;
 }
 
+export const cleanLegacyText = (text) => {
+  if (typeof text !== 'string') return text;
+  let cleanText = text;
+  let firstBrace = cleanText.indexOf('{');
+  let lastBrace = cleanText.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleanText = cleanText.substring(0, firstBrace) + cleanText.substring(lastBrace + 1);
+  }
+  return cleanText.replace(/\{\s*\{[\s\S]*?\}\s*\}/g, '').replace(/:\s*$/, '').trim();
+};
+
+export const cleanLegacySchema = (schema) => {
+  if (!schema) return schema;
+  let parsed = typeof schema === 'string' ? JSON.parse(schema) : schema;
+  if (typeof parsed !== 'object') return schema;
+  const newSchema = { ...parsed };
+  Object.keys(newSchema).forEach(key => {
+    if (newSchema[key] && newSchema[key].title) {
+      newSchema[key].title = cleanLegacyText(newSchema[key].title);
+      if (!newSchema[key].title) newSchema[key].title = `${key} Field`;
+    }
+  });
+  return typeof schema === 'string' ? JSON.stringify(newSchema) : newSchema;
+};
+
 export function hydrateTree(nodes) {
-  return nodes.map(node => ({
-    ...node,
-    props: node.props || {},
-    children: node.children ? hydrateTree(node.children) : (node.isField ? undefined : [])
-  }));
+  return nodes.map(node => {
+    let cleanLabel = node.label;
+    if (cleanLabel) {
+      cleanLabel = cleanLegacyText(cleanLabel);
+      if (!cleanLabel) {
+        cleanLabel = node.tag ? node.tag.charAt(0).toUpperCase() + node.tag.slice(1) : 'Element';
+      }
+    }
+    let cleanContent = node.content;
+    if (typeof cleanContent === 'string') {
+      cleanContent = cleanLegacyText(cleanContent);
+    }
+    
+    return {
+      ...node,
+      label: cleanLabel,
+      content: cleanContent,
+      props: node.props || {},
+      children: node.children ? hydrateTree(node.children) : (node.isField ? undefined : [])
+    };
+  });
 }
 
 export function deleteNodeById(nodes, id) {
