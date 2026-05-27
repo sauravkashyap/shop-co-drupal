@@ -18,7 +18,7 @@ export const ELEMENT_CATEGORIES = [
     name: 'Media',
     elements: [
       { type: 'img', label: 'Image', icon: '🖼', isField: true, defaultProps: { class: 'uib-img' } },
-      { type: 'svg', label: 'SVG', icon: 'S', isField: true, defaultProps: { class: 'uib-svg' }, defaultContent: '<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" /></svg>' },
+      { type: 'svg', label: 'SVG', icon: 'S', isField: true, defaultProps: { class: 'uib-svg' } },
       { type: 'video', label: 'Video', icon: '▶', isField: true, defaultProps: { class: '' } },
     ]
   },

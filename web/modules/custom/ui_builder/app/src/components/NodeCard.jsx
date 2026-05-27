@@ -285,6 +285,24 @@ export function NodeCard({
                   style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', display: 'block', margin: '0 auto' }} 
                 />
               </div>
+            ) : node.tag === 'svg' ? (
+              // SVG: URL from media library → img preview; raw markup → render inline
+              <div className="ss-box-image-preview" style={{ textAlign: 'center', padding: '8px' }}>
+                {displayContent.trim().startsWith('<') ? (
+                  // Raw SVG markup — render it
+                  <div 
+                    style={{ display: 'inline-block', maxWidth: '100%', maxHeight: '150px' }}
+                    dangerouslySetInnerHTML={{ __html: displayContent }} 
+                  />
+                ) : (
+                  // URL from media library — show as img
+                  <img 
+                    src={displayContent} 
+                    alt="SVG Preview" 
+                    style={{ maxWidth: '100%', maxHeight: '150px', display: 'block', margin: '0 auto' }} 
+                  />
+                )}
+              </div>
             ) : (
               displayContent
             )}
