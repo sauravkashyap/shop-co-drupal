@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './MediaLibraryModal.css';
 
-export function MediaLibraryModal({ isOpen, onClose, onSelect }) {
+export function MediaLibraryModal({ isOpen, onClose, onSelect, accept = 'image/*,.svg' }) {
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -76,26 +76,42 @@ export function MediaLibraryModal({ isOpen, onClose, onSelect }) {
         
         <div className="media-library-modal-body">
           <div className="media-library-actions">
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="image/*,.svg" />
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept={accept} />
             <button type="button" className="upload-new-btn" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-              {isUploading ? 'Uploading...' : 'Upload New Image'}
+              {isUploading ? 'Uploading...' : 'Upload New Media'}
             </button>
-            <span className="media-library-help-text">Allowed formats: PNG, JPG, GIF, WEBP, SVG</span>
+            <span className="media-library-help-text">
+              {accept === '.svg,image/svg+xml' ? 'Allowed format: SVG' : 'Allowed formats: PNG, JPG, GIF, WEBP, SVG'}
+            </span>
           </div>
 
           {isLoading ? (
             <div className="loading-state">Loading images...</div>
           ) : (
             <div className="images-grid">
-              {images.map(img => (
-                <div key={img.mid} className="image-item" onClick={() => onSelect(img.url)}>
-                  <div className="image-wrapper">
-                    <img src={img.url} alt={img.name} title={img.name} />
+              {images
+                .filter(img => {
+                  // When opened from SVG element, only show SVG files
+                  if (accept === '.svg,image/svg+xml') {
+                    return img.url?.toLowerCase().endsWith('.svg') || img.mime === 'image/svg+xml';
+                  }
+                  return true;
+                })
+                .map(img => (
+                  <div key={img.mid} className="image-item" onClick={() => onSelect(img.url)}>
+                    <div className="image-wrapper">
+                      <img src={img.url} alt={img.name} title={img.name} />
+                    </div>
+                    <div className="image-name">{img.name}</div>
                   </div>
-                  <div className="image-name">{img.name}</div>
-                </div>
-              ))}
-              {images.length === 0 && <div className="no-images">No images found.</div>}
+                ))
+              }
+              {images.filter(img => {
+                if (accept === '.svg,image/svg+xml') {
+                  return img.url?.toLowerCase().endsWith('.svg') || img.mime === 'image/svg+xml';
+                }
+                return true;
+              }).length === 0 && <div className="no-images">No media found.</div>}
             </div>
           )}
         </div>

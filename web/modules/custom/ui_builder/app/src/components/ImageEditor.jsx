@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MediaLibraryModal } from './MediaLibraryModal';
 
-export function ImageEditor({ mode, value, onUpdate }) {
+export function ImageEditor({ mode, value, onUpdate, accept = 'image/*,.svg', label = 'Image' }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const images = Array.isArray(value) ? value : (value ? [value] : []);
@@ -53,7 +53,7 @@ export function ImageEditor({ mode, value, onUpdate }) {
             </div>
             
             <button type="button" className="upload-btn" onClick={() => setIsModalOpen(true)}>
-              {images.length > 0 ? 'Change / Add Image' : 'Select / Upload Image'}
+              {images.length > 0 ? `Change / Add ${label}` : `Select / Upload ${label}`}
             </button>
           </div>
         )}
@@ -62,6 +62,7 @@ export function ImageEditor({ mode, value, onUpdate }) {
       <MediaLibraryModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        accept={accept}
         onSelect={(url) => {
           onUpdate(url, 'static');
           setIsModalOpen(false);
