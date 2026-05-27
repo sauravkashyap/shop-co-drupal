@@ -1,0 +1,4 @@
+{# Clean footer branding — just the site name as a logo link #}
+<a href="{{ path('<front>') }}" class="site-footer__logo" rel="home">
+  {% if site_name %}{{ site_name }}{% endif %}
+</a>

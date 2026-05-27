@@ -20,3 +20,181 @@ body {
 /* =============================================================================
    3. Global Layout
    ============================================================================= */
+/* =============================================================================
+   Header
+   ============================================================================= */
+.site-header {
+  background-color: #8A63DF;
+}
+
+.site-header__inner {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 50px;
+  max-width: 1920px;
+  margin: 0 auto;
+}
+
+/* Logo */
+.site-header__logo {
+  color: #FFFFFF;
+  font-size: 36px;
+  font-family: var(--font-family-serif); /* Rosarivo */
+  font-weight: 400;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Nav list */
+.site-header__nav-list {
+  display: flex;
+  gap: 40px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Nav link */
+.site-header__nav-link {
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-family-headings); /* Roboto Condensed */
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: opacity 0.2s ease;
+}
+
+.site-header__nav-link:hover {
+  opacity: 0.75;
+}
+
+/* Active item */
+.site-header__nav-item.is-active .site-header__nav-link {
+  border-bottom: 2px solid #FFFFFF;
+  padding-bottom: 2px;
+}
+
+/* =============================================================================
+   Footer
+   ============================================================================= */
+.site-footer {
+  background-color: #8A63DF;
+  font-family: var(--font-family-headings);
+  color: #FFFFFF;
+}
+
+.site-footer__inner {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 60px 50px 40px;
+  gap: 40px;
+}
+
+/* Brand column */
+.site-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.site-footer__logo {
+  color: #FFFFFF;
+  font-family: var(--font-family-headings); /* Roboto Condensed Bold */
+  font-size: 96px;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1.25;
+}
+
+.site-footer__social {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+
+.site-footer__social-link img {
+  width: 30px;
+  height: 30px;
+  display: block;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.site-footer__social-link:hover img {
+  opacity: 1;
+}
+
+/* Link columns */
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.site-footer__col-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFFFFF;
+  font-family: var(--font-family-headings);
+}
+
+.site-footer__col-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.site-footer__col-link {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 17px;
+  font-weight: 400;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.site-footer__col-link:hover {
+  color: #FFFFFF;
+}
+
+/* Bottom bar */
+.site-footer__bottom {
+  border-top: 1px solid rgba(187, 199, 212, 0.5);
+}
+
+.site-footer__bottom-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 20px 50px;
+}
+
+.site-footer__copyright,
+.site-footer__credit {
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-family-headings);
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.hero-banner .uib-floating-text {
+  animation: marquee 20s linear infinite;
+}

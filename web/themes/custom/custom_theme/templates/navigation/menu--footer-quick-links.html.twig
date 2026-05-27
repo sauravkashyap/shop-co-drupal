@@ -1,0 +1,16 @@
+{# Clean footer menu nav list — no Drupal wrappers #}
+{% import _self as menus %}
+{{ menus.menu_links(items, 0) }}
+
+{% macro menu_links(items, menu_level) %}
+  {% import _self as menus %}
+  {% if items %}
+    <ul class="site-footer__col-list">
+      {% for item in items %}
+        <li class="site-footer__col-item">
+          <a class="site-footer__col-link" href="{{ item.url }}">{{ item.title }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endmacro %}

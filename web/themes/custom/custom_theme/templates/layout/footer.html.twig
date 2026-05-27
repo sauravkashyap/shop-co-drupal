@@ -1,0 +1,68 @@
+{#
+  Dynamic Site Footer — driven by Drupal regions & blocks.
+  footer_col_1 → Site Branding (logo + social)
+  footer_col_2 → Quick Links menu
+  footer_col_3 → About menu
+  footer_col_4 → Help Centre menu
+#}
+<footer class="site-footer">
+  <div class="site-footer__inner">
+
+    {# Col 1 — Brand (site branding block) + Social icons #}
+    {% if page.footer_col_1 %}
+      <div class="site-footer__brand">
+        {{ page.footer_col_1 }}
+        <div class="site-footer__social">
+          <a href="#" class="site-footer__social-link" aria-label="Behance">
+            <img src="/themes/custom/custom_theme/assets/ion-logo-behance.svg" alt="Behance" width="30" height="30">
+          </a>
+          <a href="#" class="site-footer__social-link" aria-label="Pinterest">
+            <img src="/themes/custom/custom_theme/assets/ion-logo-pinterest.svg" alt="Pinterest" width="30" height="30">
+          </a>
+          <a href="#" class="site-footer__social-link" aria-label="Instagram">
+            <img src="/themes/custom/custom_theme/assets/ion-logo-instagram.svg" alt="Instagram" width="30" height="30">
+          </a>
+          <a href="#" class="site-footer__social-link" aria-label="Twitter">
+            <img src="/themes/custom/custom_theme/assets/ion-logo-twitter.svg" alt="Twitter" width="30" height="30">
+          </a>
+          <a href="#" class="site-footer__social-link" aria-label="Facebook">
+            <img src="/themes/custom/custom_theme/assets/ion-logo-facebook.svg" alt="Facebook" width="30" height="30">
+          </a>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Col 2 — Quick Links #}
+    {% if page.footer_col_2 %}
+      <div class="site-footer__col">
+        {{ page.footer_col_2 }}
+      </div>
+    {% endif %}
+
+    {# Col 3 — About #}
+    {% if page.footer_col_3 %}
+      <div class="site-footer__col">
+        {{ page.footer_col_3 }}
+      </div>
+    {% endif %}
+
+    {# Col 4 — Help Centre #}
+    {% if page.footer_col_4 %}
+      <div class="site-footer__col">
+        {{ page.footer_col_4 }}
+      </div>
+    {% endif %}
+
+  </div>
+
+  {# Bottom bar #}
+  <div class="site-footer__bottom">
+    <div class="site-footer__bottom-inner">
+      <span class="site-footer__copyright">© {{ "now"|date("Y") }} {{ site_name }}. All rights reserved.</span>
+      {% if page.footer_bottom %}
+        {{ page.footer_bottom }}
+      {% endif %}
+    </div>
+  </div>
+
+</footer>
