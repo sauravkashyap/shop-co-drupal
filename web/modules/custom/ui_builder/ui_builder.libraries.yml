@@ -1,5 +1,5 @@
 builder_app:
-  version: 1.0.5
+  version: 1.0.6
   js:
     js/dist/builder.js: { minified: true, attributes: { type: module, crossorigin: true } }
   css:

@@ -701,6 +701,8 @@ export function PropertiesPanel({
                                   <ImageEditor
                                     mode={entry.mode}
                                     value={entry.value}
+                                    accept={fieldSchema.originalTag === 'svg' ? '.svg,image/svg+xml' : 'image/*,.svg'}
+                                    label={fieldSchema.originalTag === 'svg' ? 'SVG' : 'Image'}
                                     onUpdate={(val, m) => updateInstanceValue(selectedNode.id, key, val, m)}
                                   />
                                   <div className="form-group" style={{ marginTop: '16px', display: 'flex', alignItems: 'center' }}>

@@ -213,11 +213,12 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
             if (/^\{\{\s*field_/i.test(previewContent)) previewContent = '';
             const defaultTitle = previewContent ? `${node.tag.toUpperCase()}: ${previewContent.substring(0, 20)}` : `${node.tag.toUpperCase()} Field`;
             const title = node.fieldLabel || (node.fieldMode === 'mapping' ? `Mapped: ${node.content}` : defaultTitle);
-            const fieldType = node.tag === 'img' ? 'image' : 'textfield';
+            const fieldType = (node.tag === 'img' || node.tag === 'svg') ? 'image' : 'textfield';
             
             newSchema[key] = { 
               type: fieldType, 
               title, 
+              originalTag: node.tag,
               default: { mode: node.fieldMode || 'static', value: node.content || '' } 
             };
             node.content = `{{ ${key} }}`;
@@ -801,7 +802,8 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       if (key) {
         schema[key] = {
           title: n.fieldLabel || (n.fieldMode === 'mapping' ? `Mapped: ${n.content}` : `${n.tag.toUpperCase()} Field`),
-          type: n.tag === 'img' ? 'image' : 'textfield',
+          type: (n.tag === 'img' || n.tag === 'svg') ? 'image' : 'textfield',
+          originalTag: n.tag,
           default: { mode: n.fieldMode || 'static', value: n.content || '' }
         };
       }

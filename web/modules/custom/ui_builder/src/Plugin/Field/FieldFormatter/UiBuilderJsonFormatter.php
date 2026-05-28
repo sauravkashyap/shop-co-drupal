@@ -410,6 +410,10 @@ class UiBuilderJsonFormatter extends FormatterBase {
       // When isBgImage is set, always render a <div> with background-image CSS —
       // even if the stored tag is still 'img' (legacy data). This ensures the
       // frontend is always correct regardless of editor migration state.
+      // Special handling for plain <img> tags and <svg> tags containing URLs: content is the 'src' attribute.
+      $is_img_tag = strtolower($tag) === 'img';
+      $is_svg_url = strtolower($tag) === 'svg' && preg_match('/^(\/sites\/|http[s]?:\/\/)/i', trim($component['content'] ?? ''));
+      
       if ($is_bg_image) {
         // Force div tag on the element (handles legacy nodes where tag='img').
         $element['#tag'] = 'div';
@@ -423,8 +427,36 @@ class UiBuilderJsonFormatter extends FormatterBase {
           $element['children'] = $this->buildRenderArray($component['children'], $entity);
         }
       }
-      // Special handling for plain <img> tags: content is the 'src' attribute.
-      elseif (strtolower($tag) === 'img') {
+      elseif ($is_svg_url) {
+        $svg_url = trim($component['content'] ?? '');
+        $raw_svg = '';
+        
+        if (strpos($svg_url, '/sites/') !== FALSE) {
+          $path_parts = explode('/sites/', $svg_url);
+          $local_path = \Drupal::root() . '/sites/' . end($path_parts);
+          if (file_exists($local_path)) {
+            $raw_svg = file_get_contents($local_path);
+          }
+        }
+        
+        if ($raw_svg) {
+          $element['#tag'] = 'svg';
+          if (preg_match('/viewBox="([^"]+)"/i', $raw_svg, $vb_matches)) {
+            $element['#attributes']['viewBox'] = $vb_matches[1];
+          }
+          if (preg_match('/<svg[^>]*>(.*)<\/svg>/is', $raw_svg, $matches)) {
+            $element['#value'] = \Drupal\Core\Render\Markup::create($matches[1]);
+          } else {
+            $element['#value'] = \Drupal\Core\Render\Markup::create($raw_svg);
+          }
+          $element['#attributes']['xmlns'] = 'http://www.w3.org/2000/svg';
+        } else {
+          $element['#tag'] = 'img';
+          $element['#attributes']['src'] = $svg_url;
+        }
+      }
+      elseif ($is_img_tag) {
+        $element['#tag'] = 'img';
         $img_content = $component['content'] ?? '';
         if (is_array($img_content)) {
           // Handle multiple images by rendering them all.
