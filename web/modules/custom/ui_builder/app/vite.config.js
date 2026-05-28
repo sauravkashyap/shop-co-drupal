@@ -9,9 +9,13 @@ export default defineConfig({
     outDir: '../js/dist',
     emptyOutDir: true,
     rollupOptions: {
+      input: {
+        builder: resolve(__dirname, 'src/main.jsx'),
+        frontend_styler: resolve(__dirname, 'src/frontend.jsx')
+      },
       output: {
-        entryFileNames: 'builder.js',
-        assetFileNames: 'builder.[ext]'
+        entryFileNames: '[name].js',
+        assetFileNames: '[name].[ext]'
       }
     }
   }

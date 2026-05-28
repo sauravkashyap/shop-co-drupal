@@ -997,7 +997,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
 
   if (mode === 'style') {
     return (
-      <div className="ui-builder-style-editor-wrapper style-builder-standalone">
+      <div className="ui-builder-style-editor-wrapper style-builder-standalone" style={{ height: '100%' }}>
         <StyleBuilder 
           style={initialStyle}
           onSave={onSaveStyle}

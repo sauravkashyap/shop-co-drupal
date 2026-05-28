@@ -1,10 +1,11 @@
 builder_app:
   version: 1.0.5
   js:
-    js/dist/builder.js: { minified: true }
+    js/dist/builder.js: { minified: true, attributes: { type: module, crossorigin: true } }
   css:
     component:
       js/dist/builder.css: { minified: true }
+      js/dist/App.css: { minified: true }
   dependencies:
     - core/drupal
     - core/drupalSettings
@@ -26,3 +27,15 @@ dynamic_styles:
   css:
     theme:
       public://ui_builder/base_styles.css: { weight: 1050, preprocess: false }
+
+frontend_styler:
+  version: 1.0.0
+  js:
+    js/dist/frontend_styler.js: { minified: true, attributes: { type: module, crossorigin: true } }
+  css:
+    component:
+      js/dist/frontend_styler.css: { minified: true }
+      js/dist/App.css: { minified: true }
+  dependencies:
+    - core/drupal
+    - core/drupalSettings

@@ -1,0 +1,6 @@
+@tailwind components;
+@tailwind utilities;
+
+#ui-builder-frontend-styler-root {
+  /* Isolate tailwind styles to this container as much as possible */
+}

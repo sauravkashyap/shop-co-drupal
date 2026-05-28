@@ -323,15 +323,6 @@ export function StyleBuilder({ style, onSave, onBack }) {
           </div>
 
           <div className="style-builder-properties">
-            <div className="props-header">
-              <h2>
-                {selectedNode.selector === '&' 
-                  ? (style.isInstance ? `Base selector (&)` : `Base class (.uib-${style.id})`) 
-                  : selectedNode.selector
-                }
-              </h2>
-              <div className="props-header-path">Configuring properties for the selected selector</div>
-            </div>
             <div className="props-content">
               <PropertyEditor 
                 selectedNode={selectedNode}

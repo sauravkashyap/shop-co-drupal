@@ -191,6 +191,7 @@
   font-size: 13px;
   color: #1e293b;
   flex: 1;
+  min-width: 0;
 }
 
 .ss-sel-card:hover {
@@ -243,11 +244,16 @@
 /* ── Selector name ── */
 .ss-sel-name {
   flex: 1;
+  min-width: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
   font-weight: 500;
   cursor: pointer;
+  scrollbar-width: none;
+}
+
+.ss-sel-name::-webkit-scrollbar {
+  display: none;
 }
 
 .ss-sel-annotation {
@@ -259,6 +265,7 @@
 /* ── Inline edit input ── */
 .ss-sel-edit-input {
   flex: 1;
+  min-width: 0;
   padding: 4px 8px;
   border: 1px solid #2563eb;
   border-radius: 4px;
@@ -576,17 +583,17 @@
 }
 
 /* Color input specific */
-.prop-field input[type=\"color\"] {
+.prop-field input[type="color"] {
   padding: 4px;
   height: 40px;
   cursor: pointer;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════════
    Standalone Custom Style Editor Overrides
    When the style builder renders inside a Drupal admin page
    (e.g. /admin/config/ui-builder/styles/{id}/edit)
-   ═══════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Make overlay non-modal: inline block, no backdrop */
 .style-builder-standalone .style-builder-overlay {
@@ -595,9 +602,10 @@
   background: transparent;
   backdrop-filter: none;
   z-index: 1;
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  height: auto;
+  height: 100%;
   animation: none;
 }
 
@@ -605,8 +613,8 @@
 .style-builder-standalone .style-builder-sidebar {
   width: 100%;
   max-width: 100%;
-  height: calc(100vh - 160px); /* Leave room for Drupal admin toolbars */
-  min-height: 500px;
+  height: 100%; 
+  min-height: 400px;
   box-shadow: none;
   animation: none;
   border: 1px solid var(--sb-border);

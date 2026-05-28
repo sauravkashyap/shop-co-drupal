@@ -145,6 +145,21 @@ function ui_builder_page_attachments(array &$attachments) {
   // Only attach layout defaults on frontend routes (non-admin).
   if (!\Drupal::service('router.admin_context')->isAdminRoute()) {
     $attachments['#attached']['library'][] = 'ui_builder/frontend_defaults';
+    
+    if (\Drupal::currentUser()->hasPermission('administer ui builder styles')) {
+      $attachments['#attached']['library'][] = 'ui_builder/frontend_styler';
+    }
+  }
+}
+
+/**
+ * Implements hook_page_bottom().
+ */
+function ui_builder_page_bottom(array &$page_bottom) {
+  if (!\Drupal::service('router.admin_context')->isAdminRoute() && \Drupal::currentUser()->hasPermission('administer ui builder styles')) {
+    $page_bottom['ui_builder_frontend_styler'] = [
+      '#markup' => '<div id="ui-builder-frontend-styler-root"></div>',
+    ];
   }
 }
 
