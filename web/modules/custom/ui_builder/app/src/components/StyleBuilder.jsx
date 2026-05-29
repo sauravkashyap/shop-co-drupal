@@ -267,6 +267,88 @@ export function StyleBuilder({ style, onSave, onBack }) {
     }
   };
 
+  const handlePasteCss = async () => {
+    try {
+      let text = '';
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        text = await navigator.clipboard.readText();
+      } else {
+        text = prompt('Please paste your CSS here:');
+      }
+      if (!text) return;
+
+      let cleanedText = text.replace(/\/\*[\s\S]*?\*\//g, '');
+      const match = cleanedText.match(/\{([\s\S]*)\}/);
+      if (match) cleanedText = match[1];
+
+      const pastedProps = {};
+      cleanedText.split(';').forEach(declaration => {
+        const parts = declaration.split(':');
+        if (parts.length >= 2) {
+          const prop = parts[0].trim();
+          const val = parts.slice(1).join(':').trim();
+          if (prop && val) {
+            pastedProps[prop] = val;
+          }
+        }
+      });
+
+      if (Object.keys(pastedProps).length === 0) {
+        alert('No valid CSS properties found.');
+        return;
+      }
+
+      const newData = JSON.parse(JSON.stringify(data));
+      let target = newData;
+      for (let i = 1; i < selectedNodePath.length; i++) target = target.children[selectedNodePath[i]];
+      
+      if (!target.properties) target.properties = {};
+      if (!target.custom_properties) target.custom_properties = {};
+
+      Object.entries(pastedProps).forEach(([prop, val]) => {
+        target.custom_properties[prop] = val;
+      });
+
+      setData(newData);
+      alert(`Pasted ${Object.keys(pastedProps).length} properties successfully!`);
+    } catch (err) {
+      console.error('Failed to read clipboard', err);
+      
+      // Fallback for browsers that block clipboard API
+      const text = prompt('Clipboard access denied. Please paste your CSS here:');
+      if (text) {
+        let cleanedText = text.replace(/\/\*[\s\S]*?\*\//g, '');
+        const match = cleanedText.match(/\{([\s\S]*)\}/);
+        if (match) cleanedText = match[1];
+
+        const pastedProps = {};
+        cleanedText.split(';').forEach(declaration => {
+          const parts = declaration.split(':');
+          if (parts.length >= 2) {
+            const prop = parts[0].trim();
+            const val = parts.slice(1).join(':').trim();
+            if (prop && val) {
+              pastedProps[prop] = val;
+            }
+          }
+        });
+        
+        if (Object.keys(pastedProps).length > 0) {
+          const newData = JSON.parse(JSON.stringify(data));
+          let target = newData;
+          for (let i = 1; i < selectedNodePath.length; i++) target = target.children[selectedNodePath[i]];
+          if (!target.properties) target.properties = {};
+          if (!target.custom_properties) target.custom_properties = {};
+          Object.entries(pastedProps).forEach(([prop, val]) => {
+            target.custom_properties[prop] = val;
+          });
+          setData(newData);
+          alert(`Pasted ${Object.keys(pastedProps).length} properties successfully!`);
+        }
+      }
+    }
+  };
+
   return (
     <div className="style-builder-overlay" onClick={(e) => { if (e.target === e.currentTarget) onBack(); }}>
       <div className="style-builder-sidebar" onClick={e => e.stopPropagation()}>
@@ -295,6 +377,7 @@ export function StyleBuilder({ style, onSave, onBack }) {
             </div>
           </div>
           <div className="header-actions">
+            <button type="button" className="secondary-btn" onClick={handlePasteCss} style={{ marginRight: '8px', padding: '6px 12px', background: 'transparent', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>📋 Paste CSS</button>
             <button type="button" className="save-btn" onClick={handleMainSave}>Save Style</button>
           </div>
         </div>
