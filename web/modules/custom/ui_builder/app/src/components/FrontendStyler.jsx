@@ -213,7 +213,7 @@ export default function FrontendStyler() {
                 <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                   <div>
                     <strong style={{ display: 'block', color: '#111827' }}>{s.label}</strong>
-                    <span style={{ fontSize: '12px', color: '#6b7280', fontFamily: 'monospace' }}>.{s.id}</span>
+                    <span style={{ fontSize: '12px', color: '#6b7280', fontFamily: 'monospace' }}>Machine Name: {s.id}, Class Name: .uib-{s.id}</span>
                   </div>
                   <button 
                     onClick={() => setSelectedStyle(s)}

@@ -156,6 +156,33 @@ export const ELEMENT_CATEGORIES = [
     elements: [
       { type: 'button', label: 'Button', icon: '▢', isField: true, defaultProps: { class: 'uib-button' }, defaultContent: 'Click Me' },
       { type: 'a', label: 'Link', icon: '⟁', isField: true, defaultProps: { class: 'uib-link' }, defaultContent: 'Read more' },
+      { 
+        type: 'div', 
+        label: 'Slider', 
+        icon: '↔', 
+        isField: false, 
+        defaultProps: { 
+          class: 'swiper uib-slider',
+          'data-swiper-nav': 'true',
+          'data-swiper-pagination': 'false',
+          'data-swiper-loop': 'false',
+          'data-swiper-autoplay': 'false'
+        },
+        defaultChildren: [
+          {
+            type: 'div',
+            label: 'Slider Track',
+            props: { class: 'swiper-wrapper' },
+            children: [
+              { type: 'div', label: 'Slide 1', props: { class: 'swiper-slide uib-slide' }, children: [{ type: 'div', label: 'Slide Content', props: { class: 'uib-container' }, content: 'Slide 1', isField: true }] },
+              { type: 'div', label: 'Slide 2', props: { class: 'swiper-slide uib-slide' }, children: [{ type: 'div', label: 'Slide Content', props: { class: 'uib-container' }, content: 'Slide 2', isField: true }] },
+              { type: 'div', label: 'Slide 3', props: { class: 'swiper-slide uib-slide' }, children: [{ type: 'div', label: 'Slide Content', props: { class: 'uib-container' }, content: 'Slide 3', isField: true }] }
+            ]
+          },
+          { type: 'div', label: 'Next Arrow', props: { class: 'swiper-button-next' } },
+          { type: 'div', label: 'Prev Arrow', props: { class: 'swiper-button-prev' } }
+        ]
+      }
     ]
   },
   {

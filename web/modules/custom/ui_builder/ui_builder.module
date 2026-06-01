@@ -145,6 +145,8 @@ function ui_builder_page_attachments(array &$attachments) {
   // Only attach layout defaults on frontend routes (non-admin).
   if (!\Drupal::service('router.admin_context')->isAdminRoute()) {
     $attachments['#attached']['library'][] = 'ui_builder/frontend_defaults';
+    $attachments['#attached']['library'][] = 'ui_builder/ui_builder_slider';
+    $attachments['#attached']['library'][] = 'ui_builder/ui_builder_fontawesome';
     
     if (\Drupal::currentUser()->hasPermission('administer ui builder styles')) {
       $attachments['#attached']['library'][] = 'ui_builder/frontend_styler';

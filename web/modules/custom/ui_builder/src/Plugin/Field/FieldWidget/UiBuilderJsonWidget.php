@@ -39,6 +39,8 @@ class UiBuilderJsonWidget extends WidgetBase {
     }
 
     $element['#attached']['library'][] = 'ui_builder/builder_app';
+    $element['#attached']['library'][] = 'ui_builder/ui_builder_slider';
+    $element['#attached']['library'][] = 'ui_builder/ui_builder_fontawesome';
     $element['#attached']['drupalSettings']['ui_builder']['composer'] = [
       'available_components' => $component_data,
     ];

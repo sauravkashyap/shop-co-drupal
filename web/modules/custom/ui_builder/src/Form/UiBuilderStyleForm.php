@@ -75,6 +75,8 @@ class UiBuilderStyleForm extends EntityForm {
       '#attached' => [
         'library' => [
           'ui_builder/builder_app',
+          'ui_builder/ui_builder_slider',
+          'ui_builder/ui_builder_fontawesome',
         ],
         'drupalSettings' => [
           'ui_builder' => [

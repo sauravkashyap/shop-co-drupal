@@ -392,14 +392,25 @@ class UiBuilderJsonFormatter extends FormatterBase {
       // frontend is always correct regardless of editor migration state.
       // Special handling for plain <img> tags and <svg> tags containing URLs: content is the 'src' attribute.
       $is_img_tag = strtolower($tag) === 'img';
-      $is_svg_url = strtolower($tag) === 'svg' && preg_match('/^(\/sites\/|http[s]?:\/\/)/i', trim($component['content'] ?? ''));
+      
+      // Get URL either from content or props.src
+      $media_url = '';
+      if (isset($component['content']) && is_string($component['content']) && !empty(trim($component['content']))) {
+         $media_url = trim($component['content']);
+      } elseif (isset($component['props']['src']) && is_string($component['props']['src']) && !empty(trim($component['props']['src']))) {
+         $media_url = trim($component['props']['src']);
+      }
+      
+      // Determine if it's an SVG file we should inline
+      $is_svg_file = preg_match('/\.svg(\?.*)?$/i', $media_url);
+      $is_valid_url = preg_match('/^(\/sites\/|http[s]?:\/\/)/i', $media_url);
+      $is_svg_url = ($is_svg_file || strtolower($tag) === 'svg') && $is_valid_url;
       
       if ($is_bg_image) {
         // Force div tag on the element (handles legacy nodes where tag='img').
         $element['#tag'] = 'div';
-        $img_url = $component['content'] ?? '';
-        if ($img_url) {
-          $element['#attributes']['style'] = "background-image: url('{$img_url}');";
+        if ($media_url) {
+          $element['#attributes']['style'] = "background-image: url('{$media_url}');";
         }
         $element['#attributes']['class'][] = 'background_image';
         // Render any child nodes inside the background div.
@@ -408,11 +419,10 @@ class UiBuilderJsonFormatter extends FormatterBase {
         }
       }
       elseif ($is_svg_url) {
-        $svg_url = trim($component['content'] ?? '');
         $raw_svg = '';
         
-        if (strpos($svg_url, '/sites/') !== FALSE) {
-          $path_parts = explode('/sites/', $svg_url);
+        if (strpos($media_url, '/sites/') !== FALSE) {
+          $path_parts = explode('/sites/', $media_url);
           $local_path = \Drupal::root() . '/sites/' . end($path_parts);
           if (file_exists($local_path)) {
             $raw_svg = file_get_contents($local_path);
@@ -432,7 +442,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
           $element['#attributes']['xmlns'] = 'http://www.w3.org/2000/svg';
         } else {
           $element['#tag'] = 'img';
-          $element['#attributes']['src'] = $svg_url;
+          $element['#attributes']['src'] = $media_url;
         }
       }
       elseif ($is_img_tag) {
@@ -449,7 +459,7 @@ class UiBuilderJsonFormatter extends FormatterBase {
             ];
           }
         } else {
-          $element['#attributes']['src'] = $img_content;
+          $element['#attributes']['src'] = $media_url;
         }
       }
       elseif (!empty($component['children']) && is_array($component['children'])) {

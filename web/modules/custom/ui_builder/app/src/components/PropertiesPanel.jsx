@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FieldEditor } from './FieldEditor';
 import { ImageEditor } from './ImageEditor';
+import { IconPicker } from './IconPicker';
 import { getCustomClassesOnly, mergeClasses } from '../utils/styleUtils';
 import { 
   STANDARD_PROPS, 
@@ -735,7 +736,233 @@ export function PropertiesPanel({
               </AccordionSection>
             )}
 
-            
+            {/* Slider Settings (Only for .swiper elements) */}
+            {classesArray.includes('swiper') && (
+              <AccordionSection title="Slider Settings" defaultOpen={true}>
+                {['nav', 'pagination', 'loop', 'autoplay'].map(setting => {
+                  const propName = `data-swiper-${setting}`;
+                  const isEnabled = selectedNode.props?.[propName] === 'true';
+                  
+                  return (
+                    <div key={setting} className="form-group" style={{ marginTop: '12px', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        id={`swiper-toggle-${setting}`}
+                        checked={isEnabled}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          let updatedProps = { ...selectedNode.props, [propName]: checked ? 'true' : 'false' };
+                          
+                          // Handle DOM changes for nav/pagination
+                          let updatedChildren = [...(selectedNode.children || [])];
+                          if (setting === 'nav') {
+                            if (checked) {
+                              const getArrowNode = (dir) => {
+                                const type = selectedNode.props?.[`data-nav-${dir}-type`] || 'default';
+                                const val = selectedNode.props?.[`data-nav-${dir}-val`] || '';
+                                let btnClasses = `swiper-button-${dir}`;
+                                if (type !== 'default') btnClasses += ' uib-custom-arrow';
+                                
+                                let children = [];
+                                if (type === 'image' && val) children = [{ type: 'img', tag: 'img', label: 'Arrow Image', id: Math.random().toString(36).substr(2, 9), props: { src: val, alt: `${dir} arrow` } }];
+                                else if (type === 'font' && val) children = [{ type: 'i', tag: 'i', label: 'Arrow Icon', id: Math.random().toString(36).substr(2, 9), props: { class: val } }];
+                                
+                                return { type: 'div', tag: 'div', label: `${dir === 'next' ? 'Next' : 'Prev'} Arrow`, id: Math.random().toString(36).substr(2, 9), props: { class: btnClasses }, children };
+                              };
+                              
+                              if (!updatedChildren.find(c => c.props?.class?.includes('swiper-button-next'))) {
+                                updatedChildren.push(getArrowNode('next'));
+                              }
+                              if (!updatedChildren.find(c => c.props?.class?.includes('swiper-button-prev'))) {
+                                updatedChildren.push(getArrowNode('prev'));
+                              }
+                            } else {
+                              updatedChildren = updatedChildren.filter(c => !c.props?.class?.includes('swiper-button-next') && !c.props?.class?.includes('swiper-button-prev'));
+                            }
+                          }
+                          if (setting === 'pagination') {
+                            if (checked) {
+                              if (!updatedChildren.find(c => c.props?.class?.includes('swiper-pagination'))) {
+                                updatedChildren.push({ type: 'div', tag: 'div', label: 'Pagination', id: Math.random().toString(36).substr(2, 9), props: { class: 'swiper-pagination' } });
+                              }
+                            } else {
+                              updatedChildren = updatedChildren.filter(c => !c.props?.class?.includes('swiper-pagination'));
+                            }
+                          }
+                          
+                          updateNodeField(selectedNode.id, { props: updatedProps, children: updatedChildren });
+                        }}
+                        style={{ marginRight: '8px', cursor: 'pointer' }}
+                      />
+                      <label htmlFor={`swiper-toggle-${setting}`} style={{ marginBottom: 0, cursor: 'pointer', textTransform: 'capitalize' }}>
+                        Enable {setting}
+                      </label>
+                    </div>
+                  );
+                })}
+
+                {selectedNode.props?.['data-swiper-nav'] === 'true' && (
+                  <div style={{ marginTop: '20px', borderTop: '1px solid var(--sb-border)', paddingTop: '16px' }}>
+                    <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600' }}>Custom Navigation Arrows</label>
+                    
+                    {['next', 'prev'].map(dir => {
+                      const typeProp = `data-nav-${dir}-type`;
+                      const valProp = `data-nav-${dir}-val`;
+                      const currentType = selectedNode.props?.[typeProp] || 'default';
+                      const currentVal = selectedNode.props?.[valProp] || '';
+
+                      const updateArrowContent = (type, val) => {
+                        let updatedProps = { ...selectedNode.props, [typeProp]: type, [valProp]: val };
+                        let updatedChildren = [...(selectedNode.children || [])];
+                        const btnClass = `swiper-button-${dir}`;
+                        
+                        const btnIndex = updatedChildren.findIndex(c => c.props?.class?.includes(btnClass));
+                        if (btnIndex !== -1) {
+                          const btn = { ...updatedChildren[btnIndex] };
+                          // Toggle custom class
+                          let btnClasses = btn.props?.class?.split(' ') || [];
+                          btnClasses = btnClasses.filter(c => c !== 'uib-custom-arrow');
+                          if (type !== 'default') btnClasses.push('uib-custom-arrow');
+                          btn.props = { ...btn.props, class: btnClasses.join(' ') };
+                          
+                          // Clear children and add custom if needed
+                          if (type === 'image' && val) {
+                            btn.children = [{ type: 'img', tag: 'img', label: 'Arrow Image', id: Math.random().toString(36).substr(2, 9), props: { src: val, alt: `${dir} arrow` } }];
+                          } else if (type === 'font' && val) {
+                            btn.children = [{ type: 'i', tag: 'i', label: 'Arrow Icon', id: Math.random().toString(36).substr(2, 9), props: { class: val } }];
+                          } else {
+                            btn.children = [];
+                          }
+                          
+                          updatedChildren[btnIndex] = btn;
+                        }
+                        
+                        updateNodeField(selectedNode.id, { props: updatedProps, children: updatedChildren });
+                      };
+
+                      return (
+                        <div key={dir} style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: dir === 'next' ? '1px dashed var(--sb-border)' : 'none' }}>
+                          <label className="uib-label" style={{ textTransform: 'capitalize', fontWeight: '600' }}>{dir} Arrow Style</label>
+                          <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', background: 'var(--sb-bg-dark)', padding: '4px', borderRadius: '6px' }}>
+                            {[
+                              { id: 'default', label: 'Default' },
+                              { id: 'image', label: 'Image' },
+                              { id: 'font', label: 'Icon' }
+                            ].map(opt => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => updateArrowContent(opt.id, '')}
+                                style={{
+                                  flex: 1,
+                                  padding: '6px',
+                                  fontSize: '12px',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  background: currentType === opt.id ? 'var(--sb-bg-main)' : 'transparent',
+                                  color: currentType === opt.id ? 'var(--sb-text-main)' : 'var(--sb-text-muted)',
+                                  boxShadow: currentType === opt.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                          
+                          {currentType === 'image' && (
+                            <ImageEditor 
+                              mode="static"
+                              value={currentVal}
+                              onUpdate={(val) => updateArrowContent('image', val)}
+                              label="Arrow Image"
+                            />
+                          )}
+                          
+                          {currentType === 'font' && (
+                            <IconPicker 
+                              value={currentVal}
+                              onSelect={(val) => updateArrowContent('font', val)}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="form-group" style={{ marginTop: '20px', borderTop: '1px solid var(--sb-border)', paddingTop: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600' }}>Manage Slides</label>
+                  <button 
+                    type="button" 
+                    className="sb-btn sb-btn-primary" 
+                    style={{ width: '100%', marginBottom: '12px' }}
+                    onClick={() => {
+                      const trackIndex = (selectedNode.children || []).findIndex(c => c.props?.class?.includes('swiper-wrapper'));
+                      if (trackIndex !== -1) {
+                        const updatedChildren = [...selectedNode.children];
+                        const track = { ...updatedChildren[trackIndex] };
+                        const newSlideIndex = (track.children?.length || 0) + 1;
+                        
+                        const newSlide = {
+                          type: 'div',
+                          tag: 'div',
+                          label: `Slide ${newSlideIndex}`,
+                          id: Math.random().toString(36).substr(2, 9),
+                          props: { class: 'swiper-slide uib-slide' },
+                          children: [{
+                            type: 'div',
+                            tag: 'div',
+                            label: 'Slide Content',
+                            id: Math.random().toString(36).substr(2, 9),
+                            props: { class: 'uib-container' },
+                            content: `Slide ${newSlideIndex}`,
+                            isField: true
+                          }]
+                        };
+                        
+                        track.children = [...(track.children || []), newSlide];
+                        updatedChildren[trackIndex] = track;
+                        
+                        updateNodeField(selectedNode.id, { children: updatedChildren });
+                      }
+                    }}
+                  >
+                    + Add New Slide
+                  </button>
+                  
+                  {(() => {
+                    const track = (selectedNode.children || []).find(c => c.props?.class?.includes('swiper-wrapper'));
+                    if (!track || !track.children || track.children.length === 0) return <p className="help-text">No slides found.</p>;
+                    
+                    return track.children.map((slide, idx) => (
+                      <div key={slide.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--sb-bg-darker)', padding: '8px', marginBottom: '8px', borderRadius: '4px', border: '1px solid var(--sb-border)' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '500' }}>{slide.label || `Slide ${idx + 1}`}</span>
+                        <button 
+                          type="button" 
+                          style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                          title="Delete Slide"
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this slide?')) {
+                              const trackIndex = selectedNode.children.findIndex(c => c.props?.class?.includes('swiper-wrapper'));
+                              const updatedChildren = [...selectedNode.children];
+                              const updatedTrack = { ...updatedChildren[trackIndex] };
+                              updatedTrack.children = updatedTrack.children.filter(c => c.id !== slide.id);
+                              updatedChildren[trackIndex] = updatedTrack;
+                              updateNodeField(selectedNode.id, { children: updatedChildren });
+                            }
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </AccordionSection>
+            )}
+
 
 
             {/* 4. Styles & Classes */}
