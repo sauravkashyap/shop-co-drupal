@@ -24,16 +24,28 @@ export function StyleBuilder({ style, onSave, onBack }) {
     // Deep clone to prevent mutating props
     let clonedData = JSON.parse(JSON.stringify(initialData));
     
+    // Ensure properties and custom_properties are always plain objects, never arrays.
+    // PHP serializes empty associative arrays as JSON [] instead of {}.
+    // JS cannot add string-keyed props to an array — JSON.stringify drops them silently.
+    const normalizeNode = (node) => {
+      if (!node || typeof node !== 'object') return node;
+      if (Array.isArray(node.properties)) node.properties = {};
+      else if (!node.properties) node.properties = {};
+      if (Array.isArray(node.custom_properties)) node.custom_properties = {};
+      else if (!node.custom_properties) node.custom_properties = {};
+      if (Array.isArray(node.children)) node.children.forEach(normalizeNode);
+      return node;
+    };
+    normalizeNode(clonedData);
+    
     // Migrate old custom CSS properties from properties to custom_properties
     const migrateCustomProps = (node) => {
       if (node.properties) {
         if (!node.custom_properties) node.custom_properties = {};
         Object.keys(node.properties).forEach(key => {
-          if (!STANDARD_PROPS.includes(key)) {
-            // It's a custom property!
-            node.custom_properties[key] = node.properties[key];
-            delete node.properties[key];
-          }
+          // Move all properties to custom_properties since we only show the Custom CSS editor
+          node.custom_properties[key] = node.properties[key];
+          delete node.properties[key];
         });
       }
       if (node.children) {
@@ -43,6 +55,7 @@ export function StyleBuilder({ style, onSave, onBack }) {
     migrateCustomProps(clonedData);
     return clonedData;
   });
+
 
   const [selectedNodePath, setSelectedNodePath] = useState(['root']);
   const [label, setLabel] = useState(style.label || style.id);
@@ -248,7 +261,11 @@ export function StyleBuilder({ style, onSave, onBack }) {
     for (let i = 1; i < selectedNodePath.length; i++) target = target.children[selectedNodePath[i]];
     if (!target.custom_properties) target.custom_properties = {};
     if (oldProp && oldProp !== prop) delete target.custom_properties[oldProp];
-    if (value) target.custom_properties[prop] = value; else delete target.custom_properties[prop];
+    if (value === null || value === undefined) {
+      delete target.custom_properties[prop];
+    } else {
+      target.custom_properties[prop] = value;
+    }
     setData(newData);
   };
 
@@ -260,12 +277,16 @@ export function StyleBuilder({ style, onSave, onBack }) {
       if (!target.custom_properties) target.custom_properties = {};
       target.custom_properties[pendingProp.trim()] = pendingValue.trim();
     }
+    console.log('[UIB StyleBuilder] handleMainSave called');
+    console.log('[UIB StyleBuilder] Root custom_properties:', finalData.custom_properties);
+    console.log('[UIB StyleBuilder] Full data:', JSON.stringify(finalData, null, 2));
     if (style.isInstance) {
       onSave({ ...style, data: finalData });
     } else {
       onSave({ ...style, label, id: classId || style.id, old_id: style.id, data: finalData });
     }
   };
+
 
   const handlePasteCss = async () => {
     try {
@@ -278,7 +299,7 @@ export function StyleBuilder({ style, onSave, onBack }) {
       if (!text) return;
 
       let cleanedText = text.replace(/\/\*[\s\S]*?\*\//g, '');
-      const match = cleanedText.match(/\{([\s\S]*)\}/);
+      const match = cleanedText.match(/\{([\s\S]*?)\}/);
       if (match) cleanedText = match[1];
 
       const pastedProps = {};

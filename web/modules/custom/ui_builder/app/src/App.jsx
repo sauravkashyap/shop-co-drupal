@@ -136,9 +136,16 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     };
   }, []);
 
+
+  // Helper to get Drupal CSRF headers for authenticated requests
+  const getCsrfHeaders = () => ({
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': window.drupalSettings?.ui_builder?.csrf_token || '',
+  });
+
   // Fetch custom styles from Drupal
   useEffect(() => {
-    fetch('/api/ui-builder/styles')
+    fetch('/api/ui-builder/styles', { credentials: 'same-origin' })
       .then(res => res.json())
       .then(data => {
         setCustomStyles(data);
@@ -843,7 +850,8 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
     try {
       const response = await fetch('/api/ui-builder/component/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCsrfHeaders(),
+        credentials: 'same-origin',
         body: JSON.stringify(payload)
       });
       const result = await response.json();
@@ -865,7 +873,8 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       const payload = { ...styleData };
       const response = await fetch('/api/ui-builder/style/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCsrfHeaders(),
+        credentials: 'same-origin',
         body: JSON.stringify(payload)
       });
       const result = await response.json();

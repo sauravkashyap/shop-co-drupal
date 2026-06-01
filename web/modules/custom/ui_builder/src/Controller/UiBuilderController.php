@@ -77,6 +77,11 @@ class UiBuilderController extends ControllerBase {
 
   /**
    * Lists all available styles.
+   *
+   * IMPORTANT: normalizes empty PHP arrays to JSON objects for 'properties'
+   * and 'custom_properties', so JavaScript always receives {} not [].
+   * JS cannot add string-keyed properties to a JSON array; they are silently
+   * dropped by JSON.stringify().
    */
   public function listStyles() {
     $storage = $this->entityTypeManager()->getStorage('ui_builder_style');
@@ -87,10 +92,46 @@ class UiBuilderController extends ControllerBase {
       $result[] = [
         'id' => $style->id(),
         'label' => $style->label(),
-        'data' => $style->getData(),
+        'data' => $this->normalizeStyleNode($style->getData()),
       ];
     }
     return new JsonResponse($result);
+  }
+
+  /**
+   * Recursively normalizes a style data node for JSON serialization.
+   *
+   * PHP stores both [] and ['key'=>'val'] as arrays. When json_encode sees an
+   * empty sequential array, it outputs [] (JSON array). But JavaScript cannot
+   * add named properties to a JSON array — they get silently discarded by
+   * JSON.stringify. So we cast empty (or associative) 'properties' and
+   * 'custom_properties' to stdClass so they serialize as JSON objects {}.
+   */
+  protected function normalizeStyleNode($node) {
+    if (!is_array($node)) {
+      return $node;
+    }
+
+    // Cast properties to object so they always serialize as {} not [].
+    if (array_key_exists('properties', $node)) {
+      if (empty($node['properties'])) {
+        $node['properties'] = new \stdClass();
+      }
+    }
+    if (array_key_exists('custom_properties', $node)) {
+      if (empty($node['custom_properties'])) {
+        $node['custom_properties'] = new \stdClass();
+      }
+    }
+
+    // Recurse into children.
+    if (!empty($node['children']) && is_array($node['children'])) {
+      foreach ($node['children'] as &$child) {
+        $child = $this->normalizeStyleNode($child);
+      }
+    }
+
+    return $node;
   }
 
   /**
@@ -136,7 +177,7 @@ class UiBuilderController extends ControllerBase {
       $status = 'created';
     }
 
-    // Trigger CSS compilation.
+    // Trigger CSS compilation after every save.
     \Drupal::service('ui_builder.css_compiler')->compileAll();
 
     return new JsonResponse([

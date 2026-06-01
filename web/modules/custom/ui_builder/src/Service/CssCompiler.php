@@ -218,32 +218,10 @@ class CssCompiler {
         }
       }
       
-      $has_manual_class = false;
-      $manual_classes = [];
-      if (!empty($component['props']['class'])) {
-        $classes = explode(' ', $component['props']['class']);
-        $structural_classes = [
-          'uib-container', 'uib-full-width', 'uib-row', 'uib-section', 'uib-article', 
-          'uib-main', 'uib-aside', 'uib-nav', 'uib-grid', 'uib-plain-div',
-          'uib-h1', 'uib-h2', 'uib-h3', 'uib-h4', 'uib-h5', 'uib-h6', 'uib-p', 'uib-link', 'uib-button', 'uib-ul', 'uib-ol', 'uib-li', 'uib-img', 'uib-blockquote', 'uib-span', 'uib-hr', 'uib-strong', 'uib-em', 'uib-code', 'uib-small', 'uib-table', 'uib-thead', 'uib-tbody', 'uib-tr', 'uib-th', 'uib-td', 'uib-form', 'uib-label', 'uib-input', 'uib-select', 'uib-option', 'uib-textarea', 'uib-svg', 'uib-video'
-        ];
-        
-        foreach ($classes as $cls) {
-          $cls = trim($cls);
-          if (empty($cls)) continue;
-          if (in_array($cls, $structural_classes)) continue;
-          if (str_starts_with($cls, 'uib-col-')) continue;
-          if ($cls === 'uib-' . $node_id) continue;
-          
-          $has_manual_class = true;
-          $manual_classes[] = '.' . $cls;
-        }
-      }
+
 
       $selector = ".uib-$node_id";
-      if ($has_manual_class) {
-        $selector = implode('', $manual_classes);
-      }
+
 
       if (!empty($rules)) {
         $css .= "$selector { " . implode(' ', $rules) . " }\n";

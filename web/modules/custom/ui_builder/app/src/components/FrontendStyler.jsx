@@ -85,9 +85,20 @@ export default function FrontendStyler() {
     }
   }, [isOpen]);
 
+  const getCsrfToken = () => {
+    // The popup window shares the same session - get CSRF token from parent window's drupalSettings
+    try {
+      return window.drupalSettings?.ui_builder?.csrf_token 
+        || window.opener?.drupalSettings?.ui_builder?.csrf_token 
+        || '';
+    } catch (e) {
+      return '';
+    }
+  };
+
   const fetchStyles = async () => {
     try {
-      const res = await fetch('/api/ui-builder/styles');
+      const res = await fetch('/api/ui-builder/styles', { credentials: 'same-origin' });
       const data = await res.json();
       setStyles(data);
     } catch (e) {
@@ -107,15 +118,24 @@ export default function FrontendStyler() {
         payload.old_id = selectedStyle.id;
       }
 
+      console.log('[UIB Save] Payload being sent:', JSON.stringify(payload, null, 2));
+      console.log('[UIB Save] Root custom_properties:', payload.data?.custom_properties);
       const res = await fetch('/api/ui-builder/style/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCsrfToken(),
+        },
+        credentials: 'same-origin',
         body: JSON.stringify(payload)
       });
+      const result = await res.json().catch(() => ({}));
+      console.log('[UIB Save] Response:', res.status, result);
       
       if (res.ok) {
-        // Cache bust the CSS link
-        const cssLink = document.querySelector('link[href*="ui_builder/uib-styles.css"]');
+        // Cache bust the CSS link in the PARENT window (not popup)
+        const parentDoc = window.opener?.document || document;
+        const cssLink = parentDoc.querySelector('link[href*="uib-styles.css"]');
         if (cssLink) {
           const url = new URL(cssLink.href, window.location.origin);
           url.searchParams.set('t', Date.now());

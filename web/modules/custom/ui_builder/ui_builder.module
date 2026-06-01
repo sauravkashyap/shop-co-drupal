@@ -148,6 +148,14 @@ function ui_builder_page_attachments(array &$attachments) {
     
     if (\Drupal::currentUser()->hasPermission('administer ui builder styles')) {
       $attachments['#attached']['library'][] = 'ui_builder/frontend_styler';
+      // Attach CSRF token and breakpoints so the popup can authenticate save requests.
+      $config = \Drupal::config('ui_builder.base_styles');
+      $breakpoints = [
+        'tablet' => $config->get('tablet_breakpoint') ?: '1024px',
+        'mobile' => $config->get('mobile_breakpoint') ?: '767px',
+      ];
+      $attachments['#attached']['drupalSettings']['ui_builder']['csrf_token'] = \Drupal::csrfToken()->get('rest');
+      $attachments['#attached']['drupalSettings']['ui_builder']['breakpoints'] = $breakpoints;
     }
   }
 }

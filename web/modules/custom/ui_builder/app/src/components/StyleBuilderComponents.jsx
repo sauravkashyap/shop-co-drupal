@@ -219,13 +219,17 @@ export function CustomCssEditor({ customProperties, onChange, newProp, setNewPro
                 />
                 <input 
                   type="text" 
-                  value={customProperties[prop]} 
-                  onChange={(e) => onChange(prop, e.target.value)}
+                  defaultValue={customProperties[prop]} 
+                  key={prop + '-' + customProperties[prop]}
+                  onBlur={(e) => {
+                    const newVal = e.target.value.trim();
+                    onChange(prop, newVal, null);
+                  }}
                   style={{ flex: 2, padding: '6px 8px', border: '1px solid var(--sb-border)', borderRadius: '4px', fontSize: '12px' }}
                 />
                 <button 
                   type="button" 
-                  onClick={() => onChange(prop, '')}
+                  onClick={() => onChange(prop, null)}
                   style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '4px' }}
                   title="Remove property"
                 >

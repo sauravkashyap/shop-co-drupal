@@ -287,30 +287,10 @@ class UiBuilderJsonFormatter extends FormatterBase {
         $attributes['class'][] = $tag_map[strtolower($tag)];
       }
 
-      // Check if there are any manual classes.
-      $has_manual_class = false;
-      if (!empty($component['props']['class'])) {
-        $classes = explode(' ', $component['props']['class']);
-        $structural_classes = [
-          'uib-container', 'uib-full-width', 'uib-row', 'uib-section', 'uib-article', 
-          'uib-main', 'uib-aside', 'uib-nav', 'uib-grid', 'uib-plain-div'
-        ];
-        $tag_classes = array_values($tag_map);
-        
-        foreach ($classes as $cls) {
-          $cls = trim($cls);
-          if (empty($cls)) continue;
-          if (in_array($cls, $structural_classes)) continue;
-          if (in_array($cls, $tag_classes)) continue;
-          if (str_starts_with($cls, 'uib-col-')) continue;
-          
-          $has_manual_class = true;
-          break;
-        }
-      }
 
-      // Add unique instance classes only if they have unique styles AND no manual class.
-      if (!$has_manual_class && !empty($component['id']) && $this->hasUniqueStyles($component)) {
+
+      // Add unique instance class if it has unique styles.
+      if (!empty($component['id']) && $this->hasUniqueStyles($component)) {
         $node_id = $component['id'];
 
         if (!in_array('uib-' . $node_id, $attributes['class'])) {
