@@ -75,9 +75,13 @@ export function NodeCard({
     id: `inside::${node.id}`,
     disabled: !isContainer || isDragging || isInherited || isInstance || effectivelyUnselectable,
   });
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(!!node.isCollapsed);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    setIsCollapsed(!!node.isCollapsed);
+  }, [node.isCollapsed]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -89,16 +93,16 @@ export function NodeCard({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMenu]);
 
-  useEffect(() => {
-    const onCollapseAll = () => setIsCollapsed(true);
-    const onExpandAll = () => setIsCollapsed(false);
-    window.addEventListener('ss-collapse-all', onCollapseAll);
-    window.addEventListener('ss-expand-all', onExpandAll);
-    return () => {
-      window.removeEventListener('ss-collapse-all', onCollapseAll);
-      window.removeEventListener('ss-expand-all', onExpandAll);
-    };
-  }, []);
+
+
+  const toggleCollapse = (e) => {
+    e.stopPropagation();
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    window.dispatchEvent(new CustomEvent('ss-update-node-field', {
+      detail: { id: node.id, updates: { isCollapsed: newState } }
+    }));
+  };
 
 
   const isSelected = selectedId === node.id;
@@ -187,7 +191,7 @@ export function NodeCard({
             <button
               type="button"
               className="ss-box-action ss-box-collapse-btn"
-              onClick={e => { e.stopPropagation(); setIsCollapsed(!isCollapsed); }}
+              onClick={toggleCollapse}
               title={isCollapsed ? "Expand" : "Collapse"}
             >
               {isCollapsed ? '⤢' : '⤡'}

@@ -145,6 +145,21 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
 
   // Fetch custom styles from Drupal
   useEffect(() => {
+    const onNodeUpdate = (e) => {
+      const { id, updates } = e.detail;
+      setLayoutTree(prev => {
+        const tree = deepClone(prev);
+        const node = findNodeById(tree, id);
+        if (node) Object.assign(node, updates);
+        return tree;
+      });
+    };
+    window.addEventListener('ss-update-node-field', onNodeUpdate);
+    return () => window.removeEventListener('ss-update-node-field', onNodeUpdate);
+  }, []);
+
+  // Fetch custom styles from Drupal
+  useEffect(() => {
     fetch('/api/ui-builder/styles', { credentials: 'same-origin' })
       .then(res => res.json())
       .then(data => {
@@ -1092,7 +1107,17 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                 onClick={() => {
                   const newState = !isAllCollapsed;
                   setIsAllCollapsed(newState);
-                  window.dispatchEvent(new CustomEvent(newState ? 'ss-collapse-all' : 'ss-expand-all'));
+                  setLayoutTree(prev => {
+                    const tree = deepClone(prev);
+                    const updateAll = (nodes) => {
+                      nodes.forEach(n => {
+                        n.isCollapsed = newState;
+                        if (n.children) updateAll(n.children);
+                      });
+                    };
+                    updateAll(tree);
+                    return tree;
+                  });
                 }}
               >
                 {isAllCollapsed ? 'Expand All' : 'Collapse All'}
