@@ -504,13 +504,26 @@
 .prop-group {
   border: 1px solid var(--sb-border);
   border-radius: 12px;
-  overflow: hidden;
   background: #fff;
   transition: all 0.2s ease;
 }
 
 .prop-group.open {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.prop-group-header {
+  border-radius: 11px;
+}
+
+.prop-group.open .prop-group-header {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.prop-group-body {
+  border-bottom-left-radius: 11px;
+  border-bottom-right-radius: 11px;
 }
 
 .group-title {
@@ -524,6 +537,7 @@
   font-size: 14px;
   color: var(--sb-text-main);
   user-select: none;
+  border-radius: 11px;
 }
 
 .group-title:hover {

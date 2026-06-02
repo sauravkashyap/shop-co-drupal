@@ -434,6 +434,7 @@ export function PropertiesPanel({
   const isColumn = classesArray.includes('column') || selectedNode.label === 'Column';
   const label = selectedNode.label || '';
   const isLayoutElement = isPrimitive && ['div', 'section', 'article', 'main', 'aside', 'nav'].includes(selectedNode.tag) && !selectedNode.props?.isBgImage;
+  const isAccordionIconWrapper = selectedNode?.props?.class?.includes('uib-accordion-icon');
 
   return (
     <div onKeyDown={(e) => {
@@ -568,7 +569,7 @@ export function PropertiesPanel({
             </AccordionSection>
 
             {/* 2. Content & Data */}
-            {!isLayoutElement && (
+            {!isLayoutElement && !isAccordionIconWrapper && (
               <AccordionSection title="Content & Data" defaultOpen={['img', 'svg', 'text', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span'].includes(selectedNode.tag)}>
                 <div style={{ marginTop: '16px' }}>
                   {(selectedNode.tag === 'img' || selectedNode.props?.isBgImage) && (
@@ -963,7 +964,332 @@ export function PropertiesPanel({
               </AccordionSection>
             )}
 
+            {/* Accordion Settings */}
+            {classesArray.includes('uib-accordion') && (
+              <AccordionSection title="Accordion Settings" defaultOpen={true}>
 
+
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Animation Speed</label>
+                  <select 
+                    className="sb-select" 
+                    value={selectedNode.props?.['data-accordion-speed'] || '300'}
+                    onChange={(e) => updateNodeProperty(selectedNode.id, 'data-accordion-speed', e.target.value)}
+                    style={{ width: '100%', padding: '6px' }}
+                  >
+                    <option value="0">Instant (0ms)</option>
+                    <option value="150">Fast (150ms)</option>
+                    <option value="300">Normal (300ms)</option>
+                    <option value="500">Slow (500ms)</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginTop: '20px', borderTop: '1px solid var(--sb-border)', paddingTop: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600' }}>Manage Items</label>
+                  <button 
+                    type="button" 
+                    className="sb-btn sb-btn-primary" 
+                    style={{ width: '100%', marginBottom: '12px' }}
+                    onClick={() => {
+                      const updatedChildren = [...(selectedNode.children || [])];
+                      const newItemIndex = updatedChildren.length + 1;
+                      
+                      const newItem = {
+                        type: 'div',
+                        label: 'Accordion Item',
+                        id: Math.random().toString(36).substr(2, 9),
+                        props: { class: 'uib-accordion-item', 'data-state': 'closed' },
+                        children: [
+                          { 
+                            type: 'div', 
+                            label: 'Accordion Header', 
+                            id: Math.random().toString(36).substr(2, 9),
+                            props: { class: 'uib-accordion-header' },
+                            children: [
+                              { type: 'span', label: 'Header Text', id: Math.random().toString(36).substr(2, 9), content: `Accordion Item ${newItemIndex}`, isField: true, props: { class: 'uib-accordion-title' } },
+                              { type: 'span', label: 'Accordion Icon', id: Math.random().toString(36).substr(2, 9), props: { class: 'uib-accordion-icon uib-accordion-icon-open' }, children: [{ type: 'span', tag: 'span', id: Math.random().toString(36).substr(2, 9), label: 'Icon', isUnselectable: true, props: { class: 'fa-solid fa-plus' } }] },
+                              { type: 'span', label: 'Accordion Icon', id: Math.random().toString(36).substr(2, 9), props: { class: 'uib-accordion-icon uib-accordion-icon-close', style: 'display:none;' }, children: [{ type: 'span', tag: 'span', id: Math.random().toString(36).substr(2, 9), label: 'Icon', isUnselectable: true, props: { class: 'fa-solid fa-minus' } }] }
+                            ]
+                          },
+                          { 
+                            type: 'div', 
+                            label: 'Accordion Content', 
+                            id: Math.random().toString(36).substr(2, 9),
+                            props: { class: 'uib-accordion-content', style: 'display:none;' }, 
+                            children: [
+                              { type: 'p', label: 'Paragraph', id: Math.random().toString(36).substr(2, 9), content: 'Accordion content goes here.', isField: true, props: { class: 'uib-p' } }
+                            ] 
+                          }
+                        ]
+                      };
+                      
+                      updatedChildren.push(newItem);
+                      updateNodeField(selectedNode.id, { children: updatedChildren });
+                    }}
+                  >
+                    + Add New Item
+                  </button>
+                  
+                  {(() => {
+                    const items = selectedNode.children || [];
+                    if (items.length === 0) return <p className="help-text">No items found.</p>;
+                    
+                    return items.map((item, idx) => (
+                      <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--sb-bg-darker)', padding: '8px', marginBottom: '8px', borderRadius: '4px', border: '1px solid var(--sb-border)' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '500' }}>{item.label || `Item ${idx + 1}`}</span>
+                        <button 
+                          type="button" 
+                          style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                          title="Delete Item"
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this item?')) {
+                              const updatedChildren = selectedNode.children.filter(c => c.id !== item.id);
+                              updateNodeField(selectedNode.id, { children: updatedChildren });
+                            }
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </AccordionSection>
+            )}
+
+            {/* Accordion Item Settings */}
+            {classesArray.includes('uib-accordion-item') && (
+              <AccordionSection title="Accordion Item Settings" defaultOpen={true}>
+                <div className="form-group" style={{ marginTop: '12px', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="checkbox" 
+                    id="accordion-item-state-toggle"
+                    checked={selectedNode.props?.['data-state'] === 'open'}
+                    onChange={(e) => {
+                      const isOpen = e.target.checked;
+                      updateNodeProperty(selectedNode.id, 'data-state', isOpen ? 'open' : 'closed');
+                      
+                      // Also update the child 'uib-accordion-content' style so it appears open/closed in the editor
+                      let updatedChildren = [...(selectedNode.children || [])];
+                      
+                      // Find header to toggle icons
+                      const headerIdx = updatedChildren.findIndex(c => c.props?.class?.includes('uib-accordion-header'));
+                      if (headerIdx !== -1) {
+                        let header = { ...updatedChildren[headerIdx] };
+                        let headerChildren = [...(header.children || [])];
+                        
+                        const openIconIdx = headerChildren.findIndex(c => c.props?.class?.includes('uib-accordion-icon-open'));
+                        if (openIconIdx !== -1) {
+                           let openIcon = { ...headerChildren[openIconIdx] };
+                           openIcon.props = { ...openIcon.props, style: isOpen ? 'display:none;' : '' };
+                           headerChildren[openIconIdx] = openIcon;
+                        }
+                        const closeIconIdx = headerChildren.findIndex(c => c.props?.class?.includes('uib-accordion-icon-close'));
+                        if (closeIconIdx !== -1) {
+                           let closeIcon = { ...headerChildren[closeIconIdx] };
+                           closeIcon.props = { ...closeIcon.props, style: isOpen ? '' : 'display:none;' };
+                           headerChildren[closeIconIdx] = closeIcon;
+                        }
+                        
+                        header.children = headerChildren;
+                        updatedChildren[headerIdx] = header;
+                      }
+
+                      // Find content to toggle visibility
+                      const contentIdx = updatedChildren.findIndex(c => c.props?.class?.includes('uib-accordion-content'));
+                      if (contentIdx !== -1) {
+                        let content = { ...updatedChildren[contentIdx] };
+                        content.props = { ...content.props, style: isOpen ? '' : 'display:none;' };
+                        updatedChildren[contentIdx] = content;
+                      }
+                      
+                      updateNodeField(selectedNode.id, { children: updatedChildren });
+                    }}
+                    style={{ marginRight: '8px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="accordion-item-state-toggle" style={{ marginBottom: 0, cursor: 'pointer' }}>
+                    Open by default
+                  </label>
+                </div>
+                
+                <div style={{ marginTop: '20px', borderTop: '1px solid var(--sb-border)', paddingTop: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600' }}>Custom Icons</label>
+                  
+                  {['open', 'close'].map(state => {
+                    // Find the current icon
+                    let currentIconClass = '';
+                    const header = (selectedNode.children || []).find(c => c.props?.class?.includes('uib-accordion-header'));
+                    if (header) {
+                      const iconContainer = (header.children || []).find(c => c.props?.class?.includes(`uib-accordion-icon-${state}`));
+                      if (iconContainer && iconContainer.children && iconContainer.children[0]) {
+                        currentIconClass = iconContainer.children[0].props?.class || '';
+                      }
+                    }
+
+                    return (
+                      <div key={state} style={{ marginBottom: '16px' }}>
+                        <label className="uib-label" style={{ textTransform: 'capitalize', fontWeight: '600' }}>Icon for {state === 'open' ? 'Collapsed State (+)' : 'Expanded State (-)'}</label>
+                        <IconPicker 
+                          value={currentIconClass}
+                          onSelect={(val) => {
+                            let updatedChildren = [...(selectedNode.children || [])];
+                            const headerIdx = updatedChildren.findIndex(c => c.props?.class?.includes('uib-accordion-header'));
+                            if (headerIdx !== -1) {
+                              let headerNode = { ...updatedChildren[headerIdx] };
+                              let headerChildren = [...(headerNode.children || [])];
+                              const iconContainerIdx = headerChildren.findIndex(c => c.props?.class?.includes(`uib-accordion-icon-${state}`));
+                              
+                              if (iconContainerIdx !== -1) {
+                                let iconContainer = { ...headerChildren[iconContainerIdx] };
+                                let iconChildren = [...(iconContainer.children || [])];
+                                if (iconChildren.length > 0) {
+                                  let iconNode = { ...iconChildren[0] };
+                                  iconNode.props = { ...iconNode.props, class: val };
+                                  iconChildren[0] = iconNode;
+                                } else {
+                                  iconChildren = [{ type: 'span', tag: 'span', label: 'Icon', isUnselectable: true, props: { class: val } }];
+                                }
+                                iconContainer.children = iconChildren;
+                                headerChildren[iconContainerIdx] = iconContainer;
+                              }
+                              
+                              headerNode.children = headerChildren;
+                              updatedChildren[headerIdx] = headerNode;
+                              updateNodeField(selectedNode.id, { children: updatedChildren });
+                            }
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </AccordionSection>
+            )}
+
+            {/* Accordion Icon Settings */}
+            {classesArray.includes('uib-accordion-icon') && (
+              <AccordionSection title="Icon Settings" defaultOpen={true}>
+                {(() => {
+                  const isExpandedIcon = classesArray.includes('uib-accordion-icon-close');
+                  const defaultIconClass = isExpandedIcon ? 'fa-solid fa-minus' : 'fa-solid fa-plus';
+                  
+                  // Use a property to track the current type so it doesn't reset when value is empty
+                  const currentType = selectedNode.props?.['data-icon-type'] || 'default';
+                  
+                  // Determine current value based on children
+                  let currentVal = '';
+                  if (selectedNode.children && selectedNode.children.length > 0) {
+                    const child = selectedNode.children[0];
+                    if (child.type === 'img') {
+                      currentVal = child.props?.src || '';
+                    } else if (child.type === 'span' || child.type === 'i') {
+                      currentVal = child.props?.class || '';
+                      if (currentVal === defaultIconClass) currentVal = '';
+                    }
+                  }
+
+                  const updateIconType = (type) => {
+                    // When changing type, we update the data-icon-type prop.
+                    // If switching to default, we also reset the children to the default icon.
+                    // If switching to image or font, we leave children empty until a value is picked,
+                    // or keep the old value if they switch back.
+                    let updatedProps = { ...selectedNode.props, 'data-icon-type': type };
+                    let newChildren = [...(selectedNode.children || [])];
+                    
+                    if (type === 'default') {
+                      newChildren = [{
+                        type: 'span',
+                        tag: 'span',
+                        id: Math.random().toString(36).substr(2, 9),
+                        label: 'Icon',
+                        props: { class: defaultIconClass }
+                      }];
+                    } else {
+                      newChildren = [];
+                    }
+                    
+                    updateNodeField(selectedNode.id, { props: updatedProps, children: newChildren });
+                  };
+
+                  const updateIconValue = (val) => {
+                    let newChildren = [];
+                    if (currentType === 'image' && val) {
+                      newChildren = [{
+                        type: 'img',
+                        tag: 'img',
+                        label: 'Icon Image',
+                        id: Math.random().toString(36).substr(2, 9),
+                        props: { src: val, alt: 'Accordion icon' }
+                      }];
+                    } else if (currentType === 'font' && val) {
+                      newChildren = [{
+                        type: 'i',
+                        tag: 'i',
+                        label: 'Icon',
+                        id: Math.random().toString(36).substr(2, 9),
+                        props: { class: val }
+                      }];
+                    }
+                    updateNodeField(selectedNode.id, { children: newChildren });
+                  };
+
+                  return (
+                    <div style={{ marginTop: '12px' }}>
+                      <label className="uib-label" style={{ textTransform: 'capitalize', fontWeight: '600', marginBottom: '12px', display: 'block' }}>
+                        Icon Style
+                      </label>
+                      <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', background: 'var(--sb-bg-dark)', padding: '4px', borderRadius: '6px' }}>
+                        {[
+                          { id: 'default', label: 'Default' },
+                          { id: 'image', label: 'Image/SVG' },
+                          { id: 'font', label: 'Font Icon' }
+                        ].map(opt => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => updateIconType(opt.id)}
+                            style={{
+                              flex: 1,
+                              padding: '6px',
+                              fontSize: '12px',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              background: currentType === opt.id ? 'var(--sb-bg-main)' : 'transparent',
+                              color: currentType === opt.id ? 'var(--sb-text-main)' : 'var(--sb-text-muted)',
+                              boxShadow: currentType === opt.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {currentType === 'image' && (
+                        <div style={{ marginTop: '12px' }}>
+                          <ImageEditor 
+                            mode="static"
+                            value={currentVal}
+                            onUpdate={(val) => updateIconValue(val)}
+                            label="Upload Image or SVG"
+                          />
+                        </div>
+                      )}
+                      
+                      {currentType === 'font' && (
+                        <div style={{ marginTop: '12px' }}>
+                          <IconPicker 
+                            value={currentVal}
+                            onSelect={(val) => updateIconValue(val)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </AccordionSection>
+            )}
 
             {/* 4. Styles & Classes */}
             <AccordionSection title="Styles & Classes">

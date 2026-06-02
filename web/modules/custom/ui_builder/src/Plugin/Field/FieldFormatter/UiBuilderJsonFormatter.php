@@ -58,6 +58,13 @@ class UiBuilderJsonFormatter extends FormatterBase {
             ],
           ];
 
+          if (strpos($item->value, 'uib-accordion') !== FALSE) {
+            $elements[$delta]['#attached']['library'][] = 'ui_builder/ui_builder_accordion';
+          }
+          if (strpos($item->value, 'swiper') !== FALSE) {
+            $elements[$delta]['#attached']['library'][] = 'ui_builder/ui_builder_slider';
+          }
+
           // Attach file if it exists (or was just generated)
           if (file_exists($uri)) {
             $url = \Drupal::service('file_url_generator')->generateString($uri);

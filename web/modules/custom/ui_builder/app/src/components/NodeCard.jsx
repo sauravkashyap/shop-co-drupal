@@ -40,6 +40,7 @@ function getElementBranding(tag, label, isInstance) {
 
 export function NodeCard({ 
   node, 
+  parentNode,
   mode, 
   selectedId, 
   onSelect,
@@ -62,11 +63,17 @@ export function NodeCard({
 }) {
   const { isDraggingGlobal } = useDragState();
   const isInstance = !!node.component_id;
+  
+  const isAccordionInnerIcon = parentNode?.props?.class?.includes('uib-accordion-icon') && node.label === 'Icon';
+  const effectivelyUnselectable = node.isUnselectable || isAccordionInnerIcon;
+  
+  const isAccordionIconWrapper = node.props?.class?.includes('uib-accordion-icon');
+  
   // Make the container body a droppable zone for "drop inside as last child"
-  const isContainer = CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0);
+  const isContainer = (CONTAINER_TAGS.includes(node.tag) || (node.children && node.children.length > 0)) && !isAccordionIconWrapper;
   const { setNodeRef: setDropInsideRef, isOver: isOverInside } = useDroppable({ 
     id: `inside::${node.id}`,
-    disabled: !isContainer || isDragging || isInherited || isInstance,
+    disabled: !isContainer || isDragging || isInherited || isInstance || effectivelyUnselectable,
   });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -140,13 +147,19 @@ export function NodeCard({
         ${pendingParentId === node.id ? 'ss-box-is-targeted' : ''}
       `}
       onClick={e => { 
+        if (effectivelyUnselectable) return;
         e.stopPropagation(); 
         onSelect(node.id); 
       }}
-      onDoubleClick={e => { e.stopPropagation(); if (onOpenProperties) onOpenProperties(node.id); }}
+      onDoubleClick={e => { 
+        if (effectivelyUnselectable) return;
+        e.stopPropagation(); 
+        if (onOpenProperties) onOpenProperties(node.id); 
+      }}
     >
       {/* Top Bar — drag handle */}
-      <div 
+      {!effectivelyUnselectable && (
+        <div 
         className="ss-box-topbar"
         {...attributes}
         {...listeners}
@@ -237,6 +250,7 @@ export function NodeCard({
           </div>
         )}
       </div>
+      )}
 
       {/* Body / Children */}
       {!isCollapsed && isContainer && (

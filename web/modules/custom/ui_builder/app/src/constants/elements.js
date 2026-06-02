@@ -182,6 +182,43 @@ export const ELEMENT_CATEGORIES = [
           { type: 'div', label: 'Next Arrow', props: { class: 'swiper-button-next' } },
           { type: 'div', label: 'Prev Arrow', props: { class: 'swiper-button-prev' } }
         ]
+      },
+      { 
+        type: 'div', 
+        label: 'Accordion', 
+        icon: '≚', 
+        isField: false, 
+        defaultProps: { 
+          class: 'uib-accordion',
+          'data-accordion-multiple': 'false'
+        },
+        defaultChildren: [
+          {
+            type: 'div',
+            label: 'Accordion Item',
+            props: { class: 'uib-accordion-item', 'data-state': 'closed' },
+            children: [
+              { 
+                type: 'div', 
+                label: 'Accordion Header', 
+                props: { class: 'uib-accordion-header' },
+                children: [
+                  { type: 'span', label: 'Header Text', content: 'Accordion Item 1', isField: true, props: { class: 'uib-accordion-title' } },
+                  { type: 'span', label: 'Accordion Icon', props: { class: 'uib-accordion-icon uib-accordion-icon-open' }, children: [{ type: 'span', tag: 'span', label: 'Icon', props: { class: 'fa-solid fa-plus' } }] },
+                  { type: 'span', label: 'Accordion Icon', props: { class: 'uib-accordion-icon uib-accordion-icon-close', style: 'display:none;' }, children: [{ type: 'span', tag: 'span', label: 'Icon', props: { class: 'fa-solid fa-minus' } }] }
+                ]
+              },
+              { 
+                type: 'div', 
+                label: 'Accordion Content', 
+                props: { class: 'uib-accordion-content', style: 'display:none;' }, 
+                children: [
+                  { type: 'p', label: 'Paragraph', content: 'Accordion content goes here.', isField: true, props: { class: 'uib-p' } }
+                ] 
+              }
+            ]
+          }
+        ]
       }
     ]
   },

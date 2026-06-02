@@ -1,0 +1,74 @@
+.uib-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.uib-accordion-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background-color: #ffffff;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.uib-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  cursor: pointer;
+  user-select: none;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.uib-accordion-header:hover {
+  background-color: #f8fafc;
+}
+
+.uib-accordion-title {
+  font-weight: 500;
+  color: #0f172a;
+  margin: 0;
+}
+
+.uib-accordion-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.uib-accordion-content {
+  overflow: hidden;
+  display: none;
+}
+
+.uib-accordion-item[data-state="open"] .uib-accordion-content {
+  display: block;
+  padding: 0 16px 16px 16px;
+}
+
+/* We hide/show icons via CSS attribute selector to avoid JS doing it if possible */
+.uib-accordion-item[data-state="closed"] .uib-accordion-icon-close {
+  display: none !important;
+}
+
+.uib-accordion-item[data-state="open"] .uib-accordion-icon-open {
+  display: none !important;
+}
+
+.uib-accordion-item[data-state="open"] .uib-accordion-icon-close {
+  display: flex !important;
+}
+
+.uib-accordion-icon svg,
+.uib-accordion-icon img {
+  width: 1em;
+  height: 1em;
+  display: block;
+  object-fit: contain;
+}

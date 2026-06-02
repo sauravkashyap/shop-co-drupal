@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { NodeCard } from './NodeCard';
 
-export function SortableNode({ node, mode, selectedId, onSelect, onOpenProperties, onDuplicate, onDelete, onQuickAdd, onStartTargetedAdd, onSaveAsComponent, pendingParentId, availableComponents, depth = 0, isInherited = false, isRow = false }) {
+export function SortableNode({ node, parentNode, mode, selectedId, onSelect, onOpenProperties, onDuplicate, onDelete, onQuickAdd, onStartTargetedAdd, onSaveAsComponent, pendingParentId, availableComponents, depth = 0, isInherited = false, isRow = false }) {
   const { 
     attributes, 
     listeners, 
@@ -20,6 +20,7 @@ export function SortableNode({ node, mode, selectedId, onSelect, onOpenPropertie
   return (
     <NodeCard
       node={node}
+      parentNode={parentNode}
       mode={mode}
       selectedId={selectedId}
       onSelect={onSelect}

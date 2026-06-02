@@ -66,6 +66,7 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
                 availableComponents={availableComponents}
                 depth={depth}
                 isInherited={isInherited}
+                parentNode={parentNode}
               />
             </div>
           );
@@ -98,6 +99,7 @@ export function NodeChildren({ parentNode, mode, selectedId, onSelect, onOpenPro
             availableComponents={availableComponents}
             depth={depth}
             isInherited={isInherited}
+            parentNode={parentNode}
           />
         </div>
       ))}
