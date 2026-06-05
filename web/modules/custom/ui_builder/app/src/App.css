@@ -601,6 +601,7 @@
 .ss-box-el {
   background: var(--bg-panel);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--node-color, var(--border));
   border-radius: 2px;
   margin-bottom: 10px;
   display: flex;
@@ -609,7 +610,7 @@
 
 /* Hover & Selected states */
 .ss-box-el:hover > .ss-box-topbar {
-  background: #f8f9fa;
+  background: color-mix(in srgb, var(--node-color, #f8f9fa) 8%, transparent);
 }
 
 .ss-box-selected {
@@ -643,6 +644,7 @@
   user-select: none;
   border-bottom: 1px solid transparent;
   box-shadow: none !important;
+  background: color-mix(in srgb, var(--node-color, transparent) 4%, transparent);
 }
 .ss-box-topbar:active { cursor: grabbing; }
 

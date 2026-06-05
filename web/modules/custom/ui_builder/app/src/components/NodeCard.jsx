@@ -17,8 +17,8 @@ import {
   LayoutTemplate, Menu, ChevronRight, ChevronLeft
 } from 'lucide-react';
 
-// Returns the icon for the element box
-function getElementBranding(tag, label, isInstance) {
+// Returns the icon and color for the element box
+function getBaseElementBranding(tag, label, isInstance) {
   if (isInstance) return { icon: Component };
   
   const l = label || tag || '';
@@ -128,6 +128,37 @@ function getElementBranding(tag, label, isInstance) {
   if (tag === 'div') return { icon: Square };
 
   return { icon: File };
+}
+
+function getElementBranding(tag, label, isInstance) {
+  const base = getBaseElementBranding(tag, label, isInstance);
+  const COLORS = {
+    layout: '#3b82f6',     // blue
+    typography: '#10b981', // green
+    media: '#8b5cf6',      // purple
+    interactive: '#f97316',// orange
+    basic: '#94a3b8'       // gray
+  };
+  
+  let category = COLORS.basic;
+  const lowerLabel = (label || '').toLowerCase();
+  const lowerTag = (tag || '').toLowerCase();
+  
+  if (isInstance) {
+    category = COLORS.interactive;
+  } else if (['container', 'row', 'column', 'grid', 'section', 'article', 'main', 'aside', 'nav', 'block', 'table', 'tbody', 'thead', 'tr', 'td', 'th', 'list', 'ul', 'ol', 'li'].some(k => lowerLabel.includes(k) || lowerTag === k)) {
+    category = COLORS.layout;
+  } else if (['heading', 'header text', 'paragraph', 'text', 'span', 'quote', 'label', 'strong', 'b', 'em', 'i', 'code', 'small', 'p', 'a'].some(k => lowerLabel.includes(k) || lowerTag === k)) {
+    category = COLORS.typography;
+  } else if (['image', 'svg', 'video', 'img'].some(k => lowerLabel.includes(k) || lowerTag === k)) {
+    category = COLORS.media;
+  } else if (['button', 'link', 'slider', 'accordion', 'menu', 'form', 'input', 'textarea', 'select', 'pagination', 'arrow'].some(k => lowerLabel.includes(k) || lowerTag === k)) {
+    category = COLORS.interactive;
+  } else if (['div'].some(k => lowerLabel.includes(k) || lowerTag === k)) {
+    category = COLORS.basic;
+  }
+
+  return { ...base, color: category };
 }
 
 export function NodeCard({ 
@@ -242,7 +273,7 @@ export function NodeCard({
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, touchAction: 'none' }}
+      style={{ ...style, touchAction: 'none', '--node-color': branding.color }}
       className={`
         ss-box-el
         ${isSelected ? 'ss-box-selected' : ''}
@@ -273,7 +304,7 @@ export function NodeCard({
         {...listeners}
       >
         <span className="ss-box-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {branding.icon && <branding.icon size={14} color="var(--text-muted)" strokeWidth={2} />}
+          {branding.icon && <branding.icon size={14} color="var(--node-color, var(--text-muted))" strokeWidth={2.5} />}
         </span>
 
         <span className="ss-box-title">{displayName}</span>
