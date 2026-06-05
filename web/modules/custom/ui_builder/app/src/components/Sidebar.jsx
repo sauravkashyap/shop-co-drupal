@@ -1,37 +1,76 @@
-import { useState } from 'react';
+import { useState, useEffect, createElement } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { ELEMENT_CATEGORIES } from '../constants/elements';
 import { CATEGORY_COLORS } from '../constants/typeColors';
+import { 
+  Square, Columns, FileText, File, PanelLeft, 
+  Image as ImageIcon, Play, Heading1, Heading2, Heading3, 
+  Heading4, Heading5, Heading6, Type, MousePointerClick, 
+  Link2, LayoutTemplate, Menu, ChevronDown, ChevronRight, 
+  Component, Plus, Palette, CheckCircle2, X,
+  Box, Layout, Compass, Hexagon, Quote, Minus,
+  Table, List, Grid2X2, PanelTop, LayoutList, ListOrdered, ListTree,
+  ClipboardList, TextCursorInput, MousePointer2, CircleDot, AlignLeft,
+  SlidersHorizontal, ListCollapse, Rows, Frame, GripVertical, Grid3X3,
+  Bold, Italic, Code, CaseLower
+} from 'lucide-react';
 
 // Icons for element types — matching Site Studio's colored square icons
 const ELEMENT_ICONS = {
-  'Container': '□',
-  'Plain Div': '□',
-  'Row': '⊞',
-  'Column': '⊞',
-  'Section': '📑',
-  'Article': '📄',
-  'Main': '🔲',
-  'Aside': '◧',
-  'Grid': '⊞',
+  'Container': Box,
+  'Plain Div': Frame,
+  'Row': Columns,
+  'Column': GripVertical,
+  'Section': FileText,
+  'Article': File,
+  'Main': Layout,
+  'Aside': PanelLeft,
+  'Navigation': Compass,
+  'Grid': Grid3X3,
   // Media
-  'Image': '🖼',
-  'Video': '▶',
+  'Image': ImageIcon,
+  'SVG': Hexagon,
+  'Video': Play,
   // Typography
-  'Heading 1': 'H1',
-  'Heading 2': 'H2',
-  'Heading 3': 'H3',
-  'Heading 4': 'H4',
-  'Heading 5': 'H5',
-  'Heading 6': 'H6',
-  'Paragraph': '¶',
-  'Span / Text': 'T',
+  'Heading 1': Heading1,
+  'Heading 2': Heading2,
+  'Heading 3': Heading3,
+  'Heading 4': Heading4,
+  'Heading 5': Heading5,
+  'Heading 6': Heading6,
+  'Paragraph': Type,
+  'Quote': Quote,
+  'Divider': Minus,
+  'Span / Text': Type,
+  'Bold': Bold,
+  'Italic': Italic,
+  'Code': Code,
+  'Small': CaseLower,
+  // Tables
+  'Table': Table,
+  'Table Head': PanelTop,
+  'Table Body': LayoutList,
+  'Table Row': Rows,
+  'Table Cell': Grid2X2,
+  // Lists
+  'Unordered List': List,
+  'Ordered List': ListOrdered,
+  'List Item': ListTree,
+  // Forms
+  'Form': ClipboardList,
+  'Label': Type,
+  'Input Field': TextCursorInput,
+  'Textarea': AlignLeft,
+  'Select Dropdown': MousePointer2,
+  'Select Option': CircleDot,
   // Interactive
-  'Button': '▢',
-  'Link': '⟁',
+  'Button': MousePointerClick,
+  'Link': Link2,
+  'Slider': SlidersHorizontal,
+  'Accordion': ListCollapse,
   // Drupal
-  'Block': '☐',
-  'Menu': '☰',
+  'Block': LayoutTemplate,
+  'Menu': Menu,
 };
 
 function ComponentTreePreview({ nodes }) {
@@ -68,16 +107,16 @@ function LibraryComponent({ comp, addComponentInstance }) {
             e.stopPropagation();
             setIsExpanded(!isExpanded);
           }}
+          style={{ display: 'flex', alignItems: 'center' }}
         >
-          {isExpanded ? '▼' : '▶'}
+          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
-        <span className="ss-element-icon" style={{ background: '#8b5cf6' }}>🧩</span>
+        <span className="ss-element-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Component size={14} color="var(--text-muted)" />
+        </span>
         <span className="ss-element-label">{comp.label}</span>
         <button type="button" className="ss-element-add" title={`Add ${comp.label}`}>
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M10 6v8M6 10h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
+          <Plus size={16} />
         </button>
       </div>
       
@@ -105,6 +144,8 @@ function DraggableElement({ el, catColor, onClick }) {
     opacity: isDragging ? 0.5 : 1
   } : undefined;
 
+  const IconComponent = ELEMENT_ICONS[el.label] || Square;
+
   return (
     <div
       ref={setNodeRef}
@@ -115,15 +156,12 @@ function DraggableElement({ el, catColor, onClick }) {
       {...listeners}
       {...attributes}
     >
-      <span className="ss-element-icon" style={{ background: catColor }}>
-        {el.icon || ELEMENT_ICONS[el.label] || '□'}
+      <span className="ss-element-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <IconComponent size={14} color="var(--text-muted)" strokeWidth={2} />
       </span>
       <span className="ss-element-label">{el.label}</span>
       <button type="button" className="ss-element-add" title={`Add ${el.label}`}>
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M10 6v8M6 10h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
+        <Plus size={16} />
       </button>
     </div>
   );
@@ -144,7 +182,17 @@ export function Sidebar({
 }) {
   const [activeTab, setActiveTab] = useState('elements');
   const [search, setSearch] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState(['Layout', 'Media', 'Typography', 'Tables', 'Lists', 'Forms']);
+  const [expandedCategories, setExpandedCategories] = useState(() => {
+    const saved = localStorage.getItem('uib_sidebar_expanded_categories');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return ['Layout', 'Media', 'Typography', 'Tables', 'Lists', 'Forms'];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('uib_sidebar_expanded_categories', JSON.stringify(expandedCategories));
+  }, [expandedCategories]);
 
   const toggleCategory = (name) => {
     setExpandedCategories(prev => 
@@ -165,8 +213,8 @@ export function Sidebar({
       {/* Header with close */}
       <div className="sidebar-header">
         <h3 className="sidebar-header-title">Elements</h3>
-        <button type="button" className="sidebar-close-btn" onClick={onClose} title="Close">
-          ✕
+        <button type="button" className="sidebar-close-btn" onClick={onClose} title="Close" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <X size={16} />
         </button>
       </div>
 
@@ -198,7 +246,9 @@ export function Sidebar({
             onChange={e => setSearch(e.target.value)}
           />
           {search && (
-            <button type="button" className="sidebar-search-clear" onClick={() => setSearch('')}>✕</button>
+            <button type="button" className="sidebar-search-clear" onClick={() => setSearch('')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <X size={12} />
+            </button>
           )}
         </div>
       )}
@@ -223,7 +273,9 @@ export function Sidebar({
                     style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                   >
                     <span>{cat.name} elements</span>
-                    <span style={{ fontSize: '10px', opacity: 0.5 }}>{isExpanded ? '▼' : '▶'}</span>
+                    <span style={{ fontSize: '10px', opacity: 0.5, display: 'flex' }}>
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </span>
                   </div>
                   {isExpanded && (
                     <div className="ss-category-list">
@@ -276,7 +328,9 @@ export function Sidebar({
                     className={`ss-element-row ${currentStyle?.id === style.id ? 'ss-element-row-active' : ''}`}
                     onClick={() => onSelectStyle(style.id)}
                   >
-                    <span className="ss-element-icon" style={{ background: '#10b981' }}>🎨</span>
+                    <span className="ss-element-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Palette size={14} color="var(--text-muted)" />
+                    </span>
                     <span className="ss-element-label">.{style.id}</span>
                   </div>
                 ))}
@@ -287,7 +341,9 @@ export function Sidebar({
                     onSelectStyle(id);
                   }}
                 >
-                  <span className="ss-element-icon" style={{ background: '#475569' }}>+</span>
+                  <span className="ss-element-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Plus size={14} color="var(--text-muted)" />
+                  </span>
                   <span className="ss-element-label">Create New Style</span>
                 </div>
               </div>
@@ -300,9 +356,13 @@ export function Sidebar({
       {(selectedNodeId || currentStyle) && (
         <div className="sidebar-context-hint">
           {selectedNodeId ? (
-            <span>✅ <strong>{selectedNode?.label || selectedNode?.tag}</strong></span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckCircle2 size={16} color="var(--primary)" /> <strong>{selectedNode?.label || selectedNode?.tag}</strong>
+            </span>
           ) : (
-            <span>🎨 <strong>Style: .{currentStyle?.id}</strong></span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Palette size={16} color="var(--primary)" /> <strong>Style: .{currentStyle?.id}</strong>
+            </span>
           )}
           <button type="button" className="deselect-link" onClick={onDeselect}>Deselect</button>
         </div>

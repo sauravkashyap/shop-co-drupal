@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core';
 import './App.css';
 import { Agentation } from 'agentation';
+import { Eye, Settings, CircleHelp, Plus } from 'lucide-react';
 
 // Constants & Utils
 import { ELEMENT_CATEGORIES, CONTAINER_TAGS } from './constants/elements';
@@ -1084,9 +1085,9 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
               <span className="ss-canvas-header-title">▼ Layout canvas</span>
               <span className="ss-canvas-header-right">
                 <span className="ss-canvas-link">Preview</span>
-                <span className="ss-canvas-icon" title="Toggle visibility">👁</span>
-                <span className="ss-canvas-icon" title="Settings">⚙</span>
-                <span className="ss-canvas-icon" title="Help">❓</span>
+                <span className="ss-canvas-icon" title="Toggle visibility"><Eye size={16} strokeWidth={1.5} /></span>
+                <span className="ss-canvas-icon" title="Settings"><Settings size={16} strokeWidth={1.5} /></span>
+                <span className="ss-canvas-icon" title="Help"><CircleHelp size={16} strokeWidth={1.5} /></span>
               </span>
             </div>
 
@@ -1098,7 +1099,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
                 onClick={() => setSidebarOpen(true)}
                 title="Add element"
               >
-                +
+                <Plus size={16} strokeWidth={2} style={{ marginRight: '4px' }} /> Add
               </button>
               <span style={{ flex: 1 }} />
               <button 

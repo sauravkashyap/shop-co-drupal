@@ -3,6 +3,7 @@ import { FieldEditor } from './FieldEditor';
 import { ImageEditor } from './ImageEditor';
 import { IconPicker } from './IconPicker';
 import { getCustomClassesOnly, mergeClasses } from '../utils/styleUtils';
+import { X, Palette, Plus, Trash2 } from 'lucide-react';
 import { 
   STANDARD_PROPS, 
   PropertyEditor, 
@@ -11,7 +12,15 @@ import {
 import './StyleBuilder.css'; // Reuse same styles
 
 function AccordionSection({ title, children, defaultOpen = false }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(() => {
+    const saved = localStorage.getItem(`uib_accordion_${title.replace(/\s+/g, '_')}`);
+    if (saved !== null) return saved === 'true';
+    return Array.isArray(defaultOpen) ? defaultOpen : defaultOpen;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`uib_accordion_${title.replace(/\s+/g, '_')}`, isOpen);
+  }, [isOpen, title]);
   
   return (
     <div className={`prop-group ${isOpen ? 'open' : ''}`}>
@@ -380,7 +389,7 @@ export function PropertiesPanel({
         <aside className="ui-builder-properties">
           <div className="properties-header">
             <h3>Style Editor</h3>
-            <button type="button" className="properties-close-btn" onClick={onDeselect} title="Close">✕</button>
+            <button type="button" className="properties-close-btn" onClick={onDeselect} title="Close"><X size={16} /></button>
           </div>
           <div className="properties-content animate-fade">
             <div className="form-group">
@@ -450,7 +459,7 @@ export function PropertiesPanel({
       <aside className="ui-builder-properties" onClick={e => e.stopPropagation()}>
         <div className="properties-header">
           <h3>{selectedNode.label || selectedNode.tag}</h3>
-          <button type="button" className="properties-close-btn" onClick={onDeselect} title="Close">✕</button>
+          <button type="button" className="properties-close-btn" onClick={onDeselect} title="Close"><X size={16} /></button>
         </div>
 
         <div className="properties-content">
@@ -499,7 +508,7 @@ export function PropertiesPanel({
                       }
                     }}
                   >
-                    🎨 Edit CSS in Style Builder
+                    <Palette size={16} /> Edit CSS in Style Builder
                   </button>
                 </div>
               </AccordionSection>
@@ -898,7 +907,7 @@ export function PropertiesPanel({
                   <button 
                     type="button" 
                     className="sb-btn sb-btn-primary" 
-                    style={{ width: '100%', marginBottom: '12px' }}
+                    style={{ width: '100%', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     onClick={() => {
                       const trackIndex = (selectedNode.children || []).findIndex(c => c.props?.class?.includes('swiper-wrapper'));
                       if (trackIndex !== -1) {
@@ -930,7 +939,7 @@ export function PropertiesPanel({
                       }
                     }}
                   >
-                    + Add New Slide
+                    <Plus size={16} /> Add New Slide
                   </button>
                   
                   {(() => {
@@ -955,7 +964,7 @@ export function PropertiesPanel({
                             }
                           }}
                         >
-                          ✕
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     ));
@@ -989,7 +998,7 @@ export function PropertiesPanel({
                   <button 
                     type="button" 
                     className="sb-btn sb-btn-primary" 
-                    style={{ width: '100%', marginBottom: '12px' }}
+                    style={{ width: '100%', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     onClick={() => {
                       const updatedChildren = [...(selectedNode.children || [])];
                       const newItemIndex = updatedChildren.length + 1;
@@ -1027,7 +1036,7 @@ export function PropertiesPanel({
                       updateNodeField(selectedNode.id, { children: updatedChildren });
                     }}
                   >
-                    + Add New Item
+                    <Plus size={16} /> Add New Item
                   </button>
                   
                   {(() => {
@@ -1048,7 +1057,7 @@ export function PropertiesPanel({
                             }
                           }}
                         >
-                          ✕
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     ));
@@ -1357,13 +1366,17 @@ export function PropertiesPanel({
                           <span className="style-tag-label">{cls}</span>
                           {!isProtected && (
                             <button 
-                              type="button"
+                              type="button" 
                               className="style-tag-remove"
                               onClick={() => {
-                                const filtered = classes.filter(c => c !== cls).join(' ');
-                                updateNodeProperty(selectedNode.id, 'class', filtered);
+                                const newClasses = classesArray.filter(c => c !== cls).join(' ');
+                                updateNodeField(selectedNode.id, { 
+                                  props: { ...selectedNode.props, class: newClasses } 
+                                });
                               }}
-                            >✕</button>
+                              title="Remove class"
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            ><X size={12} /></button>
                           )}
                         </div>
                       );

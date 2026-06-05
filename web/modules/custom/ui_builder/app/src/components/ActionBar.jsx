@@ -1,4 +1,5 @@
 import React from 'react';
+import { Menu, X, Diamond, Palette } from 'lucide-react';
 
 export function ActionBar({ mode, onSavePage, onSaveAsComponent, onToggleStyles, sidebarOpen, onToggleSidebar }) {
   return (
@@ -10,14 +11,13 @@ export function ActionBar({ mode, onSavePage, onSaveAsComponent, onToggleStyles,
           onClick={onToggleSidebar}
           title={sidebarOpen ? 'Hide Elements' : 'Show Elements'}
         >
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-            <rect x="1" y="2" width="6" height="16" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-            <rect x="9" y="2" width="10" height="16" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
+          {sidebarOpen ? <X size={18} strokeWidth={1.5} /> : <Menu size={18} strokeWidth={1.5} />}
         </button>
         <div className="builder-logo">
-          <span className="logo-icon" style={{ color: 'var(--primary)' }}>💠</span>
-          <span className="logo-text">Site Studio <span style={{ fontWeight: 300, opacity: 0.7 }}>Unified</span></span>
+          <span className="logo-icon" style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center' }}>
+            <Diamond size={20} />
+          </span>
+          <span className="logo-text">UI Builder</span>
         </div>
         <div className="mode-badge" style={{ 
           background: mode === 'architect' ? '#dbeafe' : '#dcfce7',
@@ -40,8 +40,8 @@ export function ActionBar({ mode, onSavePage, onSaveAsComponent, onToggleStyles,
       <div className="bar-right">
         {mode === 'architect' && (
           <>
-            <button type="button" className="btn-secondary" onClick={onToggleStyles}>
-              <span className="icon">🎨</span> Style Library
+            <button type="button" className="btn-secondary" onClick={onToggleStyles} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Palette size={16} /> Style Library
             </button>
           </>
         )}

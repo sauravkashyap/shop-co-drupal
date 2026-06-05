@@ -3,39 +3,131 @@ import { useDroppable } from '@dnd-kit/core';
 import { NodeChildren } from './NodeChildren';
 import { CONTAINER_TAGS } from '../constants/elements';
 import { useDragState } from '../contexts/DragStateContext';
+import { 
+  Component, Square, PanelLeft, File, FileText, Triangle, 
+  Image as ImageIcon, Play, Heading, Type, Link2, 
+  MousePointerClick, List, Circle, Grid3X3, AlignJustify, 
+  Minus, FormInput, TextSelect, CircleDot, 
+  Plus, ChevronDown, ChevronUp, MoreHorizontal,
+  Box, Layout, Compass, Hexagon, Quote, Table, Rows, Grid2X2, 
+  PanelTop, LayoutList, ListOrdered, ListTree, ClipboardList, 
+  TextCursorInput, MousePointer2, AlignLeft, SlidersHorizontal, ListCollapse,
+  Frame, GripVertical, Bold, Italic, Code, CaseLower,
+  Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Columns,
+  LayoutTemplate, Menu, ChevronRight, ChevronLeft
+} from 'lucide-react';
 
-// Returns the icon and background color for the element box
+// Returns the icon for the element box
 function getElementBranding(tag, label, isInstance) {
-  if (isInstance) return { icon: '🧩', color: '#a855f7' };
+  if (isInstance) return { icon: Component };
   
   const l = label || tag || '';
-  if (l.startsWith('Container') || l.startsWith('Plain Div') || l.startsWith('Section') || l.startsWith('Row') || l.startsWith('Column') || tag === 'div' || tag === 'main' || tag === 'aside' || tag === 'article' || tag === 'nav') {
-    if (tag === 'aside') return { icon: '◧', color: '#fbbf24' };
-    if (tag === 'article') return { icon: '📄', color: '#d97706' };
-    if (tag === 'section') return { icon: '📑', color: '#f5a623' };
-    if (tag === 'main') return { icon: '🔲', color: '#f5a623' };
-    if (tag === 'nav') return { icon: '⟁', color: '#f5a623' };
-    return { icon: '□', color: '#f5a623' };
-  }
-  if (l === 'Image') return { icon: '🖼', color: '#0073ba' };
-  if (tag === 'svg') return { icon: 'S', color: '#0073ba' };
-  if (l === 'Video') return { icon: '▶', color: '#0073ba' };
-  if (l.startsWith('Heading') || l.startsWith('Header')) return { icon: 'H', color: '#0073ba' };
-  if (l === 'WYSIWYG' || l === 'Paragraph' || tag === 'p') return { icon: '¶', color: '#0073ba' };
-  if (l === 'Link' || tag === 'a') return { icon: '🔗', color: '#0073ba' };
-  if (l === 'Button' || tag === 'button') return { icon: '▢', color: '#0073ba' };
-  if (tag === 'ul' || tag === 'ol') return { icon: '≡', color: '#0073ba' };
-  if (tag === 'li') return { icon: '•', color: '#0073ba' };
-  if (tag === 'table') return { icon: '▦', color: '#10b981' };
-  if (['thead', 'tbody'].includes(tag)) return { icon: '☰', color: '#10b981' };
-  if (tag === 'tr') return { icon: '＝', color: '#10b981' };
-  if (['th', 'td'].includes(tag)) return { icon: '▫', color: '#10b981' };
-  if (tag === 'form') return { icon: '✉', color: '#f43f5e' };
-  if (tag === 'label') return { icon: 'L', color: '#f43f5e' };
-  if (['input', 'textarea', 'select'].includes(tag)) return { icon: '✎', color: '#f43f5e' };
-  if (tag === 'option') return { icon: '○', color: '#f43f5e' };
   
-  return { icon: '📄', color: '#0073ba' };
+  // Try exact label match first
+  const EXACT_MATCHES = {
+    'Container': Box,
+    'Plain Div': Frame,
+    'Row': Columns,
+    'Column': GripVertical,
+    'Section': FileText,
+    'Article': File,
+    'Main': Layout,
+    'Aside': PanelLeft,
+    'Navigation': Compass,
+    'Grid': Grid3X3,
+    'Image': ImageIcon,
+    'SVG': Hexagon,
+    'Video': Play,
+    'Heading 1': Heading1,
+    'Heading 2': Heading2,
+    'Heading 3': Heading3,
+    'Heading 4': Heading4,
+    'Heading 5': Heading5,
+    'Heading 6': Heading6,
+    'Paragraph': Type,
+    'Quote': Quote,
+    'Divider': Minus,
+    'Span / Text': Type,
+    'Bold': Bold,
+    'Italic': Italic,
+    'Code': Code,
+    'Small': CaseLower,
+    'Table': Table,
+    'Table Head': PanelTop,
+    'Table Body': LayoutList,
+    'Table Row': Rows,
+    'Table Cell': Grid2X2,
+    'Unordered List': List,
+    'Ordered List': ListOrdered,
+    'List Item': ListTree,
+    'Form': ClipboardList,
+    'Label': Type,
+    'Input Field': TextCursorInput,
+    'Textarea': AlignLeft,
+    'Select Dropdown': MousePointer2,
+    'Select Option': CircleDot,
+    'Button': MousePointerClick,
+    'Link': Link2,
+    'Slider': SlidersHorizontal,
+    'Accordion': ListCollapse,
+    'Block': LayoutTemplate,
+    'Menu': Menu,
+    'Slider Track': Columns,
+    'Next Arrow': ChevronRight,
+    'Prev Arrow': ChevronLeft,
+    'Pagination': MoreHorizontal,
+    'Accordion Item': AlignJustify,
+    'Accordion Header': Heading,
+    'Header Text': Type,
+    'Accordion Icon': ChevronDown,
+    'Accordion Content': AlignLeft
+  };
+  
+  if (EXACT_MATCHES[l]) return { icon: EXACT_MATCHES[l] };
+
+  // Fallbacks for tags
+  if (tag === 'main') return { icon: Layout };
+  if (tag === 'aside') return { icon: PanelLeft };
+  if (tag === 'article') return { icon: File };
+  if (tag === 'section') return { icon: FileText };
+  if (tag === 'nav') return { icon: Compass };
+  if (tag === 'svg') return { icon: Hexagon };
+  if (tag === 'strong' || tag === 'b') return { icon: Bold };
+  if (tag === 'em' || tag === 'i') return { icon: Italic };
+  if (tag === 'code') return { icon: Code };
+  if (tag === 'small') return { icon: CaseLower };
+  if (tag === 'p' || tag === 'span') return { icon: Type };
+  if (tag === 'blockquote') return { icon: Quote };
+  if (tag === 'hr') return { icon: Minus };
+  if (tag === 'a') return { icon: Link2 };
+  if (tag === 'button') return { icon: MousePointerClick };
+  if (tag === 'ul') return { icon: List };
+  if (tag === 'ol') return { icon: ListOrdered };
+  if (tag === 'li') return { icon: ListTree };
+  if (tag === 'table') return { icon: Table };
+  if (tag === 'thead') return { icon: PanelTop };
+  if (tag === 'tbody') return { icon: LayoutList };
+  if (tag === 'tr') return { icon: Rows };
+  if (['th', 'td'].includes(tag)) return { icon: Grid2X2 };
+  if (tag === 'form') return { icon: ClipboardList };
+  if (tag === 'label') return { icon: Type };
+  if (tag === 'input') return { icon: TextCursorInput };
+  if (tag === 'textarea') return { icon: AlignLeft };
+  if (tag === 'select') return { icon: MousePointer2 };
+  if (tag === 'option') return { icon: CircleDot };
+  
+  // Partial matches for renamed nodes
+  if (l.startsWith('Container')) return { icon: Box };
+  if (l.startsWith('Plain Div')) return { icon: Frame };
+  if (l.startsWith('Row')) return { icon: Columns };
+  if (l.startsWith('Column')) return { icon: GripVertical };
+  if (l.startsWith('Grid')) return { icon: Grid3X3 };
+  if (l.startsWith('Heading') || l.startsWith('Header')) return { icon: Heading };
+  if (l.startsWith('Slide Content')) return { icon: Box };
+  if (l.startsWith('Slide')) return { icon: Square };
+  if (tag === 'div') return { icon: Square };
+
+  return { icon: File };
 }
 
 export function NodeCard({ 
@@ -75,12 +167,24 @@ export function NodeCard({
     id: `inside::${node.id}`,
     disabled: !isContainer || isDragging || isInherited || isInstance || effectivelyUnselectable,
   });
-  const [isCollapsed, setIsCollapsed] = useState(!!node.isCollapsed);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem(`uib_node_collapse_${node.id}`);
+    if (saved !== null) return saved === 'true';
+    return !!node.isCollapsed;
+  });
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
-    setIsCollapsed(!!node.isCollapsed);
+    localStorage.setItem(`uib_node_collapse_${node.id}`, isCollapsed);
+  }, [isCollapsed, node.id]);
+
+  useEffect(() => {
+    const nodeState = !!node.isCollapsed;
+    setIsCollapsed(prev => {
+      if (node.isCollapsed !== undefined && nodeState !== prev) return nodeState;
+      return prev;
+    });
   }, [node.isCollapsed]);
 
   useEffect(() => {
@@ -168,8 +272,8 @@ export function NodeCard({
         {...attributes}
         {...listeners}
       >
-        <span className="ss-box-icon" style={{ background: branding.color }}>
-          {branding.icon}
+        <span className="ss-box-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {branding.icon && <branding.icon size={14} color="var(--text-muted)" strokeWidth={2} />}
         </span>
 
         <span className="ss-box-title">{displayName}</span>
@@ -185,7 +289,7 @@ export function NodeCard({
                 onClick={e => { e.stopPropagation(); onStartTargetedAdd(node.id); }}
                 title="Add element inside..."
               >
-                +
+                <Plus size={14} strokeWidth={2.5} />
               </button>
             )}
             <button
@@ -193,8 +297,9 @@ export function NodeCard({
               className="ss-box-action ss-box-collapse-btn"
               onClick={toggleCollapse}
               title={isCollapsed ? "Expand" : "Collapse"}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              {isCollapsed ? '⤢' : '⤡'}
+              {isCollapsed ? <ChevronDown size={14} strokeWidth={2} /> : <ChevronUp size={14} strokeWidth={2} />}
             </button>
           </>
         )}
@@ -206,8 +311,9 @@ export function NodeCard({
               className="ss-box-action ss-box-options-btn"
               onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
               title="Options"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              •••
+              <MoreHorizontal size={14} strokeWidth={2.5} />
             </button>
             
             {showMenu && (

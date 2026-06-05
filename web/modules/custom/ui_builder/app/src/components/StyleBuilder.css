@@ -3,14 +3,14 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --sb-bg: #ffffff;
-  --sb-sidebar-bg: #fdfdfd;
-  --sb-toolbar-bg: #f8f9fa;
-  --sb-border: #e5e7eb;
-  --sb-primary: #2563eb;
-  --sb-primary-soft: #eff6ff;
-  --sb-text-main: #1f2937;
-  --sb-text-muted: #6b7280;
+  --sb-bg: #F6F9FC;
+  --sb-sidebar-bg: #FFFFFF;
+  --sb-toolbar-bg: #F6F9FC;
+  --sb-border: #E6E8EB;
+  --sb-primary: #635BFF;
+  --sb-primary-soft: #EEEDFF;
+  --sb-text-main: #0A2540;
+  --sb-text-muted: #425466;
   --sb-highlight: #fff9db; /* Site Studio Gold */
   --sb-highlight-border: #fcc419;
   --sb-highlight-text: #856404;

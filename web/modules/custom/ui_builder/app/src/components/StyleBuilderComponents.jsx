@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { ChevronDown, ChevronRight, Monitor, X, Plus, Minus, GripVertical, PlusCircle } from 'lucide-react';
 
 export const STANDARD_PROPS = [
   'font-size', 'font-weight', 'color', 'line-height', 'letter-spacing', 'text-align', 'text-transform', 'font-family',
@@ -17,7 +18,7 @@ export function Group({ title, icon, children }) {
           <span style={{ opacity: 0.6, fontSize: '16px' }}>{icon}</span>
           {title}
         </div>
-        <span>{open ? '▼' : '▶'}</span>
+        <span>{open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
       </div>
       {open && <div className="group-fields">{children}</div>}
     </div>
@@ -184,7 +185,7 @@ export function CustomCssEditor({ customProperties, onChange, newProp, setNewPro
           onClick={() => setActiveDevice('desktop')}
           style={{ padding: '4px 8px', fontSize: '11px', borderRadius: '4px', background: activeDevice === 'desktop' ? '#e6f7ff' : 'none', border: 'none', cursor: 'pointer', color: activeDevice === 'desktop' ? '#0050b3' : 'var(--text-muted)' }}
         >
-          🖥️ Desktop
+          <Monitor size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Desktop
         </button>
         {breakpointKeys.map(key => (
           <button 
@@ -232,8 +233,9 @@ export function CustomCssEditor({ customProperties, onChange, newProp, setNewPro
                   onClick={() => onChange(prop, null)}
                   style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '4px' }}
                   title="Remove property"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', padding: '4px' }}
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               </div>
             );
@@ -364,7 +366,8 @@ export function SelectorTree({
                 type="button" 
                 className="ss-sel-collapse-toggle"
                 onClick={(e) => toggleCollapse(e, pathStr)}
-              >{isCollapsed ? '+' : '−'}</button>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >{isCollapsed ? <Plus size={12} /> : <Minus size={12} />}</button>
             ) : (
               <div className="ss-sel-collapse-spacer" />
             )
@@ -379,7 +382,7 @@ export function SelectorTree({
             onDragOver={(e) => onNodeAction('dragOver', e, path, 'inside')}
             onDrop={(e) => onNodeAction('drop', e, path, 'inside')}
           >
-            {!isRoot && <span className="ss-sel-drag-handle">✥</span>}
+            {!isRoot && <GripVertical size={14} className="ss-sel-drag-handle" />}
 
             {isEditing ? (
               <input 
@@ -402,14 +405,16 @@ export function SelectorTree({
               type="button" 
               className="ss-sel-add"
               onClick={(e) => onNodeAction('add', e, path)}
-            >⊕</button>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            ><PlusCircle size={14} /></button>
             {!isRoot && (
               <button 
                 type="button" 
                 className="ss-sel-delete"
                 onClick={(e) => onNodeAction('delete', e, path)}
                 title="Delete selector"
-              >×</button>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              ><X size={14} /></button>
             )}
           </div>
         </div>
@@ -440,7 +445,7 @@ export function SelectorTree({
                 <div className="ss-sel-row">
                   <div className="ss-sel-collapse-spacer" />
                   <div className="ss-sel-card ss-sel-selected">
-                    <span className="ss-sel-drag-handle" style={{ visibility: 'hidden' }}>✥</span>
+                    <GripVertical size={14} className="ss-sel-drag-handle" style={{ visibility: 'hidden' }} />
                     <input 
                       ref={editInputRef}
                       className="ss-sel-edit-input"
