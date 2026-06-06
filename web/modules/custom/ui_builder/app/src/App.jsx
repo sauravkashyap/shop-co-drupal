@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core';
 import './App.css';
 import { Agentation } from 'agentation';
-import { Eye, Settings, CircleHelp, Plus } from 'lucide-react';
+import { Eye, Settings, CircleHelp, Plus, X } from 'lucide-react';
 
 // Constants & Utils
 import { ELEMENT_CATEGORIES, CONTAINER_TAGS } from './constants/elements';
@@ -40,6 +40,7 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { ActionBar } from './components/ActionBar';
 import { StyleBuilder } from './components/StyleBuilder';
 import { DragStateContext } from './contexts/DragStateContext';
+import PreviewModal from './components/PreviewModal';
 
 function App({ mode, initialLayout, initialSchema, availableComponents: initialComponents, onUpdate, onSavePage: externalSavePage, initialStyle, onSaveStyle, onBackStyle }) {
   const [layoutTree, setLayoutTree] = useState(() => {
@@ -128,6 +129,7 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
   const [isDraggingGlobal, setIsDraggingGlobal] = useState(false);
   const [isAllCollapsed, setIsAllCollapsed] = useState(false);
   const [pendingParentId, setPendingParentId] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Add class to body when UI Builder is active
   useEffect(() => {
@@ -1050,10 +1052,11 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
       <ActionBar 
         mode={mode} 
         onSavePage={handleSavePage}
-        onSaveAsComponent={handleSaveAsComponent}
-        onToggleStyles={() => {}}
+        onSaveAsComponent={mode === 'architect' ? null : handleSaveAsComponent}
+        onToggleStyles={() => setPropertiesOpenId(propertiesOpenId === 'global-styles' ? null : 'global-styles')}
+        onPreview={() => setIsPreviewOpen(true)}
         sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen(prev => !prev)}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
       />
 
       <div className="builder-body">
@@ -1084,8 +1087,6 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
             <div className="ss-canvas-header" onClick={e => e.stopPropagation()}>
               <span className="ss-canvas-header-title">▼ Layout canvas</span>
               <span className="ss-canvas-header-right">
-                <span className="ss-canvas-link">Preview</span>
-                <span className="ss-canvas-icon" title="Toggle visibility"><Eye size={16} strokeWidth={1.5} /></span>
                 <span className="ss-canvas-icon" title="Settings"><Settings size={16} strokeWidth={1.5} /></span>
                 <span className="ss-canvas-icon" title="Help"><CircleHelp size={16} strokeWidth={1.5} /></span>
               </span>
@@ -1212,6 +1213,15 @@ function App({ mode, initialLayout, initialSchema, availableComponents: initialC
           onBack={() => setCurrentStyle(null)}
         />
       )}
+      
+      {/* Real Preview Overlay */}
+      {isPreviewOpen && (
+        <PreviewModal 
+          nodes={layoutTree} 
+          onClose={() => setIsPreviewOpen(false)} 
+        />
+      )}
+
       {/* Agentation — visual feedback tool for AI agents */}
       <Agentation endpoint="http://localhost:4747" />
     </div>

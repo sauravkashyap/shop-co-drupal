@@ -1,18 +1,10 @@
 import React from 'react';
-import { Menu, X, Diamond, Palette } from 'lucide-react';
+import { Menu, X, Diamond, Palette, Eye } from 'lucide-react';
 
-export function ActionBar({ mode, onSavePage, onSaveAsComponent, onToggleStyles, sidebarOpen, onToggleSidebar }) {
+export function ActionBar({ mode, onSavePage, onSaveAsComponent, onToggleStyles, sidebarOpen, onToggleSidebar, onPreview }) {
   return (
     <header className="ui-builder-action-bar">
       <div className="bar-left">
-        <button 
-          type="button" 
-          className={`ss-sidebar-toggle ${sidebarOpen ? 'active' : ''}`}
-          onClick={onToggleSidebar}
-          title={sidebarOpen ? 'Hide Elements' : 'Show Elements'}
-        >
-          {sidebarOpen ? <X size={18} strokeWidth={1.5} /> : <Menu size={18} strokeWidth={1.5} />}
-        </button>
         <div className="builder-logo">
           <span className="logo-icon" style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center' }}>
             <Diamond size={20} />
@@ -45,6 +37,9 @@ export function ActionBar({ mode, onSavePage, onSaveAsComponent, onToggleStyles,
             </button>
           </>
         )}
+        <button type="button" className="btn-secondary" onClick={onPreview} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Eye size={16} /> Preview
+        </button>
       </div>
     </header>
   );

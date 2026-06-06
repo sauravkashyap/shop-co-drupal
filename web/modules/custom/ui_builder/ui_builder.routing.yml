@@ -85,6 +85,14 @@ ui_builder.list_styles:
   requirements:
     _permission: 'access content'
 
+ui_builder.preview:
+  path: '/api/ui-builder/preview'
+  defaults:
+    _controller: '\Drupal\ui_builder\Controller\UiBuilderPreviewController::preview'
+  methods: [POST]
+  requirements:
+    _permission: 'access content'
+
 entity.ui_builder_style.collection:
   path: '/admin/ui-builder/styles'
   defaults:
