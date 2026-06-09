@@ -105,7 +105,8 @@ class UiBuilderRenderer {
         'article', 'main', 'aside', 'nav', 'hr', 'strong', 'em', 'code', 'small',
         'table', 'thead', 'tbody', 'tr', 'th', 'td',
         'form', 'label', 'input', 'select', 'textarea', 'option',
-        'svg', 'path', 'g', 'circle', 'rect'
+        'svg', 'path', 'g', 'circle', 'rect',
+        'video', 'audio', 'source', 'iframe'
       ];
       if (!in_array(strtolower($tag), $safe_tags)) {
         $tag = 'div';
@@ -186,6 +187,11 @@ class UiBuilderRenderer {
           }
           
           if ($resolved_val !== NULL && $resolved_val !== '') {
+            // Convert camelCase React media props to lowercase HTML5 attributes
+            $media_props = ['autoplay', 'playsinline', 'crossorigin', 'loop', 'muted', 'controls'];
+            if (in_array(strtolower($prop_name), $media_props)) {
+              $prop_name = strtolower($prop_name);
+            }
             $attributes[$prop_name] = $resolved_val;
           }
         }
@@ -303,7 +309,24 @@ class UiBuilderRenderer {
             ];
           }
         } else {
+          if ($media_url) $element['#attributes']['src'] = $media_url;
+        }
+      }
+      elseif (in_array(strtolower($tag), ['video', 'audio', 'iframe', 'source'])) {
+        if ($media_url) {
           $element['#attributes']['src'] = $media_url;
+        }
+        
+        // Force controls for video/audio ONLY IF it wasn't explicitly configured in properties
+        if (in_array(strtolower($tag), ['video', 'audio'])) {
+          $props = $component['props'] ?? [];
+          if (!array_key_exists('controls', $props)) {
+            $element['#attributes']['controls'] = 'controls';
+          }
+        }
+
+        if (!empty($component['children']) && is_array($component['children'])) {
+          $element['children'] = $this->buildRenderArray($component['children'], $entity);
         }
       }
       elseif (!empty($component['children']) && is_array($component['children'])) {

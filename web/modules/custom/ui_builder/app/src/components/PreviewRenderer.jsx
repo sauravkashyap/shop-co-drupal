@@ -57,6 +57,15 @@ export function PreviewRenderer({ nodes }) {
       return <Tag {...props} />;
     }
 
+    // Handle video, audio, iframe where content might be the URL
+    if (['video', 'audio', 'iframe', 'source'].includes(Tag.toLowerCase()) && node.content && !props.src) {
+      // If the content is just a URL string and not HTML tags
+      if (typeof node.content === 'string' && !node.content.trim().startsWith('<')) {
+        props.src = node.content;
+        delete node.content;
+      }
+    }
+
     // If node has content (text or HTML) and no children
     if (node.content && (!node.children || node.children.length === 0)) {
       if (typeof node.content === 'string' && node.content.trim().startsWith('<')) {

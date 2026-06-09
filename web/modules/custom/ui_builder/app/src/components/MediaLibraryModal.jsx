@@ -81,7 +81,7 @@ export function MediaLibraryModal({ isOpen, onClose, onSelect, accept = 'image/*
               {isUploading ? 'Uploading...' : 'Upload New Media'}
             </button>
             <span className="media-library-help-text">
-              {accept === '.svg,image/svg+xml' ? 'Allowed format: SVG' : 'Allowed formats: PNG, JPG, GIF, WEBP, SVG'}
+              {accept === '.svg,image/svg+xml' ? 'Allowed format: SVG' : accept === 'video/*' ? 'Allowed formats: MP4, WEBM, OGG' : 'Allowed formats: PNG, JPG, GIF, WEBP, SVG'}
             </span>
           </div>
 
@@ -95,12 +95,22 @@ export function MediaLibraryModal({ isOpen, onClose, onSelect, accept = 'image/*
                   if (accept === '.svg,image/svg+xml') {
                     return img.url?.toLowerCase().endsWith('.svg') || img.mime === 'image/svg+xml';
                   }
+                  if (accept === 'video/*') {
+                    return img.mime?.startsWith('video/') || img.url?.match(/\.(mp4|webm|ogg)$/i);
+                  }
+                  if (accept === 'image/*,.svg') {
+                    return img.mime?.startsWith('image/');
+                  }
                   return true;
                 })
                 .map(img => (
                   <div key={img.mid} className="image-item" onClick={() => onSelect(img.url)}>
                     <div className="image-wrapper">
-                      <img src={img.url} alt={img.name} title={img.name} />
+                      {img.mime?.startsWith('video/') || img.url?.match(/\.(mp4|webm|ogg)$/i) ? (
+                        <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <img src={img.url} alt={img.name} title={img.name} />
+                      )}
                     </div>
                     <div className="image-name">{img.name}</div>
                   </div>

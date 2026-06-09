@@ -18,11 +18,14 @@ class UploadController extends ControllerBase {
    */
   public function upload(Request $request) {
     $files = $request->files->get('files');
-    if (empty($files) || !isset($files['image'])) {
-      return new JsonResponse(['error' => 'No image uploaded'], 400);
+    $file_upload = $files['file'] ?? $files['image'] ?? $files['video'] ?? NULL;
+    
+    if (empty($file_upload)) {
+      return new JsonResponse(['error' => 'No file uploaded'], 400);
     }
 
-    $file_upload = $files['image'];
+    $mime_type = $file_upload->getClientMimeType();
+    $is_video = strpos($mime_type, 'video/') === 0;
 
     // Ensure the destination directory exists.
     $destination = 'public://ui-builder';
@@ -41,14 +44,25 @@ class UploadController extends ControllerBase {
       $file->save();
       
       // Create Media entity.
-      $media = Media::create([
-        'bundle' => 'image',
-        'uid' => \Drupal::currentUser()->id(),
-        'field_media_image' => [
-          'target_id' => $file->id(),
-          'alt' => $filename,
-        ],
-      ]);
+      if ($is_video) {
+        $media = Media::create([
+          'bundle' => 'video',
+          'uid' => \Drupal::currentUser()->id(),
+          'field_media_video_file' => [
+            'target_id' => $file->id(),
+          ],
+        ]);
+      } else {
+        $media = Media::create([
+          'bundle' => 'image',
+          'uid' => \Drupal::currentUser()->id(),
+          'field_media_image' => [
+            'target_id' => $file->id(),
+            'alt' => $filename,
+          ],
+        ]);
+      }
+      
       $media->setName($filename);
       $media->save();
       
@@ -58,6 +72,7 @@ class UploadController extends ControllerBase {
         'url' => $url,
         'fid' => $file->id(),
         'mid' => $media->id(),
+        'mime' => $file->getMimeType(),
       ]);
     }
 
@@ -65,11 +80,11 @@ class UploadController extends ControllerBase {
   }
 
   /**
-   * Lists existing images.
+   * Lists existing images and videos.
    */
   public function list() {
     $query = \Drupal::entityQuery('media')
-      ->condition('bundle', 'image')
+      ->condition('bundle', ['image', 'video'], 'IN')
       ->sort('created', 'DESC')
       ->range(0, 50)
       ->accessCheck(FALSE);
@@ -78,16 +93,22 @@ class UploadController extends ControllerBase {
     $media_entities = Media::loadMultiple($mids);
     $result = [];
     foreach ($media_entities as $media) {
-      $file_id = $media->get('field_media_image')->target_id;
-      if ($file_id) {
-        $file = File::load($file_id);
-        if ($file) {
-          $result[] = [
-            'mid' => $media->id(),
-            'fid' => $file->id(),
-            'url' => \Drupal::service('file_url_generator')->generateString($file->getFileUri()),
-            'name' => $media->getName(),
-          ];
+      $bundle = $media->bundle();
+      $field_name = $bundle === 'video' ? 'field_media_video_file' : 'field_media_image';
+      
+      if ($media->hasField($field_name) && !$media->get($field_name)->isEmpty()) {
+        $file_id = $media->get($field_name)->target_id;
+        if ($file_id) {
+          $file = File::load($file_id);
+          if ($file) {
+            $result[] = [
+              'mid' => $media->id(),
+              'fid' => $file->id(),
+              'url' => \Drupal::service('file_url_generator')->generateString($file->getFileUri()),
+              'name' => $media->getName(),
+              'mime' => $file->getMimeType(),
+            ];
+          }
         }
       }
     }

@@ -40,7 +40,11 @@ export function ImageEditor({ mode, value, onUpdate, accept = 'image/*,.svg', la
             <div className="image-preview-grid">
               {images.length > 0 ? images.map((img, i) => (
                 <div key={i} className="image-preview-item">
-                  <img src={img} alt="Preview" />
+                  {img?.match(/\.(mp4|webm|ogg)$/i) ? (
+                    <video src={img} controls style={{ width: '100%', borderRadius: '4px' }} />
+                  ) : (
+                    <img src={img} alt="Preview" />
+                  )}
                   <button type="button" className="remove-img" onClick={() => {
                     const newImgs = images.filter((_, idx) => idx !== i);
                     const finalVal = newImgs.length === 0 ? '' : (newImgs.length === 1 ? newImgs[0] : newImgs);

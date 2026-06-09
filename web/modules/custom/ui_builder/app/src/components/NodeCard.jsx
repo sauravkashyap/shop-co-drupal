@@ -440,6 +440,14 @@ export function NodeCard({
                   style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', display: 'block', margin: '0 auto' }} 
                 />
               </div>
+            ) : node.tag === 'video' ? (
+              <div className="ss-box-video-preview">
+                <video 
+                  src={displayContent} 
+                  controls 
+                  style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', display: 'block', margin: '0 auto' }} 
+                />
+              </div>
             ) : node.tag === 'svg' ? (
               // SVG: URL from media library → img preview; raw markup → render inline
               <div className="ss-box-image-preview" style={{ textAlign: 'center', padding: '8px' }}>

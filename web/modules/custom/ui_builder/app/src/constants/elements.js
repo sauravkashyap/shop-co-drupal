@@ -19,7 +19,7 @@ export const ELEMENT_CATEGORIES = [
     elements: [
       { type: 'img', label: 'Image', icon: '🖼', isField: true, defaultProps: { class: 'uib-img' } },
       { type: 'svg', label: 'SVG', icon: 'S', isField: true, defaultProps: { class: 'uib-svg' } },
-      { type: 'video', label: 'Video', icon: '▶', isField: true, defaultProps: { class: '' } },
+      { type: 'video', label: 'Video', icon: '▶', isField: true, defaultProps: { class: '', controls: true } },
     ]
   },
   {
