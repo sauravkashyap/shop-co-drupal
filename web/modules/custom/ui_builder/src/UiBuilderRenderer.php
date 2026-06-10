@@ -99,6 +99,12 @@ class UiBuilderRenderer {
         elseif (strpos($label, 'Link') !== FALSE) $tag = 'a';
       }
 
+      $is_choices = ($tag === 'choices' || $tag === 'select2');
+      if ($is_choices) {
+        $tag = 'select';
+        $component['props']['class'] = trim(($component['props']['class'] ?? '') . ' choices-enabled');
+      }
+
       $safe_tags = [
         'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'img', 
         'section', 'header', 'footer', 'button', 'ul', 'ol', 'li', 'blockquote',
@@ -107,7 +113,7 @@ class UiBuilderRenderer {
         'form', 'label', 'input', 'select', 'textarea', 'option',
         'svg', 'path', 'g', 'circle', 'rect',
         'video', 'audio', 'source', 'iframe',
-        'drupal-block', 'drupal-menu'
+        'drupal-block', 'drupal-menu', 'choices'
       ];
       if (!in_array(strtolower($tag), $safe_tags)) {
         $tag = 'div';
@@ -117,6 +123,10 @@ class UiBuilderRenderer {
         '#type' => 'html_tag',
         '#tag' => $tag,
       ];
+
+      if ($is_choices) {
+        $element['#attached']['library'][] = 'ui_builder/ui_builder_choices';
+      }
 
       $attributes = [];
       if (!empty($component['props']['class'])) {

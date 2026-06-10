@@ -169,3 +169,15 @@
 .uib-custom-arrow i {
   font-size: 24px;
 }
+
+/* Fix for Choices.js dropdown getting overlapped by subsequent sections */
+.choices {
+  position: relative;
+}
+.choices.is-open {
+  z-index: 9999 !important;
+}
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+  z-index: 9999 !important;
+}

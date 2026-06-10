@@ -108,3 +108,10 @@
   Note: All other styles (Typography, Spacing, Colors) 
   are injected dynamically from the Drupal Base Styles form.
 */
+
+/* CSS Grid Auto-fit Layout */
+.uib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}

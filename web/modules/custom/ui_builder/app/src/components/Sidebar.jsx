@@ -62,6 +62,7 @@ const ELEMENT_ICONS = {
   'Input Field': TextCursorInput,
   'Textarea': AlignLeft,
   'Select Dropdown': MousePointer2,
+  'Advanced Select (Choices.js)': MousePointer2,
   'Select Option': CircleDot,
   // Interactive
   'Button': MousePointerClick,
@@ -152,7 +153,7 @@ function DraggableElement({ el, catColor, onClick }) {
       style={style}
       className={`ss-element-row ${isDragging ? 'is-dragging' : ''}`}
       onClick={() => onClick(el)}
-      title={`Add ${el.label}`}
+      title={el.tooltip || `Add ${el.label}`}
       {...listeners}
       {...attributes}
     >

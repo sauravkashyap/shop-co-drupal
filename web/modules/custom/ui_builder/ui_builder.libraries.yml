@@ -68,3 +68,15 @@ ui_builder_accordion:
   dependencies:
     - core/drupal
     - core/once
+
+ui_builder_choices:
+  version: 11.0.0
+  js:
+    js/choices/choices.min.js: { minified: true }
+    js/ui_builder_choices.js: {}
+  css:
+    component:
+      css/choices/choices.min.css: { minified: true }
+  dependencies:
+    - core/drupal
+    - core/once

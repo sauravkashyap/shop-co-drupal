@@ -147,6 +147,17 @@ export const ELEMENT_CATEGORIES = [
           { type: 'option', label: 'Select Option', content: 'Select an option...', isField: true }
         ]
       },
+      { 
+        type: 'choices', 
+        label: 'Advanced Select (Choices.js)', 
+        icon: '▾', 
+        isField: false,
+        tooltip: 'Means you can style it or you can style this select element or whatever suits so users can understand why there are two select elements.',
+        defaultProps: { class: 'uib-choices' },
+        defaultChildren: [
+          { type: 'option', label: 'Select Option', content: 'Select an option...', isField: true }
+        ]
+      },
       { type: 'option', label: 'Select Option', icon: '○', isField: true, defaultContent: 'Option' },
       { type: 'textarea', label: 'Textarea', icon: '¶', isField: true, defaultProps: { class: 'uib-textarea' } },
     ]
