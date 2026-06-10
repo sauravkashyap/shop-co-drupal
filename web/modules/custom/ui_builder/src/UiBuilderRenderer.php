@@ -106,7 +106,8 @@ class UiBuilderRenderer {
         'table', 'thead', 'tbody', 'tr', 'th', 'td',
         'form', 'label', 'input', 'select', 'textarea', 'option',
         'svg', 'path', 'g', 'circle', 'rect',
-        'video', 'audio', 'source', 'iframe'
+        'video', 'audio', 'source', 'iframe',
+        'drupal-block', 'drupal-menu'
       ];
       if (!in_array(strtolower($tag), $safe_tags)) {
         $tag = 'div';
@@ -327,6 +328,55 @@ class UiBuilderRenderer {
 
         if (!empty($component['children']) && is_array($component['children'])) {
           $element['children'] = $this->buildRenderArray($component['children'], $entity);
+        }
+      }
+      elseif ($tag === 'drupal-block') {
+        $block_id = $component['props']['block-id'] ?? NULL;
+        $element['#type'] = 'container';
+        unset($element['#tag']);
+        if ($block_id) {
+          try {
+            $block_manager = \Drupal::service('plugin.manager.block');
+            if ($block_manager->hasDefinition($block_id)) {
+              $plugin_block = $block_manager->createInstance($block_id, []);
+              if ($plugin_block) {
+                if ($plugin_block instanceof \Drupal\Core\Plugin\ContextAwarePluginInterface) {
+                  $contexts = \Drupal::service('context.repository')->getAvailableContexts();
+                  if ($entity) {
+                    $entity_context = \Drupal\Core\Plugin\Context\EntityContext::fromEntity($entity);
+                    $contexts['entity'] = $entity_context;
+                    $contexts['node'] = $entity_context;
+                    $contexts['@node.node_route_context:node'] = $entity_context;
+                  }
+                  $contexts['view_mode'] = new \Drupal\Core\Plugin\Context\Context(new \Drupal\Core\Plugin\Context\ContextDefinition('string'), 'full');
+                  try {
+                    \Drupal::service('context.handler')->applyContextMapping($plugin_block, $contexts);
+                  } catch (\Exception $e) {
+                    // Ignore missing context errors.
+                  }
+                }
+
+                $access_result = $plugin_block->access(\Drupal::currentUser(), TRUE);
+                if ($access_result->isAllowed()) {
+                  $block_build = $plugin_block->build();
+                  if (!empty($block_build)) {
+                    $cacheability = \Drupal\Core\Cache\CacheableMetadata::createFromObject($plugin_block)
+                      ->merge(\Drupal\Core\Cache\CacheableMetadata::createFromObject($access_result))
+                      ->merge(\Drupal\Core\Cache\CacheableMetadata::createFromRenderArray($block_build));
+                    $cacheability->applyTo($element);
+                    $element[] = $block_build;
+                  }
+                } else {
+                  \Drupal\Core\Cache\CacheableMetadata::createFromObject($access_result)->applyTo($element);
+                }
+              }
+            }
+          } catch (\Exception $e) {
+            \Drupal::logger('ui_builder')->error('Failed to render block %id: @message', [
+              '%id' => $block_id,
+              '@message' => $e->getMessage(),
+            ]);
+          }
         }
       }
       elseif (!empty($component['children']) && is_array($component['children'])) {
