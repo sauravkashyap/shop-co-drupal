@@ -99,6 +99,7 @@ export function PropertiesPanel({
 
   // Drupal blocks
   const [availableBlocks, setAvailableBlocks] = useState([]);
+  const [availableMenus, setAvailableMenus] = useState([]);
   useEffect(() => {
     fetch('/api/ui-builder/blocks')
       .then(res => res.json())
@@ -108,6 +109,15 @@ export function PropertiesPanel({
         }
       })
       .catch(err => console.error('Error fetching blocks:', err));
+      
+    fetch('/api/ui-builder/menus')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAvailableMenus(data);
+        }
+      })
+      .catch(err => console.error('Error fetching menus:', err));
   }, []);
 
   // SYNC INSTANCE STYLE STATE
@@ -661,6 +671,27 @@ export function PropertiesPanel({
                             <option value="">-- Select a Block --</option>
                             {availableBlocks.map(block => (
                               <option key={block.id} value={block.id}>{block.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : selectedNode.tag === 'drupal-menu' ? (
+                        <div className="form-group">
+                          <label>Drupal Menu</label>
+                          <select 
+                            value={selectedNode.props?.['menu-name'] || ''}
+                            onChange={(e) => updateNodeProperty(selectedNode.id, 'menu-name', e.target.value)}
+                            style={{ 
+                              width: '100%', 
+                              padding: '8px', 
+                              borderRadius: '4px', 
+                              border: '1px solid var(--sb-border)', 
+                              fontSize: '13px', 
+                              background: '#fff' 
+                            }}
+                          >
+                            <option value="">-- Select a Menu --</option>
+                            {availableMenus.map(menu => (
+                              <option key={menu.id} value={menu.id}>{menu.label}</option>
                             ))}
                           </select>
                         </div>

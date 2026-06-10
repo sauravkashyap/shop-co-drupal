@@ -228,4 +228,26 @@ class UiBuilderController extends ControllerBase {
     return new JsonResponse($result);
   }
 
+  /**
+   * Lists all available menus.
+   */
+  public function listMenus() {
+    $menu_storage = \Drupal::entityTypeManager()->getStorage('menu');
+    $menus = $menu_storage->loadMultiple();
+    
+    $result = [];
+    foreach ($menus as $menu) {
+      $result[] = [
+        'id' => $menu->id(),
+        'label' => $menu->label(),
+      ];
+    }
+    
+    usort($result, function($a, $b) {
+      return strcmp($a['label'], $b['label']);
+    });
+
+    return new JsonResponse($result);
+  }
+
 }

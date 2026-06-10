@@ -132,3 +132,11 @@ ui_builder.list_blocks:
   methods: [GET]
   requirements:
     _permission: 'access content'
+
+ui_builder.list_menus:
+  path: '/api/ui-builder/menus'
+  defaults:
+    _controller: '\Drupal\ui_builder\Controller\UiBuilderController::listMenus'
+  methods: [GET]
+  requirements:
+    _permission: 'access content'

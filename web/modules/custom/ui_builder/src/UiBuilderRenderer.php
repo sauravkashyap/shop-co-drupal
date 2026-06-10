@@ -330,8 +330,10 @@ class UiBuilderRenderer {
           $element['children'] = $this->buildRenderArray($component['children'], $entity);
         }
       }
-      elseif ($tag === 'drupal-block') {
-        $block_id = $component['props']['block-id'] ?? NULL;
+      elseif ($tag === 'drupal-menu' || $tag === 'drupal-block') {
+        $block_id = $tag === 'drupal-menu'
+          ? 'system_menu_block:' . ($component['props']['menu-name'] ?? 'main')
+          : ($component['props']['block-id'] ?? NULL);
         $element['#type'] = 'container';
         unset($element['#tag']);
         if ($block_id) {
@@ -364,6 +366,10 @@ class UiBuilderRenderer {
                       ->merge(\Drupal\Core\Cache\CacheableMetadata::createFromObject($access_result))
                       ->merge(\Drupal\Core\Cache\CacheableMetadata::createFromRenderArray($block_build));
                     $cacheability->applyTo($element);
+                    
+                    // Isolate the block's cache redirect to avoid VariationCache collisions
+                    // when multiple blocks (like menus) add active trail contexts to the page.
+                    $element['#cache']['keys'] = ['ui_builder', 'block', hash('sha256', $block_id . serialize($component['props'] ?? []))];
                     $element[] = $block_build;
                   }
                 } else {
