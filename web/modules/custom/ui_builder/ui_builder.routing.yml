@@ -124,3 +124,11 @@ entity.ui_builder_style.delete_form:
     _title: 'Delete Style'
   requirements:
     _permission: 'administer ui builder styles'
+
+ui_builder.list_blocks:
+  path: '/api/ui-builder/blocks'
+  defaults:
+    _controller: '\Drupal\ui_builder\Controller\UiBuilderController::listBlocks'
+  methods: [GET]
+  requirements:
+    _permission: 'access content'

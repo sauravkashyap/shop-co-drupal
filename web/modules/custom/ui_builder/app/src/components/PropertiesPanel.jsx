@@ -97,6 +97,19 @@ export function PropertiesPanel({
   const [styleCode, setStyleCode] = useState('');
   const [styleLabel, setStyleLabel] = useState('');
 
+  // Drupal blocks
+  const [availableBlocks, setAvailableBlocks] = useState([]);
+  useEffect(() => {
+    fetch('/api/ui-builder/blocks')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAvailableBlocks(data);
+        }
+      })
+      .catch(err => console.error('Error fetching blocks:', err));
+  }, []);
+
   // SYNC INSTANCE STYLE STATE
   useEffect(() => {
     if (selectedNode && selectedNode.instanceStyles) {
@@ -630,61 +643,83 @@ export function PropertiesPanel({
 
                   {isPrimitive ? (
                     <>
-
-                      <div className="form-group">
-                        <label>
-                          {selectedNode.tag === 'img' ? 'Image Source' : selectedNode.tag === 'svg' ? 'SVG Media' : selectedNode.tag === 'video' ? 'Video Source' : 'Text Content'}
-                        </label>
-                        {(selectedNode.tag === 'img' || selectedNode.tag === 'svg' || selectedNode.tag === 'video') ? (
-                          <>
-                            <ImageEditor
+                      {selectedNode.tag === 'drupal-block' ? (
+                        <div className="form-group">
+                          <label>Drupal Block</label>
+                          <select 
+                            value={selectedNode.props?.['block-id'] || ''}
+                            onChange={(e) => updateNodeProperty(selectedNode.id, 'block-id', e.target.value)}
+                            style={{ 
+                              width: '100%', 
+                              padding: '8px', 
+                              borderRadius: '4px', 
+                              border: '1px solid var(--sb-border)', 
+                              fontSize: '13px', 
+                              background: '#fff' 
+                            }}
+                          >
+                            <option value="">-- Select a Block --</option>
+                            {availableBlocks.map(block => (
+                              <option key={block.id} value={block.id}>{block.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <div className="form-group">
+                          <label>
+                            {selectedNode.tag === 'img' ? 'Image Source' : selectedNode.tag === 'svg' ? 'SVG Media' : selectedNode.tag === 'video' ? 'Video Source' : 'Text Content'}
+                          </label>
+                          {(selectedNode.tag === 'img' || selectedNode.tag === 'svg' || selectedNode.tag === 'video') ? (
+                            <>
+                              <ImageEditor
+                                mode={selectedNode.fieldMode || 'static'}
+                                value={selectedNode.content || ''}
+                                accept={selectedNode.tag === 'svg' ? '.svg,image/svg+xml' : selectedNode.tag === 'video' ? 'video/*' : 'image/*,.svg'}
+                                label={selectedNode.tag === 'svg' ? 'SVG' : selectedNode.tag === 'video' ? 'Video' : 'Image'}
+                                onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
+                              />
+                            {selectedNode.tag === 'video' && (
+                              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {['controls', 'autoplay', 'loop', 'muted', 'playsinline'].map(prop => {
+                                  const descriptions = {
+                                    controls: "Show play/pause, timeline, and volume controls.",
+                                    autoplay: "Start playing automatically (usually requires muted).",
+                                    loop: "Restart video automatically when it finishes.",
+                                    muted: "Play the video without sound.",
+                                    playsinline: "Play within the layout on mobile (prevent fullscreen)."
+                                  };
+                                  return (
+                                    <div className="form-group" key={prop} style={{ marginBottom: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <input 
+                                          type="checkbox" 
+                                          id={`video-${prop}-toggle`}
+                                          checked={selectedNode.props?.[prop] === true || selectedNode.props?.[prop] === '1' || selectedNode.props?.[prop] === 'true'}
+                                          onChange={(e) => {
+                                            updateNodeProperty(selectedNode.id, prop, e.target.checked ? true : '');
+                                          }}
+                                          style={{ marginRight: '8px', cursor: 'pointer' }}
+                                        />
+                                        <label htmlFor={`video-${prop}-toggle`} style={{ marginBottom: 0, cursor: 'pointer', textTransform: 'capitalize', fontWeight: 600 }}>{prop}</label>
+                                      </div>
+                                      <div style={{ fontSize: '12px', color: '#666', marginLeft: '21px', marginTop: '2px' }}>
+                                        {descriptions[prop]}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            </>
+                          ) : (
+                            <FieldEditor
                               mode={selectedNode.fieldMode || 'static'}
                               value={selectedNode.content || ''}
-                              accept={selectedNode.tag === 'svg' ? '.svg,image/svg+xml' : selectedNode.tag === 'video' ? 'video/*' : 'image/*,.svg'}
-                              label={selectedNode.tag === 'svg' ? 'SVG' : selectedNode.tag === 'video' ? 'Video' : 'Image'}
                               onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
                             />
-                          {selectedNode.tag === 'video' && (
-                            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                              {['controls', 'autoplay', 'loop', 'muted', 'playsinline'].map(prop => {
-                                const descriptions = {
-                                  controls: "Show play/pause, timeline, and volume controls.",
-                                  autoplay: "Start playing automatically (usually requires muted).",
-                                  loop: "Restart video automatically when it finishes.",
-                                  muted: "Play the video without sound.",
-                                  playsinline: "Play within the layout on mobile (prevent fullscreen)."
-                                };
-                                return (
-                                  <div className="form-group" key={prop} style={{ marginBottom: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                      <input 
-                                        type="checkbox" 
-                                        id={`video-${prop}-toggle`}
-                                        checked={selectedNode.props?.[prop] === true || selectedNode.props?.[prop] === '1' || selectedNode.props?.[prop] === 'true'}
-                                        onChange={(e) => {
-                                          updateNodeProperty(selectedNode.id, prop, e.target.checked ? true : '');
-                                        }}
-                                        style={{ marginRight: '8px', cursor: 'pointer' }}
-                                      />
-                                      <label htmlFor={`video-${prop}-toggle`} style={{ marginBottom: 0, cursor: 'pointer', textTransform: 'capitalize', fontWeight: 600 }}>{prop}</label>
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#666', marginLeft: '21px', marginTop: '2px' }}>
-                                      {descriptions[prop]}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
                           )}
-                          </>
-                        ) : (
-                          <FieldEditor
-                            mode={selectedNode.fieldMode || 'static'}
-                            value={selectedNode.content || ''}
-                            onUpdate={(val, m) => updateNodeField(selectedNode.id, { content: val, fieldMode: m })}
-                          />
-                        )}
-                      </div>
+                        </div>
+                      )}
 
                       {selectedNode.tag === 'a' && (
                         <>

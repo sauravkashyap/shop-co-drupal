@@ -190,4 +190,42 @@ class UiBuilderController extends ControllerBase {
     ]);
   }
 
+  /**
+   * Lists all available blocks.
+   */
+  public function listBlocks() {
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $definitions = $block_manager->getDefinitions();
+    
+    $result = [];
+    foreach ($definitions as $plugin_id => $definition) {
+      $admin_label = $definition['admin_label'] ?? $plugin_id;
+      if ($admin_label instanceof \Drupal\Core\StringTranslation\TranslatableMarkup) {
+        $admin_label = $admin_label->render();
+      }
+      
+      $category = $definition['category'] ?? 'Custom';
+      if ($category instanceof \Drupal\Core\StringTranslation\TranslatableMarkup) {
+        $category = $category->render();
+      }
+      
+      $result[] = [
+        'id' => $plugin_id,
+        'label' => (string) $admin_label,
+        'category' => (string) $category,
+        'provider' => $definition['provider'] ?? 'Unknown',
+      ];
+    }
+    
+    usort($result, function($a, $b) {
+      $cat_cmp = strcmp($a['category'], $b['category']);
+      if ($cat_cmp !== 0) {
+        return $cat_cmp;
+      }
+      return strcmp($a['label'], $b['label']);
+    });
+
+    return new JsonResponse($result);
+  }
+
 }
