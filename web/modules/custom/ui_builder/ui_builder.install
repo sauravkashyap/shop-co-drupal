@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the UI Builder module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function ui_builder_install() {
+  // Try to automatically install the Node modules for the React app
+  // when this Drupal module is installed on a new site.
+  $module_path = \Drupal::service('extension.list.module')->getPath('ui_builder');
+  $app_path = DRUPAL_ROOT . '/' . $module_path . '/app';
+
+  if (is_dir($app_path)) {
+    // We execute npm install in the background. 
+    // Note: This requires the server environment to have Node.js and npm installed.
+    $command = "cd " . escapeshellarg($app_path) . " && npm install > /dev/null 2>&1 &";
+    exec($command);
+    
+    \Drupal::messenger()->addMessage(t('UI Builder installed. A background process has been triggered to run "npm install" in the module\'s /app directory for future development.'));
+  }
+}
